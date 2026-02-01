@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Let Them Cook</title>
+    <link rel="icon" href="/static/favicon.ico">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/static/styles.css">
+    <style>
+      /* Simple transition for modal */
+      #restaurant-modal.hidden { display: none; }
+    </style>
+  </head>
+  <body class="bg-gray-100 text-gray-800 font-sans">
+    <header class="bg-white shadow-sm">
+      <div class="max-w-5xl mx-auto py-4 px-4 sm:px-6 lg:px-8 flex items-center">
+        <img src="/static/logo.png" alt="Logo" class="h-14 w-auto mr-4">
+        <h1 class="text-3xl font-bold text-gray-900">Let Them Cook</h1>
+      </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto p-4 sm:p-6 lg:p-8">
+      <div class="flex flex-col sm:flex-row items-center justify-between mb-8 gap-4">
+        <div>
+           <!-- <h2 class="text-3xl font-bold text-gray-900 tracking-tight">Let Them Cook</h2> -->
+           <p class="text-gray-500 mt-1">Record and manage your favorite dining spots.</p>
+        </div>
+        <div class="flex items-center gap-4">
+          <button id="add-restaurant-btn" class="inline-flex items-center justify-center py-2.5 px-5 border border-transparent shadow-md text-sm font-semibold rounded-full text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all hover:scale-105">
+            + Add Restaurant
+          </button>
+        </div>
+      </div>
+      
+      <!-- Modern Filter Bar -->
+      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-8">
+        <div class="space-y-4">
+          <!-- Search -->
+          <div class="relative group">
+              <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <svg class="h-5 w-5 text-gray-400 group-focus-within:text-indigo-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+              </div>
+              <input id="search-input" type="search" placeholder="Search by restaurant name..." class="pl-11 block w-full bg-gray-50 border-transparent focus:bg-white focus:border-indigo-500 focus:ring-0 rounded-xl py-3 text-gray-900 placeholder-gray-400 transition-all hover:bg-gray-100" />
+          </div>
+
+          <div class="flex flex-col lg:flex-row gap-6 justify-between lg:items-center border-t border-gray-100 pt-4">
+              <!-- Type Filter -->
+              <div class="flex flex-col sm:flex-row sm:items-center gap-3">
+                  <span class="text-xs font-semibold uppercase tracking-wider text-gray-400">Type</span>
+                  <div class="flex gap-1 p-1 bg-gray-100 rounded-xl" id="type-filter-group">
+                      <input type="hidden" id="filter-type" value="">
+                      <button class="filter-btn-type flex-1 sm:flex-none px-4 py-2 rounded-lg text-sm font-medium bg-white text-gray-900 shadow-sm transition-all" data-value="">All</button>
+                      <button class="filter-btn-type flex-1 sm:flex-none px-4 py-2 rounded-lg text-sm font-medium text-gray-500 hover:text-gray-900 transition-all" data-value="dine-in">Dine-in</button>
+                      <button class="filter-btn-type flex-1 sm:flex-none px-4 py-2 rounded-lg text-sm font-medium text-gray-500 hover:text-gray-900 transition-all" data-value="delivery">Delivery</button>
+                      <button class="filter-btn-type flex-1 sm:flex-none px-4 py-2 rounded-lg text-sm font-medium text-gray-500 hover:text-gray-900 transition-all" data-value="both">Both</button>
+                  </div>
+              </div>
+
+              <!-- City Filter -->
+              <div class="flex flex-col sm:flex-row sm:items-center gap-3">
+                  <span class="text-xs font-semibold uppercase tracking-wider text-gray-400">City</span>
+                  <select id="filter-city" class="block w-full sm:w-40 pl-3 pr-10 py-2 text-sm border-gray-200 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 rounded-lg bg-gray-50 text-gray-700 shadow-sm transition-all hover:bg-white hover:border-indigo-300">
+                      <option value="">All Cities</option>
+                  </select>
+              </div>
+
+               <!-- Rating Filter -->
+              <div class="flex flex-col sm:flex-row sm:items-center gap-3">
+                  <span class="text-xs font-semibold uppercase tracking-wider text-gray-400">Min Rating</span>
+                  <div class="flex flex-wrap gap-2" id="rating-filter-group">
+                      <input type="hidden" id="filter-rating" value="0">
+                      <button class="filter-btn-rating px-4 py-2 rounded-full border text-sm font-medium transition-all bg-indigo-50 border-indigo-200 text-indigo-700" data-value="0">Any</button>
+                      <button class="filter-btn-rating px-4 py-2 rounded-full border border-gray-200 text-gray-600 text-sm font-medium hover:border-indigo-300 hover:text-indigo-600 bg-white transition-all shadow-sm hover:shadow-md" data-value="5">5★</button>
+                      <button class="filter-btn-rating px-4 py-2 rounded-full border border-gray-200 text-gray-600 text-sm font-medium hover:border-indigo-300 hover:text-indigo-600 bg-white transition-all shadow-sm hover:shadow-md" data-value="4">4+★</button>
+                      <button class="filter-btn-rating px-4 py-2 rounded-full border border-gray-200 text-gray-600 text-sm font-medium hover:border-indigo-300 hover:text-indigo-600 bg-white transition-all shadow-sm hover:shadow-md" data-value="3">3+★</button>
+                  </div>
+              </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <!-- cards will be injected here -->
+      </div>
+    </main>
+
+    <!-- Modal -->
+    <div id="restaurant-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-10">
+      <div class="relative top-20 mx-auto p-5 border w-full max-w-md shadow-lg rounded-md bg-white">
+        <div class="flex justify-between items-center border-b pb-3 mb-5">
+          <h2 id="modal-title" class="text-xl font-semibold">Add Restaurant</h2>
+          <button id="close-modal-btn" class="text-gray-500 hover:text-gray-800 text-3xl font-light">&times;</button>
+        </div>
+        <form id="restaurant-form" class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Restaurant name</label>
+            <gmp-place-autocomplete id="place-autocomplete" placeholder="Start typing a restaurant name"></gmp-place-autocomplete>
+            <input type="hidden" id="place-id" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Type</label>
+            <div id="type-buttons" role="group" class="flex space-x-1 rounded-lg p-1 bg-gray-200">
+                <button type="button" data-value="dine-in" class="type-button flex-1 rounded-md py-2 text-sm font-medium text-gray-700 bg-white shadow-sm ring-1 ring-inset ring-gray-300">Dine-in</button>
+                <button type="button" data-value="delivery" class="type-button flex-1 rounded-md py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">Delivery</button>
+                <button type="button" data-value="both" class="type-button flex-1 rounded-md py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">Both</button>
+            </div>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Rating</label>
+            <div id="rating-stars" class="mt-1 flex items-center cursor-pointer" data-rating="5">
+                <svg class="w-6 h-6 text-yellow-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.262 3.89a1 1 0 00.95.69h4.1c.969 0 1.371 1.24.588 1.81l-3.32 2.41a1 1 0 00-.364 1.118l1.262 3.89c.3.921-.755 1.688-1.54 1.118l-3.32-2.41a1 1 0 00-1.176 0l-3.32 2.41c-.785.57-1.84-.197-1.54-1.118l1.262-3.89a1 1 0 00-.364-1.118L2.15 9.317c-.783-.57-.38-1.81.588-1.81h4.1a1 1 0 00.95-.69l1.262-3.89z"/></svg>
+                <svg class="w-6 h-6 text-yellow-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.262 3.89a1 1 0 00.95.69h4.1c.969 0 1.371 1.24.588 1.81l-3.32 2.41a1 1 0 00-.364 1.118l1.262 3.89c.3.921-.755 1.688-1.54 1.118l-3.32-2.41a1 1 0 00-1.176 0l-3.32 2.41c-.785.57-1.84-.197-1.54-1.118l1.262-3.89a1 1 0 00-.364-1.118L2.15 9.317c-.783-.57-.38-1.81.588-1.81h4.1a1 1 0 00.95-.69l1.262-3.89z"/></svg>
+                <svg class="w-6 h-6 text-yellow-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.262 3.89a1 1 0 00.95.69h4.1c.969 0 1.371 1.24.588 1.81l-3.32 2.41a1 1 0 00-.364 1.118l1.262 3.89c.3.921-.755 1.688-1.54 1.118l-3.32-2.41a1 1 0 00-1.176 0l-3.32 2.41c-.785.57-1.84-.197-1.54-1.118l1.262-3.89a1 1 0 00-.364-1.118L2.15 9.317c-.783-.57-.38-1.81.588-1.81h4.1a1 1 0 00.95-.69l1.262-3.89z"/></svg>
+                <svg class="w-6 h-6 text-yellow-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.262 3.89a1 1 0 00.95.69h4.1c.969 0 1.371 1.24.588 1.81l-3.32 2.41a1 1 0 00-.364 1.118l1.262 3.89c.3.921-.755 1.688-1.54 1.118l-3.32-2.41a1 1 0 00-1.176 0l-3.32 2.41c-.785.57-1.84-.197-1.54-1.118l1.262-3.89a1 1 0 00-.364-1.118L2.15 9.317c-.783-.57-.38-1.81.588-1.81h4.1a1 1 0 00.95-.69l1.262-3.89z"/></svg>
+                <svg class="w-6 h-6 text-yellow-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.262 3.89a1 1 0 00.95.69h4.1c.969 0 1.371 1.24.588 1.81l-3.32 2.41a1 1 0 00-.364 1.118l1.262 3.89c.3.921-.755 1.688-1.54 1.118l-3.32-2.41a1 1 0 00-1.176 0l-3.32 2.41c-.785.57-1.84-.197-1.54-1.118l1.262-3.89a1 1 0 00-.364-1.118L2.15 9.317c-.783-.57-.38-1.81.588-1.81h4.1a1 1 0 00.95-.69l1.262-3.89z"/></svg>
+            </div>
+          </div>
+          <div class="pt-4 flex items-center gap-3">
+            <button id="submit-btn" type="submit" class="flex-1 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700">Add restaurant</button>
+          </div>
+          <input type="hidden" id="edit-id" />
+          <div id="message" class="text-sm text-center pt-2 h-6"></div>
+        </form>
+      </div>
+    </div>
+
+    <script async src="https://maps.googleapis.com/maps/api/js?key={{ google_api_key }}&libraries=places&loading=async"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@googlemaps/js-api-loader@1.16.2/dist/index.min.js"></script>
+    <script src="/static/app.js"></script>
+  </body>
+</html>
