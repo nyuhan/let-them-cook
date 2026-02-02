@@ -283,15 +283,12 @@ function renderCard(r) {
   const metaDiv = document.createElement('div');
   metaDiv.className = 'flex items-center space-x-2 flex-shrink-0';
 
-  if (r.priceLevel) {
-    const priceSpan = document.createElement('span');
-    priceSpan.className = 'text-xs font-semibold text-gray-500 font-mono tracking-widest';
-    priceSpan.textContent = '$'.repeat(r.priceLevel);
-    metaDiv.appendChild(priceSpan);
-  }
+  let badgeColors = 'bg-indigo-100 text-indigo-800';
+  if (r.type === 'dine-in') badgeColors = 'bg-green-100 text-green-800';
+  else if (r.type === 'delivery') badgeColors = 'bg-orange-100 text-orange-800';
 
   const badge = document.createElement('span');
-  badge.className = 'inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-800 capitalize';
+  badge.className = `inline-flex items-center px-2 py-0.5 rounded text-xs font-medium capitalize ${badgeColors}`;
   badge.textContent = (r.type || 'unknown').replace('-', ' ');
   metaDiv.appendChild(badge);
 
@@ -299,17 +296,30 @@ function renderCard(r) {
   
   card.appendChild(header);
 
-  // 2. Body: City and Rating
+  // 2. Body: City, Price, and Rating
   const body = document.createElement('div');
   
+  // Second line: City (left) + Price (right)
+  const secondLine = document.createElement('div');
+  secondLine.className = 'flex items-center justify-between mb-2 text-sm';
+
   // City
+  const cityEl = document.createElement('div');
+  cityEl.className = 'flex items-center text-gray-500 truncate mr-2';
   if (r.city) {
-    const cityEl = document.createElement('div');
-    cityEl.className = 'flex items-center text-sm text-gray-500 mb-2 truncate';
-    // Map pin icon
     cityEl.innerHTML = `<svg class="w-4 h-4 text-gray-400 mr-1 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg><span class="truncate">${escapeHtml(r.city)}</span>`;
-    body.appendChild(cityEl);
   }
+  secondLine.appendChild(cityEl);
+
+  // Price
+  if (r.priceLevel) {
+    const priceSpan = document.createElement('div');
+    priceSpan.className = 'font-semibold text-gray-500 font-mono tracking-widest flex-shrink-0';
+    priceSpan.textContent = '$'.repeat(r.priceLevel);
+    secondLine.appendChild(priceSpan);
+  }
+  
+  body.appendChild(secondLine);
 
   // Rating
   const ratingEl = document.createElement('div');
