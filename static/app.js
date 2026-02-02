@@ -167,6 +167,7 @@ function clearFilters() {
     document.getElementById('filter-type').value = '';
     document.getElementById('filter-city').value = '';
     document.getElementById('filter-rating').value = '0';
+    document.getElementById('filter-price').value = '';
     
     // Reset visual state for type buttons
     const typeFilterGroup = document.getElementById('type-filter-group');
@@ -196,6 +197,20 @@ function clearFilters() {
         });
     }
 
+    // Reset visual state for price buttons
+    const priceFilterGroup = document.getElementById('price-filter-group');
+    if (priceFilterGroup) {
+        priceFilterGroup.querySelectorAll('button').forEach(btn => {
+             if (btn.dataset.value === '') { // 'Any' button
+                 btn.classList.remove('border-gray-200', 'text-gray-600', 'bg-white', 'hover:border-indigo-300', 'hover:text-indigo-600');
+                 btn.classList.add('bg-indigo-50', 'border-indigo-200', 'text-indigo-700');
+             } else {
+                 btn.classList.add('border-gray-200', 'text-gray-600', 'bg-white', 'hover:border-indigo-300', 'hover:text-indigo-600');
+                 btn.classList.remove('bg-indigo-50', 'border-indigo-200', 'text-indigo-700');
+             }
+        });
+    }
+
     applyFilters();
 }
 
@@ -204,11 +219,14 @@ function applyFilters() {
   const type = document.getElementById('filter-type')?.value || '';
   const city = document.getElementById('filter-city')?.value || '';
   const minRating = parseInt(document.getElementById('filter-rating')?.value || '0', 10);
+  const price = document.getElementById('filter-price')?.value || '';
+
   const filtered = restaurantsCache.filter(r => {
     if (q && !(r.name || '').toLowerCase().includes(q)) return false;
     if (type && r.type !== type) return false;
     if (city && r.city !== city) return false;
     if (minRating && (parseInt(r.rating, 10) || 0) < minRating) return false;
+    if (price && (r.priceLevel && r.priceLevel > parseInt(price, 10))) return false;
     return true;
   });
   renderList(filtered);
@@ -563,6 +581,27 @@ document.addEventListener('DOMContentLoaded', () => {
           
           // Update visual state
           ratingFilterGroup.querySelectorAll('button').forEach(b => {
+             if (b === btn) {
+                 b.classList.remove('border-gray-200', 'text-gray-600', 'bg-white', 'hover:border-indigo-300', 'hover:text-indigo-600');
+                 b.classList.add('bg-indigo-50', 'border-indigo-200', 'text-indigo-700');
+             } else {
+                 b.classList.add('border-gray-200', 'text-gray-600', 'bg-white', 'hover:border-indigo-300', 'hover:text-indigo-600');
+                 b.classList.remove('bg-indigo-50', 'border-indigo-200', 'text-indigo-700');
+             }
+          });
+          applyFilters();
+      });
+  }
+
+  const priceFilterGroup = document.getElementById('price-filter-group');
+  if (priceFilterGroup) {
+      priceFilterGroup.addEventListener('click', (e) => {
+          const btn = e.target.closest('button');
+          if (!btn) return;
+          document.getElementById('filter-price').value = btn.dataset.value;
+          
+          // Update visual state
+          priceFilterGroup.querySelectorAll('button').forEach(b => {
              if (b === btn) {
                  b.classList.remove('border-gray-200', 'text-gray-600', 'bg-white', 'hover:border-indigo-300', 'hover:text-indigo-600');
                  b.classList.add('bg-indigo-50', 'border-indigo-200', 'text-indigo-700');
