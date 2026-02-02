@@ -11,7 +11,7 @@ function initAutocomplete() {
   placeAutocomplete.addEventListener('gmp-select', async (event) => {
     const place = event.placePrediction.toPlace();
     await place.fetchFields({
-      fields: ['displayName', 'formattedAddress', 'location', 'addressComponents', 'googleMapsLinks', 'googleMapsURI', 'types'],
+      fields: ['displayName', 'formattedAddress', 'location', 'addressComponents', 'googleMapsLinks', 'googleMapsURI', 'types', 'priceLevel'],
     });
     console.log('Place', JSON.stringify(place.toJSON(), /* replacer */ null, /* space */ 2));
 
@@ -56,8 +56,6 @@ function initAutocomplete() {
 
       document.getElementById('submit-btn').disabled = false;
       document.getElementById('submit-btn').classList.remove('opacity-50', 'cursor-not-allowed');
-
-      console.log('Extracted place data:', window.selectedPlaceData);
     }
   });
 }
