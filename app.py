@@ -131,9 +131,7 @@ def update_restaurant(rest_id):
         (rtype, rating, notes, rest_id),
     )
     db.commit()
-    cur = db.execute('SELECT id, name, type, rating, address, city, map_uri, directions_uri, price_level, notes, created_at FROM restaurants WHERE id = ?', (rest_id,))
-    rows = [snake_to_camel(dict(r)) for r in cur.fetchall()]
-    return jsonify(rows)
+    return jsonify({'status': 'ok'}), 200
 
 
 @app.route('/api/restaurants/<rest_id>', methods=['DELETE'])
