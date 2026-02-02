@@ -81,7 +81,47 @@ function renderList(items) {
   const container = document.getElementById('list');
   container.innerHTML = '';
   if (!Array.isArray(items) || items.length === 0) {
-    container.innerHTML = '<div class="bg-white p-6 rounded-lg shadow text-center text-sm text-gray-500">No restaurants recorded yet.</div>';
+    if (restaurantsCache.length === 0) {
+        // Database is empty
+        container.innerHTML = `
+            <div class="col-span-full bg-white p-12 rounded-lg shadow-sm border border-gray-100 text-center">
+                 <svg class="mx-auto h-12 w-12 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                </svg>
+                <h3 class="mt-2 text-sm font-medium text-gray-900">No restaurants yet</h3>
+                <p class="mt-1 text-sm text-gray-500">Get started by adding your first favorite spot.</p>
+                <div class="mt-6">
+                    <button id="empty-state-add-btn" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        Add Restaurant
+                    </button>
+                </div>
+            </div>`;
+        const emptyStateAddBtn = document.getElementById('empty-state-add-btn');
+        if (emptyStateAddBtn) {
+           emptyStateAddBtn.addEventListener('click', () => {
+             document.getElementById('add-restaurant-btn').click();
+           });
+        }
+    } else {
+        // Filters hid everything
+        container.innerHTML = `
+            <div class="col-span-full bg-white p-12 rounded-lg shadow-sm border border-gray-100 text-center">
+                <svg class="mx-auto h-12 w-12 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <h3 class="mt-2 text-sm font-medium text-gray-900">No matches found</h3>
+                <p class="mt-1 text-sm text-gray-500">Try adjusting your search or filters to find what you're looking for.</p>
+                <div class="mt-6">
+                    <button id="clear-filters-btn" type="button" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        Clear Filters
+                    </button>
+                </div>
+            </div>`;
+        const clearBtn = document.getElementById('clear-filters-btn');
+        if (clearBtn) {
+            clearBtn.addEventListener('click', clearFilters);
+        }
+    }
     return;
   }
   items.forEach(r => container.appendChild(renderCard(r)));
@@ -106,6 +146,45 @@ async function loadCities() {
   } catch (err) {
       console.error('Failed to load cities', err);
   }
+}
+
+function clearFilters() {
+    const searchInput = document.getElementById('search-input');
+    if (searchInput) searchInput.value = '';
+    
+    document.getElementById('filter-type').value = '';
+    document.getElementById('filter-city').value = '';
+    document.getElementById('filter-rating').value = '0';
+    
+    // Reset visual state for type buttons
+    const typeFilterGroup = document.getElementById('type-filter-group');
+    if (typeFilterGroup) {
+        typeFilterGroup.querySelectorAll('button').forEach(btn => {
+             if (btn.dataset.value === '') { // 'All' button
+                 btn.classList.remove('text-gray-500', 'hover:text-gray-900');
+                 btn.classList.add('bg-white', 'text-gray-900', 'shadow-sm');
+             } else {
+                 btn.classList.add('text-gray-500', 'hover:text-gray-900');
+                 btn.classList.remove('bg-white', 'text-gray-900', 'shadow-sm');
+             }
+        });
+    }
+
+    // Reset visual state for rating buttons
+    const ratingFilterGroup = document.getElementById('rating-filter-group');
+    if (ratingFilterGroup) {
+        ratingFilterGroup.querySelectorAll('button').forEach(btn => {
+             if (btn.dataset.value === '0') { // 'Any' button
+                 btn.classList.remove('border-gray-200', 'text-gray-600', 'bg-white', 'hover:border-indigo-300', 'hover:text-indigo-600');
+                 btn.classList.add('bg-indigo-50', 'border-indigo-200', 'text-indigo-700');
+             } else {
+                 btn.classList.add('border-gray-200', 'text-gray-600', 'bg-white', 'hover:border-indigo-300', 'hover:text-indigo-600');
+                 btn.classList.remove('bg-indigo-50', 'border-indigo-200', 'text-indigo-700');
+             }
+        });
+    }
+
+    applyFilters();
 }
 
 function applyFilters() {
