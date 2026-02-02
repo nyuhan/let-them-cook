@@ -43,6 +43,17 @@ function initAutocomplete() {
         }
       }
 
+      let priceLevel = null;
+      const priceLevelMap = {
+        'INEXPENSIVE': 1,
+        'MODERATE': 2,
+        'EXPENSIVE': 3,
+        'VERY_EXPENSIVE': 4
+      };
+      if (place.priceLevel && priceLevelMap[place.priceLevel]) {
+        priceLevel = priceLevelMap[place.priceLevel];
+      }
+
       // Store in global variable for form submission
       window.selectedPlaceData = {
         name: name,
@@ -52,6 +63,7 @@ function initAutocomplete() {
         directionsUri: directionsUri,
         id: place.id,
         types: types,
+        priceLevel: priceLevel,
       };
 
       document.getElementById('submit-btn').disabled = false;
@@ -218,11 +230,23 @@ function renderCard(r) {
   titleLink.textContent = r.name;
   header.appendChild(titleLink);
 
-  const badge = document.createElement('span');
-  badge.className = 'inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-800 capitalize flex-shrink-0';
-  badge.textContent = (r.type || 'unknown').replace('-', ' ');
-  header.appendChild(badge);
+  const metaDiv = document.createElement('div');
+  metaDiv.className = 'flex items-center space-x-2 flex-shrink-0';
 
+  if (r.priceLevel) {
+    const priceSpan = document.createElement('span');
+    priceSpan.className = 'text-xs font-semibold text-gray-500 font-mono tracking-widest';
+    priceSpan.textContent = '$'.repeat(r.priceLevel);
+    metaDiv.appendChild(priceSpan);
+  }
+
+  const badge = document.createElement('span');
+  badge.className = 'inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-800 capitalize';
+  badge.textContent = (r.type || 'unknown').replace('-', ' ');
+  metaDiv.appendChild(badge);
+
+  header.appendChild(metaDiv);
+  
   card.appendChild(header);
 
   // 2. Body: City and Rating
@@ -471,8 +495,9 @@ document.addEventListener('DOMContentLoaded', () => {
       const rating = ratingStarsContainer.dataset.rating;
       const mapUri = placeData.mapUri;
       const directionsUri = placeData.directionsUri;
+      const priceLevel = placeData.priceLevel;
       const editId = document.getElementById('edit-id').value;
-      const payload = { id, name, address, city, type, rating, mapUri, directionsUri };
+      const payload = { id, name, address, city, type, rating, mapUri, directionsUri, priceLevel };
       try {
         let res;
         if (editId) {

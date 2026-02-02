@@ -28,6 +28,13 @@ def get_db():
                 created_at TEXT DEFAULT (CURRENT_TIMESTAMP)
             )'''
         )
+        
+        # Check for price_level column and add if missing
+        cur = db.execute("PRAGMA table_info(restaurants)")
+        columns = [row['name'] for row in cur.fetchall()]
+        if 'price_level' not in columns:
+            db.execute('ALTER TABLE restaurants ADD COLUMN price_level INTEGER')
+
         db.commit()
     return db
 
@@ -78,6 +85,7 @@ def restaurants():
         city = data.get('city')
         map_uri = data.get('mapUri')
         directions_uri = data.get('directionsUri')
+        price_level = data.get('priceLevel')
         try:
             rating = int(rating)
         except Exception:
@@ -85,13 +93,13 @@ def restaurants():
         if not name or rtype not in ('dine-in', 'delivery', 'both') or not (1 <= rating <= 5):
             return jsonify({'error': 'invalid data'}), 400
         db.execute(
-            'INSERT INTO restaurants (id ,name, type, rating, address, city, map_uri, directions_uri, created_at) VALUES (?,?,?,?,?,?,?,?, CURRENT_TIMESTAMP)',
-            (id, name, rtype, rating, address, city, map_uri, directions_uri),
+            'INSERT INTO restaurants (id ,name, type, rating, address, city, map_uri, directions_uri, price_level, created_at) VALUES (?,?,?,?,?,?,?,?,?, CURRENT_TIMESTAMP)',
+            (id, name, rtype, rating, address, city, map_uri, directions_uri, price_level),
         )
         db.commit()
         return jsonify({'status': 'ok'}), 201
 
-    cur = db.execute('SELECT id, name, id, type, rating, address, city, map_uri, directions_uri, created_at FROM restaurants ORDER BY id DESC')
+    cur = db.execute('SELECT id, name, id, type, rating, address, city, map_uri, directions_uri, price_level, created_at FROM restaurants ORDER BY id DESC')
     rows = [snake_to_camel(dict(r)) for r in cur.fetchall()]
     return jsonify(rows)
 
@@ -116,7 +124,7 @@ def update_restaurant(rest_id):
         'UPDATE restaurants SET type = ?, rating = ? WHERE id = ?',
         (rtype, rating, rest_id),
     )
-    db.commit()
+    db.commit()price_level, 
     cur = db.execute('SELECT id, name, id, type, rating, address, city, map_uri, directions_uri, created_at FROM restaurants ORDER BY id DESC')
     rows = [snake_to_camel(dict(r)) for r in cur.fetchall()]
     return jsonify(rows)
