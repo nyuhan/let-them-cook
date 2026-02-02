@@ -47,48 +47,80 @@
           </div>
 
           <div class="flex flex-col lg:flex-row gap-6 justify-between lg:items-center border-t border-gray-100 pt-4">
-              <!-- Type Filter -->
-              <div class="flex flex-col sm:flex-row sm:items-center gap-3">
-                  <span class="text-xs font-semibold uppercase tracking-wider text-gray-400">Type</span>
-                  <div class="flex gap-1 p-1 bg-gray-100 rounded-xl" id="type-filter-group">
-                      <input type="hidden" id="filter-type" value="">
-                      <button class="filter-btn-type flex-1 sm:flex-none px-4 py-2 rounded-lg text-sm font-medium bg-white text-gray-900 shadow-sm transition-all" data-value="">All</button>
-                      <button class="filter-btn-type flex-1 sm:flex-none px-4 py-2 rounded-lg text-sm font-medium text-gray-500 hover:text-gray-900 transition-all" data-value="dine-in">Dine-in</button>
-                      <button class="filter-btn-type flex-1 sm:flex-none px-4 py-2 rounded-lg text-sm font-medium text-gray-500 hover:text-gray-900 transition-all" data-value="delivery">Delivery</button>
-                      <button class="filter-btn-type flex-1 sm:flex-none px-4 py-2 rounded-lg text-sm font-medium text-gray-500 hover:text-gray-900 transition-all" data-value="both">Both</button>
+              <div class="flex flex-wrap gap-3 w-full">
+                  <!-- Type Filter Dropdown -->
+                  <div class="relative inline-block text-left filter-dropdown">
+                    <button type="button" class="dropdown-trigger inline-flex justify-between items-center w-full rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" data-default="Type">
+                      Type
+                      <svg class="-mr-1 ml-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                      </svg>
+                    </button>
+                    <div class="dropdown-menu hidden origin-top-right absolute left-0 mt-2 w-40 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-10">
+                      <div class="py-1" role="none" id="type-filter-options">
+                        <button class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" data-value="" data-label="Type">All</button>
+                        <button class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" data-value="dine-in" data-label="Type: Dine-in">Dine-in</button>
+                        <button class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" data-value="delivery" data-label="Type: Delivery">Delivery</button>
+                        <button class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" data-value="both" data-label="Type: Both">Both</button>
+                      </div>
+                    </div>
+                    <input type="hidden" id="filter-type" value="">
                   </div>
-              </div>
 
-              <!-- City Filter -->
-              <div class="flex flex-col sm:flex-row sm:items-center gap-3">
-                  <span class="text-xs font-semibold uppercase tracking-wider text-gray-400">City</span>
-                  <select id="filter-city" class="block w-full sm:w-40 pl-3 pr-10 py-2 text-sm border-gray-200 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 rounded-lg bg-gray-50 text-gray-700 shadow-sm transition-all hover:bg-white hover:border-indigo-300">
-                      <option value="">All Cities</option>
-                  </select>
-              </div>
-
-               <!-- Rating Filter -->
-              <div class="flex flex-col sm:flex-row sm:items-center gap-3">
-                  <span class="text-xs font-semibold uppercase tracking-wider text-gray-400">Min Rating</span>
-                  <div class="flex flex-wrap gap-2" id="rating-filter-group">
-                      <input type="hidden" id="filter-rating" value="0">
-                      <button class="filter-btn-rating px-4 py-2 rounded-full border text-sm font-medium transition-all bg-indigo-50 border-indigo-200 text-indigo-700" data-value="0">Any</button>
-                      <button class="filter-btn-rating px-4 py-2 rounded-full border border-gray-200 text-gray-600 text-sm font-medium hover:border-indigo-300 hover:text-indigo-600 bg-white transition-all shadow-sm hover:shadow-md" data-value="5">5★</button>
-                      <button class="filter-btn-rating px-4 py-2 rounded-full border border-gray-200 text-gray-600 text-sm font-medium hover:border-indigo-300 hover:text-indigo-600 bg-white transition-all shadow-sm hover:shadow-md" data-value="4">4+★</button>
-                      <button class="filter-btn-rating px-4 py-2 rounded-full border border-gray-200 text-gray-600 text-sm font-medium hover:border-indigo-300 hover:text-indigo-600 bg-white transition-all shadow-sm hover:shadow-md" data-value="3">3+★</button>
+                  <!-- City Filter Dropdown -->
+                  <div class="relative inline-block text-left filter-dropdown">
+                    <button type="button" class="dropdown-trigger inline-flex justify-between items-center w-full rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" data-default="City">
+                      City
+                      <svg class="-mr-1 ml-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                      </svg>
+                    </button>
+                    <div class="dropdown-menu hidden origin-top-right absolute left-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-10 max-h-60 overflow-y-auto">
+                      <div class="py-1" role="none" id="city-filter-options">
+                        <button class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" data-value="" data-label="City">All Cities</button>
+                        <!-- Cities injected here -->
+                      </div>
+                    </div>
+                    <input type="hidden" id="filter-city" value="">
                   </div>
-              </div>
 
-               <!-- Price Filter -->
-              <div class="flex flex-col sm:flex-row sm:items-center gap-3">
-                  <span class="text-xs font-semibold uppercase tracking-wider text-gray-400">Max Price</span>
-                  <div class="flex flex-wrap gap-2" id="price-filter-group">
-                      <input type="hidden" id="filter-price" value="">
-                      <button class="filter-btn-price px-4 py-2 rounded-full border text-sm font-medium transition-all bg-indigo-50 border-indigo-200 text-indigo-700" data-value="">Any</button>
-                      <button class="filter-btn-price px-4 py-2 rounded-full border border-gray-200 text-gray-600 text-sm font-medium hover:border-indigo-300 hover:text-indigo-600 bg-white transition-all shadow-sm hover:shadow-md" data-value="1">$</button>
-                      <button class="filter-btn-price px-4 py-2 rounded-full border border-gray-200 text-gray-600 text-sm font-medium hover:border-indigo-300 hover:text-indigo-600 bg-white transition-all shadow-sm hover:shadow-md" data-value="2">$$</button>
-                      <button class="filter-btn-price px-4 py-2 rounded-full border border-gray-200 text-gray-600 text-sm font-medium hover:border-indigo-300 hover:text-indigo-600 bg-white transition-all shadow-sm hover:shadow-md" data-value="3">$$$</button>
-                      <button class="filter-btn-price px-4 py-2 rounded-full border border-gray-200 text-gray-600 text-sm font-medium hover:border-indigo-300 hover:text-indigo-600 bg-white transition-all shadow-sm hover:shadow-md" data-value="4">$$$$</button>
+                   <!-- Rating Filter Dropdown -->
+                  <div class="relative inline-block text-left filter-dropdown">
+                    <button type="button" class="dropdown-trigger inline-flex justify-between items-center w-full rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" data-default="Min Rating">
+                      Min Rating
+                      <svg class="-mr-1 ml-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                      </svg>
+                    </button>
+                     <div class="dropdown-menu hidden origin-top-right absolute left-0 mt-2 w-40 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-10">
+                      <div class="py-1" role="none" id="rating-filter-options">
+                        <button class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" data-value="0" data-label="Min Rating">Any</button>
+                        <button class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" data-value="5" data-label="Rating: 5★">5★</button>
+                        <button class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" data-value="4" data-label="Rating: 4+★">4+★</button>
+                        <button class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" data-value="3" data-label="Rating: 3+★">3+★</button>
+                      </div>
+                    </div>
+                     <input type="hidden" id="filter-rating" value="0">
+                  </div>
+
+                   <!-- Price Filter Dropdown -->
+                  <div class="relative inline-block text-left filter-dropdown">
+                    <button type="button" class="dropdown-trigger inline-flex justify-between items-center w-full rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" data-default="Max Price">
+                      Max Price
+                      <svg class="-mr-1 ml-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                      </svg>
+                    </button>
+                    <div class="dropdown-menu hidden origin-top-right absolute left-0 mt-2 w-40 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-10">
+                      <div class="py-1" role="none" id="price-filter-options">
+                        <button class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" data-value="" data-label="Max Price">Any</button>
+                        <button class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" data-value="1" data-label="Price: $">$</button>
+                        <button class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" data-value="2" data-label="Price: $$">$$</button>
+                        <button class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" data-value="3" data-label="Price: $$$">$$$</button>
+                        <button class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" data-value="4" data-label="Price: $$$$">$$$$</button>
+                      </div>
+                    </div>
+                     <input type="hidden" id="filter-price" value="">
                   </div>
               </div>
           </div>

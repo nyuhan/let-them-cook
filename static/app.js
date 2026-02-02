@@ -86,7 +86,7 @@ async function loadRestaurants() {
   const res = await fetch('/api/restaurants');
   const data = await res.json();
   restaurantsCache = Array.isArray(data) ? data : [];
-  renderList(restaurantsCache);
+  applyFilters();
 }
 
 function renderList(items) {
@@ -140,19 +140,24 @@ function renderList(items) {
 }
 
 async function loadCities() {
-  const select = document.getElementById('filter-city');
-  if (!select) return;
+  const container = document.getElementById('city-filter-options');
+  if (!container) return;
   try {
     const res = await fetch('/api/cities');
     if (res.ok) {
         const cities = await res.json();
-        // Keep "All Cities" option
-        select.innerHTML = '<option value="">All Cities</option>';
+        // Clear existing except the first "All Cities" button
+        const firstBtn = container.firstElementChild;
+        container.innerHTML = '';
+        if(firstBtn) container.appendChild(firstBtn);
+        
         cities.forEach(city => {
-            const opt = document.createElement('option');
-            opt.value = city;
-            opt.textContent = city;
-            select.appendChild(opt);
+            const btn = document.createElement('button');
+            btn.className = 'block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100';
+            btn.dataset.value = city;
+            btn.dataset.label = `City: ${city}`; // Dynamic label
+            btn.textContent = city;
+            container.appendChild(btn);
         });
     }
   } catch (err) {
@@ -169,50 +174,70 @@ function clearFilters() {
     document.getElementById('filter-rating').value = '0';
     document.getElementById('filter-price').value = '';
     
-    // Reset visual state for type buttons
-    const typeFilterGroup = document.getElementById('type-filter-group');
-    if (typeFilterGroup) {
-        typeFilterGroup.querySelectorAll('button').forEach(btn => {
-             if (btn.dataset.value === '') { // 'All' button
-                 btn.classList.remove('text-gray-500', 'hover:text-gray-900');
-                 btn.classList.add('bg-white', 'text-gray-900', 'shadow-sm');
-             } else {
-                 btn.classList.add('text-gray-500', 'hover:text-gray-900');
-                 btn.classList.remove('bg-white', 'text-gray-900', 'shadow-sm');
-             }
-        });
-    }
-
-    // Reset visual state for rating buttons
-    const ratingFilterGroup = document.getElementById('rating-filter-group');
-    if (ratingFilterGroup) {
-        ratingFilterGroup.querySelectorAll('button').forEach(btn => {
-             if (btn.dataset.value === '0') { // 'Any' button
-                 btn.classList.remove('border-gray-200', 'text-gray-600', 'bg-white', 'hover:border-indigo-300', 'hover:text-indigo-600');
-                 btn.classList.add('bg-indigo-50', 'border-indigo-200', 'text-indigo-700');
-             } else {
-                 btn.classList.add('border-gray-200', 'text-gray-600', 'bg-white', 'hover:border-indigo-300', 'hover:text-indigo-600');
-                 btn.classList.remove('bg-indigo-50', 'border-indigo-200', 'text-indigo-700');
-             }
-        });
-    }
-
-    // Reset visual state for price buttons
-    const priceFilterGroup = document.getElementById('price-filter-group');
-    if (priceFilterGroup) {
-        priceFilterGroup.querySelectorAll('button').forEach(btn => {
-             if (btn.dataset.value === '') { // 'Any' button
-                 btn.classList.remove('border-gray-200', 'text-gray-600', 'bg-white', 'hover:border-indigo-300', 'hover:text-indigo-600');
-                 btn.classList.add('bg-indigo-50', 'border-indigo-200', 'text-indigo-700');
-             } else {
-                 btn.classList.add('border-gray-200', 'text-gray-600', 'bg-white', 'hover:border-indigo-300', 'hover:text-indigo-600');
-                 btn.classList.remove('bg-indigo-50', 'border-indigo-200', 'text-indigo-700');
-             }
-        });
-    }
+    // Reset Dropdown UI
+    document.querySelectorAll('.filter-dropdown').forEach(dropdown => {
+        const trigger = dropdown.querySelector('.dropdown-trigger');
+        const defaultText = trigger.dataset.default;
+        // Reset text
+        trigger.innerHTML = `${defaultText} <svg class="-mr-1 ml-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>`;
+        trigger.classList.remove('bg-indigo-50', 'border-indigo-200', 'text-indigo-700');
+        trigger.classList.add('bg-white', 'border-gray-300', 'text-gray-700');
+    });
 
     applyFilters();
 }
+
+// Initial Setup for Dropdowns
+document.addEventListener('DOMContentLoaded', () => {
+    // Dropdown Toggles using Event Delegation
+    document.addEventListener('click', (e) => {
+        const trigger = e.target.closest('.dropdown-trigger');
+        if (trigger) {
+            const currentMenu = trigger.nextElementSibling;
+            // Close others
+            document.querySelectorAll('.dropdown-menu').forEach(menu => {
+                if (menu !== currentMenu) menu.classList.add('hidden');
+            });
+            currentMenu.classList.toggle('hidden');
+            return;
+        }
+        
+        // Option Click
+        const optionBtn = e.target.closest('.dropdown-menu button');
+        if (optionBtn) {
+            const menu = optionBtn.closest('.dropdown-menu');
+            const container = menu.parentElement; // .filter-dropdown
+            const trigger = container.querySelector('.dropdown-trigger');
+            const input = container.querySelector('input[type="hidden"]');
+            
+            // Set value
+            input.value = optionBtn.dataset.value;
+            
+            // Update Trigger UI
+            const newLabel = optionBtn.dataset.label || optionBtn.textContent;
+            trigger.innerHTML = `${newLabel} <svg class="-mr-1 ml-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>`;
+            
+            // Active State
+            if (optionBtn.dataset.value && optionBtn.dataset.value !== '0') {
+                 trigger.classList.remove('bg-white', 'border-gray-300', 'text-gray-700');
+                 trigger.classList.add('bg-indigo-50', 'border-indigo-200', 'text-indigo-700');
+            } else {
+                 trigger.classList.remove('bg-indigo-50', 'border-indigo-200', 'text-indigo-700');
+                 trigger.classList.add('bg-white', 'border-gray-300', 'text-gray-700');
+            }
+
+            // Close menu and apply
+            menu.classList.add('hidden');
+            applyFilters();
+            return;
+        }
+
+        // Click Outside
+        if (!e.target.closest('.filter-dropdown')) {
+            document.querySelectorAll('.dropdown-menu').forEach(menu => menu.classList.add('hidden'));
+        }
+    });
+});
 
 function applyFilters() {
   const q = (document.getElementById('search-input')?.value || '').trim().toLowerCase();
@@ -550,69 +575,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const searchInput = document.getElementById('search-input');
   if (searchInput) searchInput.addEventListener('input', applyFilters);
 
-  // New filter UI handling
-  const typeFilterGroup = document.getElementById('type-filter-group');
-  if (typeFilterGroup) {
-      typeFilterGroup.addEventListener('click', (e) => {
-          const btn = e.target.closest('button');
-          if (!btn) return;
-          document.getElementById('filter-type').value = btn.dataset.value;
-          
-          // Update visual state
-          typeFilterGroup.querySelectorAll('button').forEach(b => {
-             if (b === btn) {
-                 b.classList.remove('text-gray-500', 'hover:text-gray-900');
-                 b.classList.add('bg-white', 'text-gray-900', 'shadow-sm');
-             } else {
-                 b.classList.add('text-gray-500', 'hover:text-gray-900');
-                 b.classList.remove('bg-white', 'text-gray-900', 'shadow-sm');
-             }
-          });
-          applyFilters();
-      });
-  }
-
-  const ratingFilterGroup = document.getElementById('rating-filter-group');
-  if (ratingFilterGroup) {
-      ratingFilterGroup.addEventListener('click', (e) => {
-          const btn = e.target.closest('button');
-          if (!btn) return;
-          document.getElementById('filter-rating').value = btn.dataset.value;
-          
-          // Update visual state
-          ratingFilterGroup.querySelectorAll('button').forEach(b => {
-             if (b === btn) {
-                 b.classList.remove('border-gray-200', 'text-gray-600', 'bg-white', 'hover:border-indigo-300', 'hover:text-indigo-600');
-                 b.classList.add('bg-indigo-50', 'border-indigo-200', 'text-indigo-700');
-             } else {
-                 b.classList.add('border-gray-200', 'text-gray-600', 'bg-white', 'hover:border-indigo-300', 'hover:text-indigo-600');
-                 b.classList.remove('bg-indigo-50', 'border-indigo-200', 'text-indigo-700');
-             }
-          });
-          applyFilters();
-      });
-  }
-
-  const priceFilterGroup = document.getElementById('price-filter-group');
-  if (priceFilterGroup) {
-      priceFilterGroup.addEventListener('click', (e) => {
-          const btn = e.target.closest('button');
-          if (!btn) return;
-          document.getElementById('filter-price').value = btn.dataset.value;
-          
-          // Update visual state
-          priceFilterGroup.querySelectorAll('button').forEach(b => {
-             if (b === btn) {
-                 b.classList.remove('border-gray-200', 'text-gray-600', 'bg-white', 'hover:border-indigo-300', 'hover:text-indigo-600');
-                 b.classList.add('bg-indigo-50', 'border-indigo-200', 'text-indigo-700');
-             } else {
-                 b.classList.add('border-gray-200', 'text-gray-600', 'bg-white', 'hover:border-indigo-300', 'hover:text-indigo-600');
-                 b.classList.remove('bg-indigo-50', 'border-indigo-200', 'text-indigo-700');
-             }
-          });
-          applyFilters();
-      });
-  }
+  // Old listeners removed in favor of global delegation
 
   // refresh removed; list can be reloaded programmatically via loadRestaurants()
 
@@ -670,7 +633,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const res = await fetch(`/api/restaurants/${restaurantToDelete.id}`, { method: 'DELETE' });
                 if (res.ok) {
                     restaurantsCache = restaurantsCache.filter(item => item.id !== restaurantToDelete.id);
-                    renderList(restaurantsCache);
+                    applyFilters();
                     // Also reload cities in case the only restaurant in a city was deleted
                     loadCities();
                 } else {
