@@ -237,6 +237,12 @@ document.addEventListener('DOMContentLoaded', () => {
             document.querySelectorAll('.dropdown-menu').forEach(menu => menu.classList.add('hidden'));
         }
     });
+
+    // Clear filters button at the top
+    const topClearBtn = document.getElementById('top-clear-filters-btn');
+    if (topClearBtn) {
+        topClearBtn.addEventListener('click', clearFilters);
+    }
 });
 
 function applyFilters() {
