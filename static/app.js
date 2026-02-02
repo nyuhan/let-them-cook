@@ -317,6 +317,14 @@ function renderCard(r) {
   const ratingNum = Number(r.rating) || 0;
   ratingEl.innerHTML = renderStars(ratingNum) + `<span class="ml-2 text-sm font-medium text-gray-600">${ratingNum.toFixed(1)}</span>`;
   body.appendChild(ratingEl);
+
+  // Notes
+  if (r.notes) {
+      const notesEl = document.createElement('div');
+      notesEl.className = 'mb-4 text-sm text-gray-600 bg-gray-50 p-2 rounded border border-gray-100 italic';
+      notesEl.textContent = r.notes;
+      body.appendChild(notesEl);
+  }
   
   card.appendChild(body);
 
@@ -419,6 +427,11 @@ function enterEditMode(r) {
     });
   }
 
+  const notesInput = document.getElementById('restaurant-notes');
+  if (notesInput) {
+      notesInput.value = r.notes || '';
+  }
+
   document.getElementById('edit-id').value = r.id;
   const submitBtn = document.getElementById('submit-btn');
   if (submitBtn) {
@@ -469,6 +482,11 @@ function exitEditMode() {
         star.classList.add('text-yellow-400');
         star.classList.remove('text-gray-300');
       } else {
+  
+  const notesInput = document.getElementById('restaurant-notes');
+  if (notesInput) {
+      notesInput.value = '';
+  }
         star.classList.remove('text-yellow-400');
         star.classList.add('text-gray-300');
       }
@@ -541,13 +559,14 @@ document.addEventListener('DOMContentLoaded', () => {
       const address = placeData.address;
       const city = placeData.city;
       const id = placeData.id;
+      const notes = document.getElementById('restaurant-notes')?.value || '';
       const type = selectedType;
       const rating = ratingStarsContainer.dataset.rating;
       const mapUri = placeData.mapUri;
       const directionsUri = placeData.directionsUri;
       const priceLevel = placeData.priceLevel;
       const editId = document.getElementById('edit-id').value;
-      const payload = { id, name, address, city, type, rating, mapUri, directionsUri, priceLevel };
+      const payload = { id, name, address, city, type, rating, mapUri, directionsUri, priceLevel, notes };
       try {
         let res;
         if (editId) {

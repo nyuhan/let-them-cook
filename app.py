@@ -34,6 +34,10 @@ def get_db():
         columns = [row['name'] for row in cur.fetchall()]
         if 'price_level' not in columns:
             db.execute('ALTER TABLE restaurants ADD COLUMN price_level INTEGER')
+        
+        # Check for notes column and add if missing
+        if 'notes' not in columns:
+            db.execute('ALTER TABLE restaurants ADD COLUMN notes TEXT')
 
         db.commit()
     return db
@@ -86,6 +90,7 @@ def restaurants():
         map_uri = data.get('mapUri')
         directions_uri = data.get('directionsUri')
         price_level = data.get('priceLevel')
+        notes = data.get('notes')
         try:
             rating = int(rating)
         except Exception:
@@ -93,13 +98,13 @@ def restaurants():
         if not name or rtype not in ('dine-in', 'delivery', 'both') or not (1 <= rating <= 5):
             return jsonify({'error': 'invalid data'}), 400
         db.execute(
-            'INSERT INTO restaurants (id ,name, type, rating, address, city, map_uri, directions_uri, price_level, created_at) VALUES (?,?,?,?,?,?,?,?,?, CURRENT_TIMESTAMP)',
-            (id, name, rtype, rating, address, city, map_uri, directions_uri, price_level),
+            'INSERT INTO restaurants (id ,name, type, rating, address, city, map_uri, directions_uri, price_level, notes, created_at) VALUES (?,?,?,?,?,?,?,?,?,?, CURRENT_TIMESTAMP)',
+            (id, name, rtype, rating, address, city, map_uri, directions_uri, price_level, notes),
         )
         db.commit()
         return jsonify({'status': 'ok'}), 201
 
-    cur = db.execute('SELECT id, name, id, type, rating, address, city, map_uri, directions_uri, price_level, created_at FROM restaurants ORDER BY id DESC')
+    cur = db.execute('SELECT id, name, type, rating, address, city, map_uri, directions_uri, price_level, notes, created_at FROM restaurants ORDER BY id DESC')
     rows = [snake_to_camel(dict(r)) for r in cur.fetchall()]
     return jsonify(rows)
 
@@ -120,12 +125,13 @@ def update_restaurant(rest_id):
     cur = db.execute('SELECT id FROM restaurants WHERE id = ?', (rest_id,))
     if cur.fetchone() is None:
         return jsonify({'error': 'not found'}), 404
+    notes = data.get('notes')
     db.execute(
-        'UPDATE restaurants SET type = ?, rating = ? WHERE id = ?',
-        (rtype, rating, rest_id),
+        'UPDATE restaurants SET type = ?, rating = ?, notes = ? WHERE id = ?',
+        (rtype, rating, notes, rest_id),
     )
-    db.commit()price_level, 
-    cur = db.execute('SELECT id, name, id, type, rating, address, city, map_uri, directions_uri, created_at FROM restaurants ORDER BY id DESC')
+    db.commit()
+    cur = db.execute('SELECT id, name, type, rating, address, city, map_uri, directions_uri, price_level, notes, created_at FROM restaurants WHERE id = ?', (rest_id,))
     rows = [snake_to_camel(dict(r)) for r in cur.fetchall()]
     return jsonify(rows)
 
