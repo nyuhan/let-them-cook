@@ -501,20 +501,59 @@ function showMessage(msg, isError = false) {
   setTimeout(() => { el.textContent = '' }, 3000);
 }
 
+// Delete Modal Logic
+let restaurantToDelete = null;
+
 function handleDelete(r) {
-  if (!r || !r.id) return;
-  if (!confirm('Are you sure you want to delete this restaurant?')) return;
-  fetch(`/api/restaurants/${r.id}`, {
-    method: 'DELETE',
-  })
-    .then(res => {
-      if (res.ok) {
-        // Remove from cache and re-render
-        restaurantsCache = restaurantsCache.filter(item => item.id !== r.id);
-        renderList(restaurantsCache);
-      } else {
-        alert('Failed to delete restaurant.');
-      }
-    })
-    .catch(() => alert('Failed to delete restaurant.'));
+    if (!r || !r.id) return;
+    restaurantToDelete = r;
+    const deleteModal = document.getElementById('delete-modal');
+    if (deleteModal) deleteModal.classList.remove('hidden');
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+    // ... previous listeners ...
+    
+    // Existing Delete Modal Listeners
+    const deleteModal = document.getElementById('delete-modal');
+    const confirmDeleteBtn = document.getElementById('confirm-delete-btn');
+    const cancelDeleteBtn = document.getElementById('cancel-delete-btn');
+
+    if (confirmDeleteBtn) {
+        confirmDeleteBtn.addEventListener('click', async () => {
+            if (!restaurantToDelete) return;
+            
+            try {
+                const res = await fetch(`/api/restaurants/${restaurantToDelete.id}`, { method: 'DELETE' });
+                if (res.ok) {
+                    restaurantsCache = restaurantsCache.filter(item => item.id !== restaurantToDelete.id);
+                    renderList(restaurantsCache);
+                    // Also reload cities in case the only restaurant in a city was deleted
+                    loadCities();
+                } else {
+                    alert('Failed to delete restaurant.');
+                }
+            } catch (error) {
+                alert('Failed to delete restaurant.');
+            }
+            
+            if (deleteModal) deleteModal.classList.add('hidden');
+            restaurantToDelete = null;
+        });
+    }
+
+    if (cancelDeleteBtn) {
+        cancelDeleteBtn.addEventListener('click', () => {
+            if (deleteModal) deleteModal.classList.add('hidden');
+            restaurantToDelete = null;
+        });
+    }
+
+    // Close delete modal on outside click
+    window.addEventListener('click', (e) => {
+        if (e.target === deleteModal) {
+            deleteModal.classList.add('hidden');
+            restaurantToDelete = null;
+        }
+    });
+});
