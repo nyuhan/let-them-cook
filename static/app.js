@@ -254,7 +254,8 @@ function applyFilters() {
 
   const filtered = restaurantsCache.filter(r => {
     if (q && !(r.name || '').toLowerCase().includes(q)) return false;
-    if (type && r.type !== type) return false;
+    if (type && type === 'both' && r.type !== type) return false;
+    if (type && type !== 'both' && r.type !== type && r.type !== 'both') return false;
     if (city && r.city !== city) return false;
     if (minRating && (parseInt(r.rating, 10) || 0) < minRating) return false;
     if (price && (r.priceLevel && r.priceLevel > parseInt(price, 10))) return false;
