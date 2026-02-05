@@ -39,6 +39,19 @@ def get_db():
         if 'notes' not in columns:
             db.execute('ALTER TABLE restaurants ADD COLUMN notes TEXT')
 
+        # Create dishes table
+        db.execute(
+            '''CREATE TABLE IF NOT EXISTS dishes (
+                restaurant_id TEXT NOT NULL,
+                name TEXT NOT NULL,
+                rating INTEGER CHECK(rating IN (0, 1)) NOT NULL,
+                notes TEXT,
+                created_at TEXT DEFAULT (CURRENT_TIMESTAMP),
+                PRIMARY KEY (restaurant_id, name),
+                FOREIGN KEY(restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE
+            )'''
+        )
+
         db.commit()
     return db
 
@@ -91,6 +104,7 @@ def restaurants():
         directions_uri = data.get('directionsUri')
         price_level = data.get('priceLevel')
         notes = data.get('notes')
+        dishes = data.get('dishes')
         try:
             rating = int(rating)
         except Exception:
@@ -101,12 +115,48 @@ def restaurants():
             'INSERT INTO restaurants (id ,name, type, rating, address, city, map_uri, directions_uri, price_level, notes, created_at) VALUES (?,?,?,?,?,?,?,?,?,?, CURRENT_TIMESTAMP)',
             (id, name, rtype, rating, address, city, map_uri, directions_uri, price_level, notes),
         )
+
+        if dishes and isinstance(dishes, list):
+            dishes_params = []
+            for dish in dishes:
+                d_name = dish.get('name')
+                d_rating = dish.get('rating')
+                d_notes = dish.get('notes')
+                try:
+                    d_rating = int(d_rating)
+                except (ValueError, TypeError):
+                    continue
+
+                if d_name and d_rating in (0, 1):
+                    dishes_params.append((id, d_name, d_rating, d_notes))
+            
+            if dishes_params:
+                db.executemany(
+                    'INSERT INTO dishes (restaurant_id, name, rating, notes) VALUES (?, ?, ?, ?)',
+                    dishes_params
+                )
+
         db.commit()
         return jsonify({'status': 'ok'}), 201
 
     cur = db.execute('SELECT id, name, type, rating, address, city, map_uri, directions_uri, price_level, notes, created_at FROM restaurants ORDER BY id DESC')
-    rows = [snake_to_camel(dict(r)) for r in cur.fetchall()]
-    return jsonify(rows)
+    restaurants = [snake_to_camel(dict(r)) for r in cur.fetchall()]
+
+    cur = db.execute('SELECT restaurant_id, name, rating, notes FROM dishes')
+    dishes_rows = cur.fetchall()
+
+    dishes_map = {}
+    for d in dishes_rows:
+        rid = d['restaurant_id']
+        dish_dict = {'name': d['name'], 'rating': d['rating'], 'notes': d['notes']}
+        if rid not in dishes_map:
+            dishes_map[rid] = []
+        dishes_map[rid].append(dish_dict)
+
+    for r in restaurants:
+        r['dishes'] = dishes_map.get(r['id'], [])
+
+    return jsonify(restaurants)
 
 
 @app.route('/api/restaurants/<rest_id>', methods=['PUT'])
@@ -130,6 +180,49 @@ def update_restaurant(rest_id):
         'UPDATE restaurants SET type = ?, rating = ?, notes = ? WHERE id = ?',
         (rtype, rating, notes, rest_id),
     )
+
+    dishes = data.get('dishes')
+    if dishes is not None and isinstance(dishes, list):
+        cur = db.execute('SELECT name, rating, notes FROM dishes WHERE restaurant_id = ?', (rest_id,))
+        existing_dishes = {row['name']: {'rating': row['rating'], 'notes': row['notes']} for row in cur.fetchall()}
+
+        to_insert = []
+        to_update = []
+        incoming_names = set()
+
+        for dish in dishes:
+            d_name = dish.get('name')
+            if not d_name:
+                continue
+            
+            d_rating = dish.get('rating')
+            d_notes = dish.get('notes')
+            try:
+                d_rating = int(d_rating)
+            except (ValueError, TypeError):
+                continue
+            
+            if d_rating not in (0, 1):
+                continue
+
+            incoming_names.add(d_name)
+
+            if d_name in existing_dishes:
+                current = existing_dishes[d_name]
+                if current['rating'] != d_rating or current['notes'] != d_notes:
+                    to_update.append((d_rating, d_notes, rest_id, d_name))
+            else:
+                to_insert.append((rest_id, d_name, d_rating, d_notes))
+        
+        to_delete = [(rest_id, name) for name in existing_dishes if name not in incoming_names]
+
+        if to_insert:
+            db.executemany('INSERT INTO dishes (restaurant_id, name, rating, notes) VALUES (?, ?, ?, ?)', to_insert)
+        if to_update:
+            db.executemany('UPDATE dishes SET rating = ?, notes = ? WHERE restaurant_id = ? AND name = ?', to_update)
+        if to_delete:
+            db.executemany('DELETE FROM dishes WHERE restaurant_id = ? AND name = ?', to_delete)
+
     db.commit()
     return jsonify({'status': 'ok'}), 200
 
