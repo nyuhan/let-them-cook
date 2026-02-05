@@ -269,7 +269,8 @@ function applyFilters() {
 
 function renderCard(r) {
   const card = document.createElement('div');
-  card.className = 'bg-white rounded-lg shadow-sm border border-gray-200 p-4 transition-shadow hover:shadow-md h-full flex flex-col justify-between';
+  card.className = 'bg-white rounded-lg shadow-sm border border-gray-200 p-4 transition-shadow hover:shadow-md h-full flex flex-col justify-between cursor-pointer';
+  card.addEventListener('click', () => enterEditMode(r));
 
   // 1. Header: Name (linked) and Badge
   const header = document.createElement('div');
@@ -281,6 +282,7 @@ function renderCard(r) {
   titleLink.rel = 'noopener noreferrer';
   titleLink.className = 'text-lg font-bold text-gray-900 hover:text-indigo-600 line-clamp-1 mr-2';
   titleLink.textContent = r.name;
+  titleLink.addEventListener('click', (e) => e.stopPropagation());
   header.appendChild(titleLink);
 
   const metaDiv = document.createElement('div');
@@ -355,24 +357,21 @@ function renderCard(r) {
     <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 9l3 3m0 0l-3 3m3-3H8m13 0a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
     Let's go!
   `;
+  goBtn.addEventListener('click', (e) => e.stopPropagation());
   footer.appendChild(goBtn);
 
-  // Right: Edit/Delete
+  // Right: Delete (Edit removed)
   const rightActions = document.createElement('div');
   rightActions.className = 'flex items-center space-x-1';
-
-  const editBtn = document.createElement('button');
-  editBtn.className = 'text-gray-400 hover:text-indigo-600 p-2 rounded-full hover:bg-indigo-50 transition-colors';
-  editBtn.title = "Edit";
-  editBtn.innerHTML = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>`;
-  editBtn.addEventListener('click', () => enterEditMode(r));
-  rightActions.appendChild(editBtn);
 
   const deleteBtn = document.createElement('button');
   deleteBtn.className = 'text-gray-400 hover:text-red-600 p-2 rounded-full hover:bg-red-50 transition-colors';
   deleteBtn.title = "Delete";
   deleteBtn.innerHTML = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>`;
-  deleteBtn.addEventListener('click', () => handleDelete(r));
+  deleteBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    handleDelete(r);
+  });
   rightActions.appendChild(deleteBtn);
 
   footer.appendChild(rightActions);
