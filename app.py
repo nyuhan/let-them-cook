@@ -142,13 +142,13 @@ def restaurants():
     cur = db.execute('SELECT id, name, type, rating, address, city, map_uri, directions_uri, price_level, notes, created_at FROM restaurants ORDER BY id DESC')
     restaurants = [snake_to_camel(dict(r)) for r in cur.fetchall()]
 
-    cur = db.execute('SELECT restaurant_id, name, rating, notes FROM dishes')
+    cur = db.execute('SELECT rowid, restaurant_id, name, rating, notes FROM dishes ORDER BY rowid')
     dishes_rows = cur.fetchall()
 
     dishes_map = {}
     for d in dishes_rows:
         rid = d['restaurant_id']
-        dish_dict = {'name': d['name'], 'rating': d['rating'], 'notes': d['notes']}
+        dish_dict = {'id': d['rowid'], 'name': d['name'], 'rating': d['rating'], 'notes': d['notes']}
         if rid not in dishes_map:
             dishes_map[rid] = []
         dishes_map[rid].append(dish_dict)
@@ -183,12 +183,12 @@ def update_restaurant(rest_id):
 
     dishes = data.get('dishes')
     if dishes is not None and isinstance(dishes, list):
-        cur = db.execute('SELECT name, rating, notes FROM dishes WHERE restaurant_id = ?', (rest_id,))
-        existing_dishes = {row['name']: {'rating': row['rating'], 'notes': row['notes']} for row in cur.fetchall()}
+        cur = db.execute('SELECT rowid FROM dishes WHERE restaurant_id = ?', (rest_id,))
+        existing_ids = set(row['rowid'] for row in cur.fetchall())
 
         to_insert = []
         to_update = []
-        incoming_names = set()
+        incoming_ids = set()
 
         for dish in dishes:
             d_name = dish.get('name')
@@ -204,24 +204,26 @@ def update_restaurant(rest_id):
             
             if d_rating not in (0, 1):
                 continue
-
-            incoming_names.add(d_name)
-
-            if d_name in existing_dishes:
-                current = existing_dishes[d_name]
-                if current['rating'] != d_rating or current['notes'] != d_notes:
-                    to_update.append((d_rating, d_notes, rest_id, d_name))
+            
+            d_id = dish.get('id')
+            if d_id:
+                try: d_id = int(d_id)
+                except: d_id = None
+                
+            if d_id and d_id in existing_ids:
+                incoming_ids.add(d_id)
+                to_update.append((d_name, d_rating, d_notes, d_id))
             else:
                 to_insert.append((rest_id, d_name, d_rating, d_notes))
         
-        to_delete = [(rest_id, name) for name in existing_dishes if name not in incoming_names]
+        to_delete = [(rowid,) for rowid in existing_ids if rowid not in incoming_ids]
 
+        if to_delete:
+            db.executemany('DELETE FROM dishes WHERE rowid = ?', to_delete)
+        if to_update:
+            db.executemany('UPDATE dishes SET name = ?, rating = ?, notes = ? WHERE rowid = ?', to_update)
         if to_insert:
             db.executemany('INSERT INTO dishes (restaurant_id, name, rating, notes) VALUES (?, ?, ?, ?)', to_insert)
-        if to_update:
-            db.executemany('UPDATE dishes SET rating = ?, notes = ? WHERE restaurant_id = ? AND name = ?', to_update)
-        if to_delete:
-            db.executemany('DELETE FROM dishes WHERE restaurant_id = ? AND name = ?', to_delete)
 
     db.commit()
     return jsonify({'status': 'ok'}), 200

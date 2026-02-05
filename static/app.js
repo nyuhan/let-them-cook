@@ -1,5 +1,8 @@
 let restaurantsCache = [];
 let selectedType = 'dine-in';
+let currentDishes = [];
+let newDishRating = 1; // 1 for up, 0 for down
+let editingDishIndex = -1;
 
 function initAutocomplete() {
   const placeAutocomplete = document.getElementById('place-autocomplete');
@@ -442,6 +445,11 @@ function enterEditMode(r) {
       notesInput.value = r.notes || '';
   }
 
+  // Load Dishes
+  // deep copy to avoid mutations affecting cache before save
+  currentDishes = (r.dishes || []).map(d => ({ ...d }));
+  renderDishesList();
+
   document.getElementById('edit-id').value = r.id;
   const submitBtn = document.getElementById('submit-btn');
   if (submitBtn) {
@@ -492,16 +500,21 @@ function exitEditMode() {
         star.classList.add('text-yellow-400');
         star.classList.remove('text-gray-300');
       } else {
-  
-  const notesInput = document.getElementById('restaurant-notes');
-  if (notesInput) {
-      notesInput.value = '';
-  }
         star.classList.remove('text-yellow-400');
         star.classList.add('text-gray-300');
       }
     });
   }
+  
+  const notesInput = document.getElementById('restaurant-notes');
+  if (notesInput) {
+      notesInput.value = '';
+  }
+
+  // Reset dishes
+  currentDishes = [];
+  renderDishesList();
+  resetDistForm();
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -576,7 +589,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const directionsUri = placeData.directionsUri;
       const priceLevel = placeData.priceLevel;
       const editId = document.getElementById('edit-id').value;
-      const payload = { id, name, address, city, type, rating, mapUri, directionsUri, priceLevel, notes };
+      const dishes = currentDishes;
+      const payload = { id, name, address, city, type, rating, mapUri, directionsUri, priceLevel, notes, dishes };
       try {
         let res;
         if (editId) {
@@ -634,7 +648,247 @@ document.addEventListener('DOMContentLoaded', () => {
 
   loadCities();
   loadRestaurants();
+
+  // Dishes UI Logic
+  const addDishBtn = document.getElementById('add-dish-btn');
+  const addDishForm = document.getElementById('add-dish-form');
+  const cancelDishBtn = document.getElementById('cancel-dish-btn');
+  const saveDishBtn = document.getElementById('save-dish-btn');
+  const dishRatingUp = document.getElementById('dish-rating-up');
+  const dishRatingDown = document.getElementById('dish-rating-down');
+
+  if (addDishBtn) {
+      addDishBtn.addEventListener('click', () => {
+          resetDistForm();
+          addDishForm.classList.remove('hidden');
+          addDishBtn.classList.add('hidden');
+          document.getElementById('new-dish-name').focus();
+      });
+  }
+
+  if (cancelDishBtn) {
+      cancelDishBtn.addEventListener('click', () => {
+          resetDistForm();
+      });
+  }
+
+  if (saveDishBtn) {
+      saveDishBtn.addEventListener('click', () => {
+         const nameInput = document.getElementById('new-dish-name');
+         const notesInput = document.getElementById('new-dish-notes');
+         
+         const name = nameInput.value.trim();
+         const notes = notesInput.value.trim();
+         const ratingRadio = document.querySelector(`input[name="new-dish-rating"]:checked`);
+         const rating = ratingRadio ? parseInt(ratingRadio.value) : 1;
+         
+         if (!name) {
+             nameInput.focus();
+             return;
+         }
+
+         // Add new dish
+         currentDishes.push({ name, rating, notes });
+
+         renderDishesList();
+         resetDistForm();
+      });
+  }
+
+  if (dishRatingUp) {
+      dishRatingUp.addEventListener('click', () => updateDishRatingUI(1));
+  }
+  if (dishRatingDown) {
+      dishRatingDown.addEventListener('click', () => updateDishRatingUI(0));
+  }
 });
+
+function updateDishRatingUI(rating) {
+  newDishRating = rating;
+  const upBtn = document.getElementById('dish-rating-up');
+  const downBtn = document.getElementById('dish-rating-down');
+  
+  if (rating === 1) {
+    upBtn.classList.add('text-green-600', 'bg-green-50');
+    upBtn.classList.remove('text-gray-400');
+    downBtn.classList.remove('text-red-600', 'bg-red-50');
+    downBtn.classList.add('text-gray-400');
+  } else {
+    upBtn.classList.remove('text-green-600', 'bg-green-50');
+    upBtn.classList.add('text-gray-400');
+    downBtn.classList.add('text-red-600', 'bg-red-50');
+    downBtn.classList.remove('text-gray-400');
+  }
+}
+
+function resetDistForm() {
+    document.getElementById('add-dish-form').classList.add('hidden');
+    document.getElementById('add-dish-btn').classList.remove('hidden');
+    document.getElementById('new-dish-name').value = '';
+    document.getElementById('new-dish-notes').value = '';
+    
+    // Reset radio to "Good"
+    const radioGood = document.querySelector('input[name="new-dish-rating"][value="1"]');
+    if (radioGood) radioGood.checked = true;
+
+    editingDishIndex = -1;
+}
+
+function renderDishesList() {
+    const container = document.getElementById('dishes-container');
+    container.innerHTML = '';
+    
+    currentDishes.forEach((dish, index) => {
+        const dishEl = document.createElement('div');
+        dishEl.className = 'bg-gray-50 rounded border border-gray-100 group';
+        
+        // Inline Edit Mode
+        if (index === editingDishIndex) {
+            dishEl.classList.add('p-3');
+            dishEl.innerHTML = `
+                <div class="space-y-3">
+                    <div class="space-y-2">
+                        <input type="text" id="edit-dish-name-${index}" value="${dish.name.replace(/"/g, '&quot;')}" class="block w-full text-sm border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 shadow-sm" placeholder="Dish name">
+                        <textarea id="edit-dish-notes-${index}" rows="2" class="block w-full text-sm border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 shadow-sm" placeholder="Notes">${(dish.notes || '').replace(/</g, '&lt;')}</textarea>
+                    </div>
+                    <div class="flex items-center justify-between">
+                         <div class="flex gap-4">
+                            <label class="cursor-pointer">
+                                <input type="radio" name="edit-rating-${index}" value="1" ${dish.rating === 1 ? 'checked' : ''} class="peer sr-only">
+                                <div class="p-1.5 rounded-md hover:bg-gray-100 text-gray-400 peer-checked:text-green-700 peer-checked:bg-green-100 transition-all">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                        <path d="M2 10.5a1.5 1.5 0 113 0v6a1.5 1.5 0 01-3 0v-6zM6 10.333v5.43a2 2 0 001.106 1.79l.05.025A4 4 0 008.943 18h5.416a2 2 0 001.962-1.608l1.2-6A2 2 0 0015.56 8H12V4a2 2 0 00-2-2 1 1 0 00-1 1v.667a4 4 0 01-.8 2.4L6.8 7.933a4 4 0 00-.8 2.4z" />
+                                    </svg>
+                                </div>
+                            </label>
+                            <label class="cursor-pointer">
+                                <input type="radio" name="edit-rating-${index}" value="0" ${dish.rating !== 1 ? 'checked' : ''} class="peer sr-only">
+                                <div class="p-1.5 rounded-md hover:bg-gray-100 text-gray-400 peer-checked:text-red-700 peer-checked:bg-red-100 transition-all">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                        <path d="M18 9.5a1.5 1.5 0 11-3 0v-6a1.5 1.5 0 013 0v6zM14 9.667v-5.43a2 2 0 00-1.105-1.79l-.05-.025A4 4 0 0011.055 2H5.64a2 2 0 00-1.962 1.608l-1.2 6A2 2 0 004.44 12H8v4a2 2 0 002 2 1 1 0 001-1v-.667a4 4 0 01.8-2.4l1.4-1.866a4 4 0 00.8-2.4z" />
+                                    </svg>
+                                </div>
+                            </label>
+                         </div>
+                         <div class="flex gap-2">
+                            <button onclick="saveEdit(${index})" type="button" class="inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded text-indigo-700 bg-indigo-100 hover:bg-indigo-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">Save</button>
+                            <button onclick="cancelEdit()" type="button" class="inline-flex items-center px-2.5 py-1.5 border border-gray-300 text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">Cancel</button>
+                         </div>
+                    </div>
+                </div>
+            `;
+        } else {
+            // Normal Display
+            dishEl.classList.add('flex', 'items-start', 'justify-between', 'p-2');
+
+        const contentDiv = document.createElement('div');
+        contentDiv.className = 'flex-1 min-w-0 mr-2';
+        
+        const headerDiv = document.createElement('div');
+        headerDiv.className = 'flex items-center gap-2';
+        
+        const ratingIcon = document.createElement('span');
+        ratingIcon.className = 'flex-shrink-0 mt-0.5'; // Align slightly
+        if (dish.rating === 1) {
+            // Soft Green Badge
+            ratingIcon.innerHTML = `
+                <div class="p-1 rounded-md bg-green-100 text-green-700">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M2 10.5a1.5 1.5 0 113 0v6a1.5 1.5 0 01-3 0v-6zM6 10.333v5.43a2 2 0 001.106 1.79l.05.025A4 4 0 008.943 18h5.416a2 2 0 001.962-1.608l1.2-6A2 2 0 0015.56 8H12V4a2 2 0 00-2-2 1 1 0 00-1 1v.667a4 4 0 01-.8 2.4L6.8 7.933a4 4 0 00-.8 2.4z" />
+                    </svg>
+                </div>`;
+        } else {
+            // Soft Red Badge
+            ratingIcon.innerHTML = `
+                <div class="p-1 rounded-md bg-red-100 text-red-700">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M18 9.5a1.5 1.5 0 11-3 0v-6a1.5 1.5 0 013 0v6zM14 9.667v-5.43a2 2 0 00-1.105-1.79l-.05-.025A4 4 0 0011.055 2H5.64a2 2 0 00-1.962 1.608l-1.2 6A2 2 0 004.44 12H8v4a2 2 0 002 2 1 1 0 001-1v-.667a4 4 0 01.8-2.4l1.4-1.866a4 4 0 00.8-2.4z" />
+                    </svg>
+                </div>`;
+        }
+        
+        const nameSpan = document.createElement('span');
+        nameSpan.className = 'text-sm font-medium text-gray-900 truncate';
+        nameSpan.textContent = dish.name;
+        
+        headerDiv.appendChild(ratingIcon);
+        headerDiv.appendChild(nameSpan);
+        contentDiv.appendChild(headerDiv);
+        
+        if (dish.notes) {
+            const notesP = document.createElement('p');
+            notesP.className = 'text-xs text-gray-500 mt-0.5 truncate';
+            notesP.textContent = dish.notes;
+            contentDiv.appendChild(notesP);
+        }
+        
+        dishEl.appendChild(contentDiv);
+        
+        const actionsDiv = document.createElement('div');
+        actionsDiv.className = 'flex items-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity';
+        
+        const editBtn = document.createElement('button');
+        editBtn.type = 'button';
+        editBtn.className = 'p-1.5 text-gray-400 hover:text-indigo-600 rounded-md hover:bg-gray-100';
+        editBtn.innerHTML = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>`;
+        editBtn.onclick = () => editDish(index);
+        
+        const deleteBtn = document.createElement('button');
+        deleteBtn.type = 'button';
+        deleteBtn.className = 'p-1.5 text-gray-400 hover:text-red-600 rounded-md hover:bg-gray-100';
+        deleteBtn.innerHTML = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>`;
+        deleteBtn.onclick = () => deleteDish(index);
+        
+        actionsDiv.appendChild(editBtn);
+        actionsDiv.appendChild(deleteBtn);
+        dishEl.appendChild(actionsDiv);
+        
+        } // End Else
+        
+        container.appendChild(dishEl);
+    });
+}
+
+function editDish(index) {
+    // Hide global add form first
+    document.getElementById('add-dish-form').classList.add('hidden');
+    document.getElementById('add-dish-btn').classList.remove('hidden');
+    document.getElementById('save-dish-btn').textContent = 'Add';
+    
+    editingDishIndex = index;
+    renderDishesList();
+}
+
+function saveEdit(index) {
+     const nameInput = document.getElementById(`edit-dish-name-${index}`);
+     const notesInput = document.getElementById(`edit-dish-notes-${index}`);
+     const ratingRadio = document.querySelector(`input[name="edit-rating-${index}"]:checked`);
+     
+     if (!nameInput || !ratingRadio) return; 
+
+     const name = nameInput.value.trim();
+     const notes = notesInput.value.trim();
+     const rating = parseInt(ratingRadio.value);
+     
+     if (!name) {
+         nameInput.focus();
+         return;
+     }
+
+     currentDishes[index] = { ...currentDishes[index], name, rating, notes };
+     editingDishIndex = -1;
+     renderDishesList();
+}
+
+function cancelEdit() {
+    editingDishIndex = -1;
+    renderDishesList();
+}
+
+function deleteDish(index) {
+    currentDishes.splice(index, 1);
+    renderDishesList();
+}
 
 function showMessage(msg, isError = false) {
   const el = document.getElementById('message');
