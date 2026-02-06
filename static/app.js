@@ -269,7 +269,9 @@ function applyFilters() {
 
 function renderCard(r) {
   const card = document.createElement('div');
-  card.className = 'bg-white rounded-lg shadow-sm border border-gray-200 p-4 transition-shadow hover:shadow-md h-full flex flex-col justify-between';
+  // Removed h-full and added self-start to allow different heights
+  // Added break-inside-avoid and mb-6 for masonry layout
+  card.className = 'bg-white rounded-lg shadow-sm border border-gray-200 p-4 transition-shadow hover:shadow-md flex flex-col justify-between self-start break-inside-avoid mb-6';
 
   // 1. Header: Name (linked) and Badge
   const header = document.createElement('div');
@@ -337,6 +339,73 @@ function renderCard(r) {
       notesEl.className = 'mb-4 text-sm text-gray-600 bg-gray-50 p-2 rounded border border-gray-100 italic';
       notesEl.textContent = r.notes;
       body.appendChild(notesEl);
+  }
+
+  // Dishes
+  if (r.dishes && r.dishes.length > 0) {
+      const dishesEl = document.createElement('div');
+      dishesEl.className = 'mb-4 pt-3 border-t border-gray-100 space-y-2';
+      
+      const dishesTitle = document.createElement('h4');
+      dishesTitle.className = 'text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2';
+      dishesTitle.textContent = 'Dishes';
+      dishesEl.appendChild(dishesTitle);
+
+      r.dishes.slice(0, 10).forEach(d => {
+          const dishItem = document.createElement('div');
+          dishItem.className = 'bg-gray-50 rounded border border-gray-100 flex items-start justify-between p-2';
+          
+          const contentDiv = document.createElement('div');
+          contentDiv.className = 'flex-1 min-w-0 mr-2';
+          
+          const headerDiv = document.createElement('div');
+          headerDiv.className = 'flex items-center gap-2';
+          
+          const ratingIcon = document.createElement('span');
+          ratingIcon.className = 'flex-shrink-0 mt-0.5';
+          if (d.rating === 1) { // Up
+                ratingIcon.innerHTML = `
+                <div class="p-1 rounded-md bg-green-100 text-green-700">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M2 10.5a1.5 1.5 0 113 0v6a1.5 1.5 0 01-3 0v-6zM6 10.333v5.43a2 2 0 001.106 1.79l.05.025A4 4 0 008.943 18h5.416a2 2 0 001.962-1.608l1.2-6A2 2 0 0015.56 8H12V4a2 2 0 00-2-2 1 1 0 00-1 1v.667a4 4 0 01-.8 2.4L6.8 7.933a4 4 0 00-.8 2.4z" />
+                    </svg>
+                </div>`; 
+           } else { // Down
+                ratingIcon.innerHTML = `
+                <div class="p-1 rounded-md bg-red-100 text-red-700">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M18 9.5a1.5 1.5 0 11-3 0v-6a1.5 1.5 0 013 0v6zM14 9.667v-5.43a2 2 0 00-1.105-1.79l-.05-.025A4 4 0 0011.055 2H5.64a2 2 0 00-1.962 1.608l-1.2 6A2 2 0 004.44 12H8v4a2 2 0 002 2 1 1 0 001-1v-.667a4 4 0 01.8-2.4l1.4-1.866a4 4 0 00.8-2.4z" />
+                    </svg>
+                </div>`;
+           }
+           
+          const nameSpan = document.createElement('span');
+          nameSpan.className = 'text-sm font-medium text-gray-900 truncate';
+          nameSpan.textContent = d.name;
+          
+          headerDiv.appendChild(ratingIcon);
+          headerDiv.appendChild(nameSpan);
+          contentDiv.appendChild(headerDiv);
+
+          // if (d.notes) {
+          //     const notesP = document.createElement('p');
+          //     notesP.className = 'text-xs text-gray-500 mt-0.5 truncate';
+          //     notesP.textContent = d.notes;
+          //     contentDiv.appendChild(notesP);
+          // }
+
+          dishItem.appendChild(contentDiv);
+          dishesEl.appendChild(dishItem);
+      });
+
+      if (r.dishes.length > 10) {
+          const remaining = r.dishes.length - 10;
+          const moreDishes = document.createElement('div');
+          moreDishes.className = 'mt-2 text-center text-xs font-medium text-gray-400 italic';
+          moreDishes.textContent = `+ ${remaining} more`;
+          dishesEl.appendChild(moreDishes);
+      }
+      body.appendChild(dishesEl);
   }
   
   card.appendChild(body);
