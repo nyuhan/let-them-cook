@@ -115,3 +115,12 @@ body { -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale }
 gmp-place-autocomplete {
   color-scheme: light;
 }
+
+/* Input padding fix */
+#restaurant-notes,
+#new-dish-name,
+#new-dish-notes,
+#dishes-container input[type="text"],
+#dishes-container textarea {
+    padding: 0.5rem 0.75rem;
+}
