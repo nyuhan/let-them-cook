@@ -14,7 +14,7 @@ function initAutocomplete() {
   placeAutocomplete.addEventListener('gmp-select', async (event) => {
     const place = event.placePrediction.toPlace();
     await place.fetchFields({
-      fields: ['displayName', 'formattedAddress', 'location', 'addressComponents', 'googleMapsLinks', 'googleMapsURI', 'types', 'priceLevel'],
+      fields: ['displayName', 'formattedAddress', 'location', 'addressComponents', 'googleMapsLinks', 'googleMapsURI', 'types', 'priceLevel', 'regularOpeningHours', 'utcOffsetMinutes'],
     });
     console.log('Place', JSON.stringify(place.toJSON(), /* replacer */ null, /* space */ 2));
 
@@ -67,6 +67,11 @@ function initAutocomplete() {
         id: place.id,
         types: types,
         priceLevel: priceLevel,
+        openingHours: place.regularOpeningHours ? {
+            periods: place.regularOpeningHours.periods,
+            weekdayDescriptions: place.regularOpeningHours.weekdayDescriptions,
+            utcOffsetMinutes: place.utcOffsetMinutes
+        } : null,
       };
 
       document.getElementById('submit-btn').disabled = false;
@@ -267,6 +272,53 @@ function applyFilters() {
   renderList(filtered);
 }
 
+function getOpeningStatus(openingHours) {
+  if (!openingHours || !openingHours.periods) return null;
+  
+  let now = new Date();
+  
+  // Adjust to place's timezone if available
+  if (openingHours.utcOffsetMinutes !== undefined && openingHours.utcOffsetMinutes !== null) {
+      const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+      now = new Date(utc + (openingHours.utcOffsetMinutes * 60000));
+  }
+
+  const day = now.getDay(); // 0-6 Sun-Sat
+  const hour = now.getHours();
+  const min = now.getMinutes();
+  
+  // Current time in minutes from start of week (Sunday 00:00)
+  const currentMin = day * 1440 + hour * 60 + min;
+  
+  let isOpen = false;
+  
+  for (const period of openingHours.periods) {
+      if (!period.open) continue;
+      
+      // If always open (Check for 24/7 locations where close time is missing)
+      if (!period.close) return { isOpen: true };
+
+      const openMin = period.open.day * 1440 + period.open.hour * 60 + period.open.minute;
+      let closeMin = period.close.day * 1440 + period.close.hour * 60 + period.close.minute;
+      
+      if (closeMin < openMin) {
+          // Wraps around week end
+          if (currentMin >= openMin || currentMin < closeMin) {
+              isOpen = true;
+              break;
+          }
+      } else {
+          // Normal period
+          if (currentMin >= openMin && currentMin < closeMin) {
+              isOpen = true;
+              break;
+          }
+      }
+  }
+  
+  return { isOpen };
+}
+
 function renderCard(r) {
   const card = document.createElement('div');
   // Removed h-full and added self-start to allow different heights
@@ -295,7 +347,21 @@ function renderCard(r) {
   const badge = document.createElement('span');
   badge.className = `inline-flex items-center px-2 py-0.5 rounded text-xs font-medium capitalize ${badgeColors}`;
   badge.textContent = (r.type || 'unknown').replace('-', ' ');
-  metaDiv.appendChild(badge);
+
+  const status = getOpeningStatus(r.openingHours);
+  if (status) {
+      const statusContainer = document.createElement('span');
+      statusContainer.className = `inline-flex items-center text-xs font-medium ml-2 ${status.isOpen ? 'text-green-700' : 'text-red-700'}`;
+      
+      const dot = document.createElement('span');
+      dot.className = `w-2 h-2 mr-1 rounded-full ${status.isOpen ? 'bg-green-500' : 'bg-red-500'}`;
+      
+      const text = document.createTextNode(status.isOpen ? 'Open' : 'Closed');
+      
+      statusContainer.appendChild(dot);
+      statusContainer.appendChild(text);
+      metaDiv.appendChild(statusContainer);
+  }
 
   header.appendChild(metaDiv);
   
@@ -316,22 +382,31 @@ function renderCard(r) {
   }
   secondLine.appendChild(cityEl);
 
+  // Type moved here
+  secondLine.appendChild(badge);
+  
+  body.appendChild(secondLine);
+
+  // Third line: Rating (left) + Price (right)
+  const thirdLine = document.createElement('div');
+  thirdLine.className = 'flex items-center justify-between mb-4';
+
+  // Rating
+  const ratingEl = document.createElement('div');
+  ratingEl.className = 'flex items-center';
+  const ratingNum = Number(r.rating) || 0;
+  ratingEl.innerHTML = renderStars(ratingNum) + `<span class="ml-2 text-sm font-medium text-gray-600">${ratingNum.toFixed(1)}</span>`;
+  thirdLine.appendChild(ratingEl);
+
   // Price
   if (r.priceLevel) {
     const priceSpan = document.createElement('div');
     priceSpan.className = 'font-semibold text-gray-500 font-mono tracking-widest flex-shrink-0';
     priceSpan.textContent = '$'.repeat(r.priceLevel);
-    secondLine.appendChild(priceSpan);
+    thirdLine.appendChild(priceSpan);
   }
-  
-  body.appendChild(secondLine);
 
-  // Rating
-  const ratingEl = document.createElement('div');
-  ratingEl.className = 'flex items-center mb-4';
-  const ratingNum = Number(r.rating) || 0;
-  ratingEl.innerHTML = renderStars(ratingNum) + `<span class="ml-2 text-sm font-medium text-gray-600">${ratingNum.toFixed(1)}</span>`;
-  body.appendChild(ratingEl);
+  body.appendChild(thirdLine);
 
   // Notes
   if (r.notes) {
@@ -657,9 +732,10 @@ document.addEventListener('DOMContentLoaded', () => {
       const mapUri = placeData.mapUri;
       const directionsUri = placeData.directionsUri;
       const priceLevel = placeData.priceLevel;
+      const openingHours = placeData.openingHours;
       const editId = document.getElementById('edit-id').value;
       const dishes = currentDishes;
-      const payload = { id, name, address, city, type, rating, mapUri, directionsUri, priceLevel, notes, dishes };
+      const payload = { id, name, address, city, type, rating, mapUri, directionsUri, priceLevel, notes, dishes, openingHours };
       try {
         let res;
         if (editId) {

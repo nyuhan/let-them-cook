@@ -1,6 +1,7 @@
 from flask import Flask, g, jsonify, request, render_template
 import os
 import sqlite3
+import json
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
@@ -38,6 +39,10 @@ def get_db():
         # Check for notes column and add if missing
         if 'notes' not in columns:
             db.execute('ALTER TABLE restaurants ADD COLUMN notes TEXT')
+        
+        # Check for opening_hours column and add if missing
+        if 'opening_hours' not in columns:
+            db.execute('ALTER TABLE restaurants ADD COLUMN opening_hours TEXT')
 
         # Create dishes table
         db.execute(
@@ -105,6 +110,13 @@ def restaurants():
         price_level = data.get('priceLevel')
         notes = data.get('notes')
         dishes = data.get('dishes')
+        opening_hours = data.get('openingHours')
+        
+        # Serialize opening_hours to JSON string if present
+        opening_hours_json = None
+        if opening_hours:
+            opening_hours_json = json.dumps(opening_hours)
+
         try:
             rating = int(rating)
         except Exception:
@@ -112,8 +124,8 @@ def restaurants():
         if not name or rtype not in ('dine-in', 'delivery', 'both') or not (1 <= rating <= 5):
             return jsonify({'error': 'invalid data'}), 400
         db.execute(
-            'INSERT INTO restaurants (id ,name, type, rating, address, city, map_uri, directions_uri, price_level, notes, created_at) VALUES (?,?,?,?,?,?,?,?,?,?, CURRENT_TIMESTAMP)',
-            (id, name, rtype, rating, address, city, map_uri, directions_uri, price_level, notes),
+            'INSERT INTO restaurants (id ,name, type, rating, address, city, map_uri, directions_uri, price_level, notes, opening_hours, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?, CURRENT_TIMESTAMP)',
+            (id, name, rtype, rating, address, city, map_uri, directions_uri, price_level, notes, opening_hours_json),
         )
 
         if dishes and isinstance(dishes, list):
@@ -139,8 +151,16 @@ def restaurants():
         db.commit()
         return jsonify({'status': 'ok'}), 201
 
-    cur = db.execute('SELECT id, name, type, rating, address, city, map_uri, directions_uri, price_level, notes, created_at FROM restaurants ORDER BY id DESC')
-    restaurants = [snake_to_camel(dict(r)) for r in cur.fetchall()]
+    cur = db.execute('SELECT id, name, type, rating, address, city, map_uri, directions_uri, price_level, notes, opening_hours, created_at FROM restaurants ORDER BY id DESC')
+    restaurants = []
+    for r in cur.fetchall():
+        d = dict(r)
+        if d.get('opening_hours'):
+            try:
+                d['opening_hours'] = json.loads(d['opening_hours'])
+            except:
+                d['opening_hours'] = None
+        restaurants.append(snake_to_camel(d))
 
     cur = db.execute('SELECT rowid, restaurant_id, name, rating, notes FROM dishes ORDER BY rowid')
     dishes_rows = cur.fetchall()
