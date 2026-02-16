@@ -548,12 +548,16 @@ function enterEditMode(r) {
   if (modal) modal.classList.remove('hidden');
   const title = document.getElementById('modal-title');
   if (title) title.textContent = 'Edit Restaurant';
+  
   const placeAutocomplete = document.getElementById('place-autocomplete');
-  if (placeAutocomplete) {
-    placeAutocomplete.value = r.name || '';
-    // Make immutable in edit mode
-    placeAutocomplete.classList.add('pointer-events-none', 'opacity-50');
+  const nameDisplay = document.getElementById('edit-name-display');
+
+  if (placeAutocomplete) placeAutocomplete.classList.add('hidden');
+  if (nameDisplay) {
+      nameDisplay.textContent = r.name || '';
+      nameDisplay.classList.remove('hidden');
   }
+
   document.getElementById('place-id').value = r.place_id || '';
 
   // update type buttons
@@ -607,11 +611,19 @@ function enterEditMode(r) {
 function exitEditMode() {
   const form = document.getElementById('restaurant-form');
   if (form) form.reset();
+  
   const placeAutocomplete = document.getElementById('place-autocomplete');
+  const nameDisplay = document.getElementById('edit-name-display');
+  
   if (placeAutocomplete) {
     placeAutocomplete.value = '';
-    placeAutocomplete.classList.remove('pointer-events-none', 'opacity-50');
+    placeAutocomplete.classList.remove('pointer-events-none', 'opacity-50', 'hidden');
   }
+  if (nameDisplay) {
+    nameDisplay.textContent = '';
+    nameDisplay.classList.add('hidden');
+  }
+
   const modal = document.getElementById('restaurant-modal');
   if (modal) modal.classList.add('hidden');
   const title = document.getElementById('modal-title');

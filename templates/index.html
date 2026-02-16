@@ -149,6 +149,8 @@
         <form id="restaurant-form" class="space-y-4">
           <div>
             <label class="block text-sm font-medium text-gray-700">Restaurant name</label>
+            <!-- In edit mode, we show the name as text. In add mode, we show the autocomplete search. -->
+            <div id="edit-name-display" class="hidden text-lg font-semibold text-gray-900 py-2 px-1"></div>
             <gmp-place-autocomplete id="place-autocomplete" placeholder="Start typing a restaurant name"></gmp-place-autocomplete>
             <input type="hidden" id="place-id" />
           </div>
