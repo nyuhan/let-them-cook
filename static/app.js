@@ -57,7 +57,10 @@ function initAutocomplete() {
   }
 
   // Listen for input events to clear selection when user types or clears the input.
-  placeAutocomplete.addEventListener('input', clearSelection);
+  placeAutocomplete.addEventListener('input', () => {
+    clearSelection();
+    clearMessage();
+  });
 
   // Listen for events where the user clicks the "x" button to clear the selection.
   placeAutocomplete.addEventListener('click', () => {
@@ -65,6 +68,7 @@ function initAutocomplete() {
       // If value is empty, it means X was clicked
       if (!placeAutocomplete.value) {
         clearSelection();
+        clearMessage();
       }
     }, 0);
   });
@@ -1357,7 +1361,12 @@ function showMessage(msg, isError = false) {
   const el = document.getElementById('message');
   el.className = 'text-sm text-center pt-2 h-6 ' + (isError ? 'text-red-600' : 'text-green-600');
   el.textContent = msg;
-  setTimeout(() => { el.textContent = '' }, 5000);
+  setTimeout(() => { el.textContent = '' }, 3000);
+}
+
+function clearMessage() {
+  const el = document.getElementById('message');
+  el.textContent = '';
 }
 
 // Delete Modal Logic
