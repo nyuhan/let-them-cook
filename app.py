@@ -179,6 +179,16 @@ def restaurants():
     return jsonify(restaurants)
 
 
+@app.route('/api/restaurants/<rest_id>', methods=['GET'])
+def get_restaurant(rest_id):
+    db = get_db()
+    cur = db.execute('SELECT * FROM restaurants WHERE id = ?', (rest_id,))
+    row = cur.fetchone()
+    if row is None:
+        return jsonify({'error': 'not found'}), 404
+    return jsonify(snake_to_camel(dict(row)))
+
+
 @app.route('/api/restaurants/<rest_id>', methods=['PUT'])
 def update_restaurant(rest_id):
     db = get_db()

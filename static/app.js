@@ -77,6 +77,18 @@ function initAutocomplete() {
     console.log('Place', JSON.stringify(place.toJSON(), /* replacer */ null, /* space */ 2));
 
     if (place && place.id) {
+      // Check if restaurant already exists
+      try {
+        const res = await fetch(`/api/restaurants/${place.id}`);
+        if (res.ok) {
+          showMessage('Restaurant already exists', true);
+          clearSelection();
+          return;
+        }
+      } catch (err) {
+        // Ignore network errors or 404
+      }
+
       document.getElementById('place-id').value = place.id;
 
       // Extract name
