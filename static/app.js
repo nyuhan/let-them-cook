@@ -290,26 +290,17 @@ function clearFilters() {
   document.getElementById('filter-city').value = '';
   document.getElementById('filter-rating').value = '0';
   document.getElementById('filter-price').value = '';
-  document.getElementById('filter-status').value = 'any';
+  document.getElementById('filter-status').value = '';
 
   // Reset Dropdown UI
   document.querySelectorAll('.filter-dropdown').forEach(dropdown => {
     const trigger = dropdown.querySelector('.dropdown-trigger');
     const defaultText = trigger.dataset.default;
 
-    let label = defaultText;
-    let isActive = false;
-
     // Reset text
-    trigger.innerHTML = `${label} <svg class="-mr-1 ml-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>`;
-
-    if (isActive) {
-      trigger.classList.remove('bg-white', 'border-gray-300', 'text-gray-700');
-      trigger.classList.add('bg-indigo-50', 'border-indigo-200', 'text-indigo-700');
-    } else {
-      trigger.classList.remove('bg-indigo-50', 'border-indigo-200', 'text-indigo-700');
-      trigger.classList.add('bg-white', 'border-gray-300', 'text-gray-700');
-    }
+    trigger.innerHTML = `${defaultText} <svg class="-mr-1 ml-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>`;
+    trigger.classList.remove('bg-indigo-50', 'border-indigo-200', 'text-indigo-700');
+    trigger.classList.add('bg-white', 'border-gray-300', 'text-gray-700');
   });
 
   applyFilters();
@@ -346,7 +337,7 @@ document.addEventListener('DOMContentLoaded', () => {
       trigger.innerHTML = `${newLabel} <svg class="-mr-1 ml-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>`;
 
       // Active State
-      if (optionBtn.dataset.value && optionBtn.dataset.value !== '0' && optionBtn.dataset.value !== 'any') {
+      if (optionBtn.dataset.value && optionBtn.dataset.value !== '0') {
         trigger.classList.remove('bg-white', 'border-gray-300', 'text-gray-700');
         trigger.classList.add('bg-indigo-50', 'border-indigo-200', 'text-indigo-700');
       } else {
@@ -471,7 +462,7 @@ function applyFilters() {
   const city = document.getElementById('filter-city')?.value || '';
   const minRating = parseInt(document.getElementById('filter-rating')?.value || '0', 10);
   const price = document.getElementById('filter-price')?.value || '';
-  const status = document.getElementById('filter-status')?.value || 'any';
+  const status = document.getElementById('filter-status')?.value || '';
 
   const filtered = restaurantsCache.filter(r => {
     if (q && !(r.name || '').toLowerCase().includes(q)) return false;
@@ -480,8 +471,7 @@ function applyFilters() {
     if (city && r.city !== city) return false;
     if (minRating && (parseInt(r.rating, 10) || 0) < minRating) return false;
     if (price && (r.priceLevel && r.priceLevel > parseInt(price, 10))) return false;
-
-    if (status && status !== 'any') {
+    if (status) {
       const os = getOpeningStatus(r.openingHours);
       const isOpen = os ? os.isOpen : false;
       if (status === 'open' && !isOpen) return false;
