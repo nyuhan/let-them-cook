@@ -370,6 +370,98 @@ document.addEventListener('DOMContentLoaded', () => {
     if (topClearBtn) {
         topClearBtn.addEventListener('click', clearFilters);
     }
+
+    // Refresh Restaurant Button
+    const refreshBtn = document.getElementById('refresh-restaurant-btn');
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            
+            const editId = document.getElementById('edit-id').value;
+            
+            if (!editId) return;
+            
+            const icon = refreshBtn.querySelector('svg');
+            icon.classList.add('animate-spin');
+            
+            try {
+                // Fetch fresh data
+                const place = new google.maps.places.Place({ id: editId });
+                await place.fetchFields({
+                    fields: ['displayName', 'formattedAddress', 'location', 'addressComponents', 'googleMapsLinks', 'googleMapsURI', 'types', 'priceLevel', 'regularOpeningHours', 'utcOffsetMinutes'],
+                });
+                
+                const name = place.displayName;
+                const address = place.formattedAddress;
+                const mapUri = place.googleMapsLinks?.placeURI || place.googleMapsURI;
+                const directionsUri = place.googleMapsLinks?.directionsURI;
+                
+                let city = "UNKNOWN";
+                if (place.addressComponents) {
+                    for (const component of place.addressComponents) {
+                        const types = component.types;
+                        if (types.includes('locality') || types.includes('postal_town')) {
+                            city = component.longText;
+                            break;
+                        }
+                    }
+                }
+
+                let priceLevel = null;
+                const priceLevelMap = {
+                    'INEXPENSIVE': 1, 'MODERATE': 2, 'EXPENSIVE': 3, 'VERY_EXPENSIVE': 4
+                };
+                if (place.priceLevel && priceLevelMap[place.priceLevel]) {
+                    priceLevel = priceLevelMap[place.priceLevel];
+                }
+
+                const openingHours = place.regularOpeningHours ? {
+                    periods: place.regularOpeningHours.periods,
+                    weekdayDescriptions: place.regularOpeningHours.weekdayDescriptions,
+                    utcOffsetMinutes: place.utcOffsetMinutes
+                } : null;
+
+                // Send update to backend
+                const res = await fetch(`/api/restaurants/${editId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name, address, city, mapUri, directionsUri, priceLevel, openingHours
+                    })
+                });
+                
+                if (res.ok) {
+                    // Update UI immediately
+                    document.getElementById('edit-name-display').textContent = name || '';
+                    displayOpeningHours(openingHours);
+                    
+                    // Update cache entry
+                    const data = await res.json(); // Assuming backend returns something or empty JSON
+                    
+                     // Reload list to update cache properly or manually update cache
+                    await loadRestaurants();
+                    
+                    // Manually update current view of modal is handled by displayOpeningHours and name display,
+                    // but we should probably re-enter edit mode logic to ensure everything is consistent
+                    // Find the updated restaurant in cache
+                    const updatedRest = restaurantsCache.find(r => r.id === editId);
+                    if (updatedRest) {
+                        enterEditMode(updatedRest);
+                    }
+                    
+                    showMessage('Metadata refreshed successfully');
+                } else {
+                    showMessage('Failed to update restaurant', true);
+                }
+
+            } catch (err) {
+                console.error('Refresh failed', err);
+                showMessage('Refresh failed: ' + err.message, true);
+            } finally {
+                icon.classList.remove('animate-spin');
+            }
+        });
+    }
 });
 
 function applyFilters() {
@@ -677,6 +769,9 @@ function enterEditMode(r) {
   const title = document.getElementById('modal-title');
   if (title) title.textContent = 'Restaurant';
   
+  const refreshBtn = document.getElementById('refresh-restaurant-btn');
+  if (refreshBtn) refreshBtn.classList.remove('hidden');
+  
   const placeAutocomplete = document.getElementById('place-autocomplete');
   const nameDisplay = document.getElementById('edit-name-display');
 
@@ -685,8 +780,6 @@ function enterEditMode(r) {
       nameDisplay.textContent = r.name || '';
       nameDisplay.classList.remove('hidden');
   }
-
-  document.getElementById('place-id').value = r.place_id || '';
 
   // update type buttons
   selectedType = r.type; // Sync global state
@@ -741,6 +834,9 @@ function enterEditMode(r) {
 function exitEditMode() {
   const form = document.getElementById('restaurant-form');
   if (form) form.reset();
+
+  const refreshBtn = document.getElementById('refresh-restaurant-btn');
+  if (refreshBtn) refreshBtn.classList.add('hidden');
   
   const placeAutocomplete = document.getElementById('place-autocomplete');
   const nameDisplay = document.getElementById('edit-name-display');

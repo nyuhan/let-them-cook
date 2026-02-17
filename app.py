@@ -183,22 +183,63 @@ def restaurants():
 def update_restaurant(rest_id):
     db = get_db()
     data = request.get_json() or {}
-    id = rest_id
+    
+    # Optional fields for partial updates or full refresh
+    name = data.get('name')
+    address = data.get('address')
+    city = data.get('city')
+    map_uri = data.get('mapUri')
+    directions_uri = data.get('directionsUri')
+    price_level = data.get('priceLevel')
+    opening_hours = data.get('openingHours')
+
     rtype = data.get('type')
     rating = data.get('rating')
-    try:
-        rating = int(rating)
-    except Exception:
-        return jsonify({'error': 'rating must be an integer 1-5'}), 400
-    if rtype not in ('dine-in', 'delivery', 'both') or not (1 <= rating <= 5):
-        return jsonify({'error': 'invalid data'}), 400
-    cur = db.execute('SELECT id FROM restaurants WHERE id = ?', (rest_id,))
-    if cur.fetchone() is None:
-        return jsonify({'error': 'not found'}), 404
     notes = data.get('notes')
+
+    # Basic validations if we are updating these fields
+    if rating is not None:
+        try:
+            rating = int(rating)
+            if not (1 <= rating <= 5):
+                 return jsonify({'error': 'rating must be 1-5'}), 400
+        except:
+             return jsonify({'error': 'rating must be integer'}), 400
+
+    if rtype is not None and rtype not in ('dine-in', 'delivery', 'both'):
+        return jsonify({'error': 'invalid type'}), 400
+
+    cur = db.execute('SELECT id, type, rating, notes, name, address, city, map_uri, directions_uri, price_level, opening_hours FROM restaurants WHERE id = ?', (rest_id,))
+    row = cur.fetchone()
+    if row is None:
+        return jsonify({'error': 'not found'}), 404
+    
+    # Use existing values if not provided (though for refresh we likely provide all)
+    current_data = dict(row)
+    
+    new_name = name if name is not None else current_data['name']
+    new_type = rtype if rtype is not None else current_data['type']
+    new_rating = rating if rating is not None else current_data['rating']
+    new_notes = notes if notes is not None else current_data['notes']
+    new_address = address if address is not None else current_data['address']
+    new_city = city if city is not None else current_data['city']
+    new_map_uri = map_uri if map_uri is not None else current_data['map_uri']
+    new_directions_uri = directions_uri if directions_uri is not None else current_data['directions_uri']
+    new_price_level = price_level if price_level is not None else current_data['price_level']
+    
+    new_opening_hours_json = current_data['opening_hours']
+    if opening_hours is not None:
+        new_opening_hours_json = json.dumps(opening_hours)
+
     db.execute(
-        'UPDATE restaurants SET type = ?, rating = ?, notes = ? WHERE id = ?',
-        (rtype, rating, notes, rest_id),
+        '''UPDATE restaurants SET 
+           name = ?, type = ?, rating = ?, notes = ?, 
+           address = ?, city = ?, map_uri = ?, directions_uri = ?, 
+           price_level = ?, opening_hours = ? 
+           WHERE id = ?''',
+        (new_name, new_type, new_rating, new_notes, 
+         new_address, new_city, new_map_uri, new_directions_uri, 
+         new_price_level, new_opening_hours_json, rest_id),
     )
 
     dishes = data.get('dishes')

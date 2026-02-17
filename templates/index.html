@@ -162,7 +162,15 @@
       <div class="relative top-20 mx-auto p-5 border w-full max-w-md shadow-lg rounded-md bg-white">
         <div class="flex justify-between items-center border-b pb-3 mb-5">
           <h2 id="modal-title" class="text-xl font-semibold">Add Restaurant</h2>
-          <button id="close-modal-btn" class="text-gray-500 hover:text-gray-800 text-3xl font-light">&times;</button>
+          <div class="flex items-center space-x-4">
+             <button id="refresh-restaurant-btn" class="hidden text-gray-400 hover:text-indigo-600 transition-colors" title="Refresh metadata from Google Maps">
+                <!-- Refresh Icon -->
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                </svg>
+             </button>
+             <button id="close-modal-btn" class="text-gray-500 hover:text-gray-800 text-3xl font-light leading-none">&times;</button>
+          </div>
         </div>
         <form id="restaurant-form" class="space-y-4">
           <div>
