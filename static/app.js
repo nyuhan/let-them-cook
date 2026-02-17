@@ -535,7 +535,7 @@ function renderCard(r) {
 
   // 1. Header: Name (linked) and Badge
   const header = document.createElement('div');
-  header.className = 'flex justify-between items-start mb-2';
+  header.className = 'flex justify-between items-center mb-2';
 
   const titleLink = document.createElement('a');
   titleLink.href = r.mapUri || '#';
