@@ -4,6 +4,41 @@ let currentDishes = [];
 let newDishRating = 1; // 1 for up, 0 for down
 let editingDishIndex = -1;
 
+function getPriceLevel(place) {
+  const priceLevelMap = {
+    'INEXPENSIVE': 1,
+    'MODERATE': 2,
+    'EXPENSIVE': 3,
+    'VERY_EXPENSIVE': 4
+  };
+  if (place.priceLevel && priceLevelMap[place.priceLevel]) {
+    return priceLevelMap[place.priceLevel];
+  }
+  return null;
+}
+
+function getCity(place) {
+  let city = "UNKNOWN";
+  if (place.addressComponents) {
+    for (const component of place.addressComponents) {
+      const types = component.types;
+      if (types.includes('locality') || types.includes('postal_town')) {
+        city = component.longText;
+        break;
+      }
+    }
+  }
+  return city;
+}
+
+function getOpeningHours(place) {
+  return place.regularOpeningHours ? {
+    periods: place.regularOpeningHours.periods,
+    weekdayDescriptions: place.regularOpeningHours.weekdayDescriptions,
+    utcOffsetMinutes: place.utcOffsetMinutes
+  } : null;
+}
+
 function initAutocomplete() {
   const placeAutocomplete = document.getElementById('place-autocomplete');
   if (!placeAutocomplete) {
@@ -37,25 +72,9 @@ function initAutocomplete() {
         return;
       }
 
-      let city = "UNKNOWN";
-      for (const component of place.addressComponents) {
-        const types = component.types;
-        if (types.includes('locality') || types.includes('postal_town')) {
-          city = component.longText;
-          break;
-        }
-      }
+      const city = getCity(place);
 
-      let priceLevel = null;
-      const priceLevelMap = {
-        'INEXPENSIVE': 1,
-        'MODERATE': 2,
-        'EXPENSIVE': 3,
-        'VERY_EXPENSIVE': 4
-      };
-      if (place.priceLevel && priceLevelMap[place.priceLevel]) {
-        priceLevel = priceLevelMap[place.priceLevel];
-      }
+      const priceLevel = getPriceLevel(place);
 
       // Store in global variable for form submission
       window.selectedPlaceData = {
@@ -67,11 +86,7 @@ function initAutocomplete() {
         id: place.id,
         types: types,
         priceLevel: priceLevel,
-        openingHours: place.regularOpeningHours ? {
-          periods: place.regularOpeningHours.periods,
-          weekdayDescriptions: place.regularOpeningHours.weekdayDescriptions,
-          utcOffsetMinutes: place.utcOffsetMinutes
-        } : null,
+        openingHours: getOpeningHours(place),
       };
 
       document.getElementById('submit-btn').disabled = false;
@@ -388,30 +403,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const mapUri = place.googleMapsLinks?.placeURI || place.googleMapsURI;
         const directionsUri = place.googleMapsLinks?.directionsURI;
 
-        let city = "UNKNOWN";
-        if (place.addressComponents) {
-          for (const component of place.addressComponents) {
-            const types = component.types;
-            if (types.includes('locality') || types.includes('postal_town')) {
-              city = component.longText;
-              break;
-            }
-          }
-        }
+        const city = getCity(place);
 
-        let priceLevel = null;
-        const priceLevelMap = {
-          'INEXPENSIVE': 1, 'MODERATE': 2, 'EXPENSIVE': 3, 'VERY_EXPENSIVE': 4
-        };
-        if (place.priceLevel && priceLevelMap[place.priceLevel]) {
-          priceLevel = priceLevelMap[place.priceLevel];
-        }
+        const priceLevel = getPriceLevel(place);
 
-        const openingHours = place.regularOpeningHours ? {
-          periods: place.regularOpeningHours.periods,
-          weekdayDescriptions: place.regularOpeningHours.weekdayDescriptions,
-          utcOffsetMinutes: place.utcOffsetMinutes
-        } : null;
+        const openingHours = getOpeningHours(place);
 
         // Send update to backend
         const res = await fetch(`/api/restaurants/${editId}`, {
@@ -441,9 +437,9 @@ document.addEventListener('DOMContentLoaded', () => {
             enterEditMode(updatedRest);
           }
 
-          showMessage('Metadata refreshed successfully');
+          showMessage('Refreshed Google Maps data successfully');
         } else {
-          showMessage('Failed to update restaurant', true);
+          showMessage('Failed to refresh Google Maps data', true);
         }
 
       } catch (err) {
