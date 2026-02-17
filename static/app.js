@@ -80,6 +80,114 @@ function initAutocomplete() {
   });
 }
 
+function displayOpeningHours(openingHours) {
+    const container = document.getElementById('opening-hours-container');
+    const list = document.getElementById('opening-hours-list');
+    if (!container || !list) return;
+
+    if (openingHours && openingHours.weekdayDescriptions && openingHours.weekdayDescriptions.length > 0) {
+        list.innerHTML = '';
+        list.className = 'text-xs text-gray-500';
+
+        let today;
+        if (openingHours.utcOffsetMinutes !== undefined && openingHours.utcOffsetMinutes !== null) {
+            const now = new Date();
+            const utcMs = now.getTime(); 
+            const restaurantMs = utcMs + (openingHours.utcOffsetMinutes * 60000);
+            const restaurantDate = new Date(restaurantMs);
+            const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            today = days[restaurantDate.getUTCDay()];
+        } else {
+            today = new Date().toLocaleDateString('en-US', { weekday: 'long' });
+        }
+
+        const todayDescRaw = openingHours.weekdayDescriptions.find(d => d.startsWith(today));
+        
+        // Create Details element
+        const details = document.createElement('details');
+        details.className = 'group relative';
+
+        // Summary (Today's hours)
+        const summary = document.createElement('summary');
+        summary.className = 'flex items-center cursor-pointer text-gray-500 select-none list-none group-open:absolute group-open:right-0 group-open:top-0';
+        // Hide default marker for some browsers if flex doesn't cover it (e.g. Safari)
+        summary.style.listStyle = 'none'; 
+
+        let summaryTextWrapper = document.createElement('div');
+        summaryTextWrapper.className = 'flex-1 grid grid-cols-[auto_1fr] gap-x-4 group-open:hidden';
+
+        if (todayDescRaw) {
+            const firstColonIndex = todayDescRaw.indexOf(':');
+            if (firstColonIndex !== -1) {
+                const dayName = todayDescRaw.substring(0, firstColonIndex);
+                const hours = todayDescRaw.substring(firstColonIndex + 1).trim();
+                summaryTextWrapper.innerHTML = `<div>${dayName}</div><div>${hours}</div>`;
+            } else {
+                 summaryTextWrapper.textContent = todayDescRaw;
+                 summaryTextWrapper.className = 'flex-1 group-open:hidden';
+            }
+        } else {
+             summaryTextWrapper.textContent = "See opening hours";
+             summaryTextWrapper.className = 'flex-1 italic text-gray-400 group-open:hidden';
+        }
+
+        const icon = document.createElement('div');
+        icon.className = 'ml-auto';
+        icon.innerHTML = `<svg class="w-4 h-4 text-gray-400 transform group-open:rotate-180 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>`;
+        
+        summary.appendChild(summaryTextWrapper);
+        summary.appendChild(icon);
+        details.appendChild(summary);
+
+        // Full list
+        const grid = document.createElement('div');
+        grid.className = 'grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-gray-500 font-normal pr-6';
+
+        openingHours.weekdayDescriptions.forEach(dayDesc => {
+            const firstColonIndex = dayDesc.indexOf(':');
+            
+            if (firstColonIndex !== -1) {
+                const dayName = dayDesc.substring(0, firstColonIndex);
+                const hours = dayDesc.substring(firstColonIndex + 1).trim();
+                
+                const dayEl = document.createElement('div');
+                dayEl.textContent = dayName;
+                
+                const hoursEl = document.createElement('div');
+                hoursEl.textContent = hours;
+                
+                if (dayName === today) {
+                    dayEl.className = 'text-gray-900 whitespace-nowrap';
+                    hoursEl.className = 'text-gray-900';
+                } else {
+                    dayEl.className = 'text-gray-700 whitespace-nowrap';
+                }
+                
+                grid.appendChild(dayEl);
+                grid.appendChild(hoursEl);
+            } else {
+                // Fallback
+                const fullEl = document.createElement('div');
+                fullEl.className = 'col-span-2';
+                if (dayDesc.startsWith(today)) {
+                    fullEl.classList.add('text-gray-900');
+                }
+                fullEl.textContent = dayDesc;
+                grid.appendChild(fullEl);
+            }
+        });
+        
+        details.appendChild(grid);
+        list.appendChild(details);
+
+        container.classList.remove('hidden');
+    } else {
+        container.classList.add('hidden');
+        list.innerHTML = '';
+    }
+}
+
+
 // Wait for both DOM and Google Maps API to be ready
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => {
@@ -547,7 +655,7 @@ function enterEditMode(r) {
   const modal = document.getElementById('restaurant-modal');
   if (modal) modal.classList.remove('hidden');
   const title = document.getElementById('modal-title');
-  if (title) title.textContent = 'Edit Restaurant';
+  if (title) title.textContent = 'Restaurant';
   
   const placeAutocomplete = document.getElementById('place-autocomplete');
   const nameDisplay = document.getElementById('edit-name-display');
@@ -597,6 +705,8 @@ function enterEditMode(r) {
   // deep copy to avoid mutations affecting cache before save
   currentDishes = (r.dishes || []).map(d => ({ ...d }));
   renderDishesList();
+
+  displayOpeningHours(r.openingHours);
 
   document.getElementById('edit-id').value = r.id;
   const submitBtn = document.getElementById('submit-btn');
@@ -666,6 +776,8 @@ function exitEditMode() {
   if (notesInput) {
       notesInput.value = '';
   }
+
+  displayOpeningHours(null);
 
   // Reset dishes
   currentDishes = [];
