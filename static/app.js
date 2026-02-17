@@ -39,12 +39,35 @@ function getOpeningHours(place) {
   } : null;
 }
 
+function clearSelection() {
+  document.getElementById('place-id').value = '';
+  window.selectedPlaceData = null;
+  const submitBtn = document.getElementById('submit-btn');
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+  }
+}
+
 function initAutocomplete() {
   const placeAutocomplete = document.getElementById('place-autocomplete');
   if (!placeAutocomplete) {
     setTimeout(initAutocomplete, 100);
     return;
   }
+
+  // Listen for input events to clear selection when user types or clears the input.
+  placeAutocomplete.addEventListener('input', clearSelection);
+
+  // Listen for events where the user clicks the "x" button to clear the selection.
+  placeAutocomplete.addEventListener('click', () => {
+    setTimeout(() => {
+      // If value is empty, it means X was clicked
+      if (!placeAutocomplete.value) {
+        clearSelection();
+      }
+    }, 0);
+  });
 
   placeAutocomplete.addEventListener('gmp-select', async (event) => {
     const place = event.placePrediction.toPlace();
@@ -65,10 +88,7 @@ function initAutocomplete() {
 
       if (!types.includes('restaurant') && !types.includes('food')) {
         showMessage('Selected place is not a restaurant', true);
-        document.getElementById('place-id').value = '';
-        event.target.value = '';
-        document.getElementById('submit-btn').disabled = true;
-        document.getElementById('submit-btn').classList.add('opacity-50', 'cursor-not-allowed');
+        clearSelection();
         return;
       }
 
@@ -1325,7 +1345,7 @@ function showMessage(msg, isError = false) {
   const el = document.getElementById('message');
   el.className = 'text-sm text-center pt-2 h-6 ' + (isError ? 'text-red-600' : 'text-green-600');
   el.textContent = msg;
-  setTimeout(() => { el.textContent = '' }, 3000);
+  setTimeout(() => { el.textContent = '' }, 5000);
 }
 
 // Delete Modal Logic
