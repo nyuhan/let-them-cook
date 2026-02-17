@@ -221,6 +221,24 @@ async function loadRestaurants() {
   applyFilters();
 }
 
+function getNotesLineCount(notes) {
+  if (!notes) return 0;
+  return Math.min(notes.split('\n').length, 3);
+}
+
+function estimateCardHeight(r) {
+  let h = 160; // base: header + city/badge + rating/price + footer
+  const noteLines = getNotesLineCount(r.notes);
+  if (noteLines > 0) h += 16 + noteLines * 20 + 16; // padding (p-2=16) + lines*lineHeight + mb-4
+  if (r.dishes && r.dishes.length > 0) {
+    h += 28; // "DISHES" title + top border
+    const shown = Math.min(r.dishes.length, 10);
+    h += shown * 36; // each dish item
+    if (r.dishes.length > 10) h += 24; // "+ N more"
+  }
+  return h;
+}
+
 function renderList(items) {
   const container = document.getElementById('list');
   container.innerHTML = '';
@@ -268,7 +286,31 @@ function renderList(items) {
     }
     return;
   }
-  items.forEach(r => container.appendChild(renderCard(r)));
+  // Masonry: place each card into the shortest column for balanced heights
+  const colCount = window.innerWidth >= 1024 ? 3 : window.innerWidth >= 640 ? 2 : 1;
+  const columns = Array.from({ length: colCount }, () => {
+    const col = document.createElement('div');
+    col.className = 'flex flex-col gap-6';
+    return col;
+  });
+
+  const colHeights = new Array(colCount).fill(0);
+  const gap = 24; // gap-6 = 1.5rem = 24px
+  const cards = items.map(r => renderCard(r));
+
+  cards.forEach((card, i) => {
+    const h = estimateCardHeight(items[i]);
+
+    // Find the shortest column
+    let minIdx = 0;
+    for (let j = 1; j < colCount; j++) {
+      if (colHeights[j] < colHeights[minIdx]) minIdx = j;
+    }
+    columns[minIdx].appendChild(card);
+    colHeights[minIdx] += h + gap;
+  });
+
+  columns.forEach(col => container.appendChild(col));
 }
 
 async function loadCities() {
@@ -528,9 +570,7 @@ function getOpeningStatus(openingHours) {
 
 function renderCard(r) {
   const card = document.createElement('div');
-  // Removed h-full and added self-start to allow different heights
-  // Added break-inside-avoid and mb-6 for masonry layout
-  card.className = 'bg-white rounded-lg shadow-sm border border-gray-200 p-4 transition-shadow hover:shadow-md flex flex-col justify-between self-start break-inside-avoid mb-6 cursor-pointer';
+  card.className = 'bg-white rounded-lg shadow-sm border border-gray-200 p-4 transition-shadow hover:shadow-md flex flex-col justify-between cursor-pointer';
   card.addEventListener('click', () => enterEditMode(r));
 
   // 1. Header: Name (linked) and Badge
@@ -617,11 +657,17 @@ function renderCard(r) {
 
   body.appendChild(thirdLine);
 
-  // Notes
+  // Notes (each line truncated with ellipsis, max 3 lines)
   if (r.notes) {
     const notesEl = document.createElement('div');
     notesEl.className = 'mb-4 text-sm text-gray-600 bg-gray-50 p-2 rounded border border-gray-100 italic';
-    notesEl.textContent = r.notes;
+    const lines = r.notes.split('\n').slice(0, 3);
+    lines.forEach(line => {
+      const lineEl = document.createElement('div');
+      lineEl.className = 'truncate';
+      lineEl.textContent = line;
+      notesEl.appendChild(lineEl);
+    });
     body.appendChild(notesEl);
   }
 
@@ -997,9 +1043,15 @@ document.addEventListener('DOMContentLoaded', () => {
   const searchInput = document.getElementById('search-input');
   if (searchInput) searchInput.addEventListener('input', applyFilters);
 
-  // Old listeners removed in favor of global delegation
-
-  // refresh removed; list can be reloaded programmatically via loadRestaurants()
+  // Re-render on resize so column count stays correct
+  let lastColCount = window.innerWidth >= 1024 ? 3 : window.innerWidth >= 640 ? 2 : 1;
+  window.addEventListener('resize', () => {
+    const newColCount = window.innerWidth >= 1024 ? 3 : window.innerWidth >= 640 ? 2 : 1;
+    if (newColCount !== lastColCount) {
+      lastColCount = newColCount;
+      applyFilters();
+    }
+  });
 
   // Modal handling
   addBtn.addEventListener('click', () => {
