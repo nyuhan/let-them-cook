@@ -861,7 +861,7 @@ function enterEditMode(r) {
     submitBtn.disabled = false;
     submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
   }
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  document.body.classList.add('overflow-hidden');
 }
 
 function exitEditMode() {
@@ -885,6 +885,7 @@ function exitEditMode() {
 
   const modal = document.getElementById('restaurant-modal');
   if (modal) modal.classList.add('hidden');
+  document.body.classList.remove('overflow-hidden');
   const title = document.getElementById('modal-title');
   if (title) title.textContent = 'Add Restaurant';
   document.getElementById('edit-id').value = '';
@@ -1057,11 +1058,17 @@ document.addEventListener('DOMContentLoaded', () => {
   addBtn.addEventListener('click', () => {
     exitEditMode(); // Reset form for adding
     modal.classList.remove('hidden');
+    document.body.classList.add('overflow-hidden');
   });
-  closeBtn.addEventListener('click', () => modal.classList.add('hidden'));
+  closeBtn.addEventListener('click', () => {
+    modal.classList.add('hidden');
+    document.body.classList.remove('overflow-hidden');
+  });
+  // Close modal on outside click
   window.addEventListener('click', (e) => {
     if (e.target === modal) {
       modal.classList.add('hidden');
+      document.body.classList.remove('overflow-hidden');
     }
   });
 
