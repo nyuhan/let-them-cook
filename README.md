@@ -75,3 +75,55 @@ A simple Flask application to record and manage your favorite restaurants. Featu
 *   `PUT /api/restaurants/<id>` — Update an existing restaurant.
 *   `DELETE /api/restaurants/<id>` — Delete a restaurant.
 *   `GET /api/cities` — Returns a list of distinct cities from the stored restaurants.
+
+## Testing
+
+### Prerequisites
+
+All test dependencies are installed inside the virtual environment:
+
+```bash
+source .venv/bin/activate
+pip install -r requirements.txt
+playwright install chromium
+```
+
+### Run all tests (unit + E2E)
+
+```bash
+pytest
+```
+
+This runs backend unit tests and offline E2E browser tests. Google Maps tests are excluded by default.
+
+### Run only backend unit tests
+
+```bash
+pytest tests/test_app.py -v
+```
+
+### Run only E2E browser tests
+
+```bash
+pytest tests/e2e/ -v
+```
+
+### Run with visible browser (headed mode)
+
+```bash
+pytest tests/e2e/ -v --headed --slowmo=500
+```
+
+### Run a specific test
+
+```bash
+pytest tests/e2e/ -k "TestDishAdd" -v
+```
+
+### Run Google Maps integration test
+
+Requires a valid `GOOGLE_MAPS_API_KEY` in `.env` and network access:
+
+```bash
+pytest tests/e2e/ -m google_maps -v
+```
