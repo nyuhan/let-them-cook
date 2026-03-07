@@ -1031,30 +1031,31 @@ document.addEventListener('DOMContentLoaded', () => {
       e.preventDefault();
 
       // Get data from the global variable set by autocomplete
-      const placeData = window.selectedPlaceData || {};
-      const name = placeData.name;
-      const address = placeData.address;
-      const city = placeData.city;
-      const id = placeData.id;
+      const newPlaceData = window.selectedPlaceData || {};
+      const name = newPlaceData.name;
+      const address = newPlaceData.address;
+      const city = newPlaceData.city;
+      const id = newPlaceData.id;
+      const mapUri = newPlaceData.mapUri;
+      const directionsUri = newPlaceData.directionsUri;
+      const priceLevel = newPlaceData.priceLevel;
+      const openingHours = newPlaceData.openingHours;
+      const editId = document.getElementById('edit-id').value;
       const notes = document.getElementById('restaurant-notes')?.value || '';
       const type = selectedType;
       const rating = ratingStarsContainer.dataset.rating;
-      const mapUri = placeData.mapUri;
-      const directionsUri = placeData.directionsUri;
-      const priceLevel = placeData.priceLevel;
-      const openingHours = placeData.openingHours;
-      const editId = document.getElementById('edit-id').value;
       const dishes = currentDishes;
-      const payload = { id, name, address, city, type, rating, mapUri, directionsUri, priceLevel, notes, dishes, openingHours };
       try {
         let res;
         if (editId) {
+          const payload = { type, rating, notes, dishes };
           res = await fetch(`/api/restaurants/${editId}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
           });
         } else {
+          const payload = { id, name, address, city, type, rating, mapUri, directionsUri, priceLevel, notes, dishes, openingHours };
           res = await fetch('/api/restaurants', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
