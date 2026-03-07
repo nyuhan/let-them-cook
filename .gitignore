@@ -18,6 +18,10 @@ __pycache__/
 
 # Environment / secrets
 .env
+
+# Test / coverage artifacts
+.coverage
+.pytest_cache/
 .env.local
 *.db
 

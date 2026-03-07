@@ -73,6 +73,17 @@ def snake_to_camel(snake_dict):
     return camel_dict
 
 
+def parse_restaurant_row(row):
+    """Convert a DB row to a dict with opening_hours deserialized."""
+    d = dict(row)
+    if d.get('opening_hours'):
+        try:
+            d['opening_hours'] = json.loads(d['opening_hours'])
+        except (json.JSONDecodeError, TypeError):
+            d['opening_hours'] = None
+    return d
+
+
 @app.teardown_appcontext
 def close_connection(exception):
     db = getattr(g, '_database', None)
@@ -154,13 +165,7 @@ def restaurants():
     cur = db.execute('SELECT id, name, type, rating, address, city, map_uri, directions_uri, price_level, notes, opening_hours, created_at FROM restaurants ORDER BY id DESC')
     restaurants = []
     for r in cur.fetchall():
-        d = dict(r)
-        if d.get('opening_hours'):
-            try:
-                d['opening_hours'] = json.loads(d['opening_hours'])
-            except:
-                d['opening_hours'] = None
-        restaurants.append(snake_to_camel(d))
+        restaurants.append(snake_to_camel(parse_restaurant_row(r)))
 
     cur = db.execute('SELECT rowid, restaurant_id, name, rating, notes FROM dishes ORDER BY rowid')
     dishes_rows = cur.fetchall()
@@ -186,7 +191,7 @@ def get_restaurant(rest_id):
     row = cur.fetchone()
     if row is None:
         return jsonify({'error': 'not found'}), 404
-    return jsonify(snake_to_camel(dict(row)))
+    return jsonify(snake_to_camel(parse_restaurant_row(row)))
 
 
 @app.route('/api/restaurants/<rest_id>', methods=['PUT'])

@@ -1,12 +1,15 @@
 name: Build and Push Docker Image
 
 on:
-  push:
-    branches: [ "master" ]  # Trigger on pushes to the master branch
+  workflow_run:
+    workflows: ["Run Tests"]
+    types: [completed]
+    branches: [master]
 
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     steps:
       # 1. Check out the code
       - name: Checkout code
