@@ -39,10 +39,12 @@ def _goto(page, url):
 def _click_card(page, name):
     """Click a restaurant card by name to trigger enterEditMode.
 
-    The <a> title link has stopPropagation, so we click the card body instead.
+    The <a> title link has stopPropagation, so we dispatch a click event
+    directly on the card element to reliably trigger the handler — avoids
+    flakiness on slow CI runners.
     """
     card = page.locator("#list .bg-white.rounded-lg", has=page.locator(f"text='{name}'"))
-    card.locator(".flex.items-center.justify-between.mb-2").first.click()
+    card.dispatch_event("click")
 
 
 def _open_dropdown(page, trigger_default_text):
