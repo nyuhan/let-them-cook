@@ -625,13 +625,29 @@ function renderCard(r) {
   const metaDiv = document.createElement('div');
   metaDiv.className = 'flex items-center space-x-2 flex-shrink-0';
 
-  let badgeColors = 'bg-indigo-100 text-indigo-800';
-  if (r.diningOptions === 'dine-in') badgeColors = 'bg-green-100 text-green-800';
-  else if (r.diningOptions === 'delivery') badgeColors = 'bg-orange-100 text-orange-800';
+  const forkSvg = `<svg class="w-3 h-3 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-9.03C11.34 12.84 13 11.12 13 9V2h-2v7zm5-3v8h2.5v8H21V2c-2.76 0-5 2.24-5 4z"/></svg>`;
+  const truckSvg = `<svg class="w-3 h-3 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4zM6 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm13.5-9l1.96 2.5H17V9.5h2.5zm-1.5 9c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>`;
 
-  const badge = document.createElement('span');
-  badge.className = `inline-flex items-center px-2 py-0.5 rounded text-xs font-medium capitalize ${badgeColors}`;
-  badge.textContent = (r.diningOptions || 'unknown').replace('-', ' ');
+  const makeBadge = (colors, html) => {
+    const b = document.createElement('span');
+    b.className = `inline-flex items-center p-1 rounded ${colors}`;
+    b.innerHTML = html;
+    return b;
+  };
+
+  let badges = [];
+  if (r.diningOptions === 'dine-in') {
+    badges = [makeBadge('bg-green-100 text-green-800', forkSvg)];
+  } else if (r.diningOptions === 'delivery') {
+    badges = [makeBadge('bg-orange-100 text-orange-800', truckSvg)];
+  } else if (r.diningOptions === 'both') {
+    badges = [makeBadge('bg-green-100 text-green-800', forkSvg), makeBadge('bg-green-100 text-green-800', truckSvg)];
+  } else {
+    const b = document.createElement('span');
+    b.className = 'inline-flex items-center px-2 py-0.5 rounded text-xs font-medium capitalize bg-indigo-100 text-indigo-800';
+    b.textContent = (r.diningOptions || 'unknown').replace('-', ' ');
+    badges = [b];
+  }
 
   const status = getOpeningStatus(r.openingHours);
   if (status) {
@@ -668,7 +684,10 @@ function renderCard(r) {
   secondLine.appendChild(cityEl);
 
   // Type moved here
-  secondLine.appendChild(badge);
+  const badgeWrapper = document.createElement('div');
+  badgeWrapper.className = 'flex items-center gap-1';
+  badges.forEach(b => badgeWrapper.appendChild(b));
+  secondLine.appendChild(badgeWrapper);
 
   body.appendChild(secondLine);
 
