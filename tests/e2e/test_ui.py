@@ -221,9 +221,8 @@ class TestEditRestaurant:
         # Modal should close
         modal.wait_for(state="hidden")
 
-        # --- Verify result on the card ---
-        # Card should show dine-in badge
-        page.locator("text=dine in").wait_for(state="visible")
+        # Card should show dine-in icon badge
+        page.locator("#list svg use[href='#icon-dine-in']").wait_for(state="visible")
 
         # Reopen modal to verify persisted values
         _click_card(page, "Taco Spot")
