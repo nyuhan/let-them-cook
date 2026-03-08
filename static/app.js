@@ -543,8 +543,7 @@ function applyFilters() {
 
   const filtered = restaurantsCache.filter(r => {
     if (q && !(r.name || '').toLowerCase().includes(q)) return false;
-    if (diningOptions && diningOptions === 'both' && r.diningOptions !== diningOptions) return false;
-    if (diningOptions && diningOptions !== 'both' && r.diningOptions !== diningOptions && r.diningOptions !== 'both') return false;
+    if (diningOptions && r.diningOptions !== diningOptions && r.diningOptions !== 'both') return false;
     if (city && r.city !== city) return false;
     if (minRating && (parseInt(r.rating, 10) || 0) < minRating) return false;
     if (price && (r.priceLevel && r.priceLevel > parseInt(price, 10))) return false;
