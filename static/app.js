@@ -1,5 +1,8 @@
 let restaurantsCache = [];
 let selectedDiningOptions = 'both';
+
+const ICON_DINE_IN = `<svg class="w-3 h-3 flex-shrink-0" fill="currentColor" aria-hidden="true"><use href="#icon-dine-in"/></svg>`;
+const ICON_DELIVERY = `<svg class="w-3 h-3 flex-shrink-0" fill="currentColor" aria-hidden="true"><use href="#icon-delivery"/></svg>`;
 let currentDishes = [];
 let newDishRating = 1; // 1 for up, 0 for down
 let editingDishIndex = -1;
@@ -625,9 +628,6 @@ function renderCard(r) {
   const metaDiv = document.createElement('div');
   metaDiv.className = 'flex items-center space-x-2 flex-shrink-0';
 
-  const forkSvg = `<svg class="w-3 h-3 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-9.03C11.34 12.84 13 11.12 13 9V2h-2v7zm5-3v8h2.5v8H21V2c-2.76 0-5 2.24-5 4z"/></svg>`;
-  const truckSvg = `<svg class="w-3 h-3 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4zM6 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm13.5-9l1.96 2.5H17V9.5h2.5zm-1.5 9c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>`;
-
   const makeBadge = (colors, html) => {
     const b = document.createElement('span');
     b.className = `inline-flex items-center p-1 rounded ${colors}`;
@@ -637,11 +637,11 @@ function renderCard(r) {
 
   let badges = [];
   if (r.diningOptions === 'dine-in') {
-    badges = [makeBadge('bg-green-100 text-green-800', forkSvg)];
+    badges = [makeBadge('bg-green-100 text-green-800', ICON_DINE_IN)];
   } else if (r.diningOptions === 'delivery') {
-    badges = [makeBadge('bg-orange-100 text-orange-800', truckSvg)];
+    badges = [makeBadge('bg-orange-100 text-orange-800', ICON_DELIVERY)];
   } else if (r.diningOptions === 'both') {
-    badges = [makeBadge('bg-green-100 text-green-800', forkSvg), makeBadge('bg-green-100 text-green-800', truckSvg)];
+    badges = [makeBadge('bg-green-100 text-green-800', ICON_DINE_IN), makeBadge('bg-green-100 text-green-800', ICON_DELIVERY)];
   } else {
     const b = document.createElement('span');
     b.className = 'inline-flex items-center px-2 py-0.5 rounded text-xs font-medium capitalize bg-indigo-100 text-indigo-800';
