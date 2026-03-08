@@ -1,5 +1,8 @@
 let restaurantsCache = [];
 let selectedDiningOptions = 'both';
+
+const ICON_DINE_IN = `<svg class="w-3 h-3 flex-shrink-0" fill="currentColor" aria-hidden="true"><use href="#icon-dine-in"/></svg>`;
+const ICON_DELIVERY = `<svg class="w-3 h-3 flex-shrink-0" fill="currentColor" aria-hidden="true"><use href="#icon-delivery"/></svg>`;
 let currentDishes = [];
 let newDishRating = 1; // 1 for up, 0 for down
 let editingDishIndex = -1;
@@ -540,8 +543,7 @@ function applyFilters() {
 
   const filtered = restaurantsCache.filter(r => {
     if (q && !(r.name || '').toLowerCase().includes(q)) return false;
-    if (diningOptions && diningOptions === 'both' && r.diningOptions !== diningOptions) return false;
-    if (diningOptions && diningOptions !== 'both' && r.diningOptions !== diningOptions && r.diningOptions !== 'both') return false;
+    if (diningOptions && r.diningOptions !== diningOptions && r.diningOptions !== 'both') return false;
     if (city && r.city !== city) return false;
     if (minRating && (parseInt(r.rating, 10) || 0) < minRating) return false;
     if (price && (r.priceLevel && r.priceLevel > parseInt(price, 10))) return false;
@@ -625,13 +627,26 @@ function renderCard(r) {
   const metaDiv = document.createElement('div');
   metaDiv.className = 'flex items-center space-x-2 flex-shrink-0';
 
-  let badgeColors = 'bg-indigo-100 text-indigo-800';
-  if (r.diningOptions === 'dine-in') badgeColors = 'bg-green-100 text-green-800';
-  else if (r.diningOptions === 'delivery') badgeColors = 'bg-orange-100 text-orange-800';
+  const makeBadge = (html) => {
+    const b = document.createElement('span');
+    b.className = 'inline-flex items-center p-1 rounded bg-green-100 text-green-800';
+    b.innerHTML = html;
+    return b;
+  };
 
-  const badge = document.createElement('span');
-  badge.className = `inline-flex items-center px-2 py-0.5 rounded text-xs font-medium capitalize ${badgeColors}`;
-  badge.textContent = (r.diningOptions || 'unknown').replace('-', ' ');
+  let badges = [];
+  if (r.diningOptions === 'dine-in') {
+    badges = [makeBadge(ICON_DINE_IN)];
+  } else if (r.diningOptions === 'delivery') {
+    badges = [makeBadge(ICON_DELIVERY)];
+  } else if (r.diningOptions === 'both') {
+    badges = [makeBadge(ICON_DINE_IN), makeBadge(ICON_DELIVERY)];
+  } else {
+    const b = document.createElement('span');
+    b.className = 'inline-flex items-center px-2 py-0.5 rounded text-xs font-medium capitalize bg-indigo-100 text-indigo-800';
+    b.textContent = (r.diningOptions || 'unknown').replace('-', ' ');
+    badges = [b];
+  }
 
   const status = getOpeningStatus(r.openingHours);
   if (status) {
@@ -668,7 +683,10 @@ function renderCard(r) {
   secondLine.appendChild(cityEl);
 
   // Type moved here
-  secondLine.appendChild(badge);
+  const badgeWrapper = document.createElement('div');
+  badgeWrapper.className = 'flex items-center gap-1';
+  badges.forEach(b => badgeWrapper.appendChild(b));
+  secondLine.appendChild(badgeWrapper);
 
   body.appendChild(secondLine);
 
