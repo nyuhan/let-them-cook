@@ -628,20 +628,20 @@ function renderCard(r) {
   const metaDiv = document.createElement('div');
   metaDiv.className = 'flex items-center space-x-2 flex-shrink-0';
 
-  const makeBadge = (colors, html) => {
+  const makeBadge = (html) => {
     const b = document.createElement('span');
-    b.className = `inline-flex items-center p-1 rounded ${colors}`;
+    b.className = 'inline-flex items-center p-1 rounded bg-green-100 text-green-800';
     b.innerHTML = html;
     return b;
   };
 
   let badges = [];
   if (r.diningOptions === 'dine-in') {
-    badges = [makeBadge('bg-green-100 text-green-800', ICON_DINE_IN)];
+    badges = [makeBadge(ICON_DINE_IN)];
   } else if (r.diningOptions === 'delivery') {
-    badges = [makeBadge('bg-orange-100 text-orange-800', ICON_DELIVERY)];
+    badges = [makeBadge(ICON_DELIVERY)];
   } else if (r.diningOptions === 'both') {
-    badges = [makeBadge('bg-green-100 text-green-800', ICON_DINE_IN), makeBadge('bg-green-100 text-green-800', ICON_DELIVERY)];
+    badges = [makeBadge(ICON_DINE_IN), makeBadge(ICON_DELIVERY)];
   } else {
     const b = document.createElement('span');
     b.className = 'inline-flex items-center px-2 py-0.5 rounded text-xs font-medium capitalize bg-indigo-100 text-indigo-800';
