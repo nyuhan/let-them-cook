@@ -1,5 +1,5 @@
 let restaurantsCache = [];
-let selectedDiningOptions = 'dine-in';
+let selectedDiningOptions = 'both';
 let currentDishes = [];
 let newDishRating = 1; // 1 for up, 0 for down
 let editingDishIndex = -1;
@@ -933,10 +933,10 @@ function exitEditMode() {
   }
 
   // reset type and rating
-  selectedDiningOptions = 'dine-in';
+  selectedDiningOptions = 'both';
   const typeButtons = document.querySelectorAll('#dining-options-buttons .dining-options-button');
   typeButtons.forEach(btn => {
-    if (btn.dataset.value === 'dine-in') {
+    if (btn.dataset.value === 'both') {
       btn.classList.add('bg-white', 'shadow-sm', 'ring-1', 'ring-inset', 'ring-gray-300');
       btn.classList.remove('hover:bg-gray-50');
     } else {

@@ -129,9 +129,9 @@ class TestAddModalOpenClose:
         submit = page.locator("#submit-btn")
         assert submit.is_disabled()
 
-        # Default type is dine-in (has active ring classes)
-        dine_in_btn = page.locator("#dining-options-buttons button[data-value='dine-in']")
-        assert "ring-1" in dine_in_btn.get_attribute("class")
+        # Default type is both (has active ring classes)
+        both_btn = page.locator("#dining-options-buttons button[data-value='both']")
+        assert "ring-1" in both_btn.get_attribute("class")
 
         # Default rating is 5
         assert page.locator("#rating-stars").get_attribute("data-rating") == "5"
