@@ -1,5 +1,5 @@
 let restaurantsCache = [];
-let selectedType = 'dine-in';
+let selectedDiningOptions = 'dine-in';
 let currentDishes = [];
 let newDishRating = 1; // 1 for up, 0 for down
 let editingDishIndex = -1;
@@ -379,7 +379,7 @@ function clearFilters() {
   const searchInput = document.getElementById('search-input');
   if (searchInput) searchInput.value = '';
 
-  document.getElementById('filter-type').value = '';
+  document.getElementById('filter-dining-options').value = '';
   document.getElementById('filter-city').value = '';
   document.getElementById('filter-rating').value = '0';
   document.getElementById('filter-price').value = '';
@@ -532,7 +532,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function applyFilters() {
   const q = (document.getElementById('search-input')?.value || '').trim().toLowerCase();
-  const type = document.getElementById('filter-type')?.value || '';
+  const diningOptions = document.getElementById('filter-dining-options')?.value || '';
   const city = document.getElementById('filter-city')?.value || '';
   const minRating = parseInt(document.getElementById('filter-rating')?.value || '0', 10);
   const price = document.getElementById('filter-price')?.value || '';
@@ -540,8 +540,8 @@ function applyFilters() {
 
   const filtered = restaurantsCache.filter(r => {
     if (q && !(r.name || '').toLowerCase().includes(q)) return false;
-    if (type && type === 'both' && r.type !== type) return false;
-    if (type && type !== 'both' && r.type !== type && r.type !== 'both') return false;
+    if (diningOptions && diningOptions === 'both' && r.diningOptions !== diningOptions) return false;
+    if (diningOptions && diningOptions !== 'both' && r.diningOptions !== diningOptions && r.diningOptions !== 'both') return false;
     if (city && r.city !== city) return false;
     if (minRating && (parseInt(r.rating, 10) || 0) < minRating) return false;
     if (price && (r.priceLevel && r.priceLevel > parseInt(price, 10))) return false;
@@ -626,12 +626,12 @@ function renderCard(r) {
   metaDiv.className = 'flex items-center space-x-2 flex-shrink-0';
 
   let badgeColors = 'bg-indigo-100 text-indigo-800';
-  if (r.type === 'dine-in') badgeColors = 'bg-green-100 text-green-800';
-  else if (r.type === 'delivery') badgeColors = 'bg-orange-100 text-orange-800';
+  if (r.diningOptions === 'dine-in') badgeColors = 'bg-green-100 text-green-800';
+  else if (r.diningOptions === 'delivery') badgeColors = 'bg-orange-100 text-orange-800';
 
   const badge = document.createElement('span');
   badge.className = `inline-flex items-center px-2 py-0.5 rounded text-xs font-medium capitalize ${badgeColors}`;
-  badge.textContent = (r.type || 'unknown').replace('-', ' ');
+  badge.textContent = (r.diningOptions || 'unknown').replace('-', ' ');
 
   const status = getOpeningStatus(r.openingHours);
   if (status) {
@@ -851,10 +851,10 @@ function enterEditMode(r) {
   }
 
   // update type buttons
-  selectedType = r.type; // Sync global state
-  const typeButtons = document.querySelectorAll('#type-buttons .type-button');
+  selectedDiningOptions = r.diningOptions; // Sync global state
+  const typeButtons = document.querySelectorAll('#dining-options-buttons .dining-options-button');
   typeButtons.forEach(btn => {
-    if (btn.dataset.value === r.type) {
+    if (btn.dataset.value === r.diningOptions) {
       btn.classList.add('bg-white', 'shadow-sm', 'ring-1', 'ring-inset', 'ring-gray-300');
       btn.classList.remove('hover:bg-gray-50');
     } else {
@@ -933,8 +933,8 @@ function exitEditMode() {
   }
 
   // reset type and rating
-  selectedType = 'dine-in';
-  const typeButtons = document.querySelectorAll('#type-buttons .type-button');
+  selectedDiningOptions = 'dine-in';
+  const typeButtons = document.querySelectorAll('#dining-options-buttons .dining-options-button');
   typeButtons.forEach(btn => {
     if (btn.dataset.value === 'dine-in') {
       btn.classList.add('bg-white', 'shadow-sm', 'ring-1', 'ring-inset', 'ring-gray-300');
@@ -975,23 +975,23 @@ document.addEventListener('DOMContentLoaded', () => {
   const modal = document.getElementById('restaurant-modal');
   const addBtn = document.getElementById('add-restaurant-btn');
   const closeBtn = document.getElementById('close-modal-btn');
-  const typeButtonsContainer = document.getElementById('type-buttons');
+  const typeButtonsContainer = document.getElementById('dining-options-buttons');
   const ratingStarsContainer = document.getElementById('rating-stars');
 
   // Type selection
-  // selectedType is global
+  // selectedDiningOptions is global
   if (typeButtonsContainer) {
     typeButtonsContainer.addEventListener('click', (e) => {
-      const btn = e.target.closest('.type-button');
+      const btn = e.target.closest('.dining-options-button');
       if (!btn) return;
-      selectedType = btn.dataset.value;
+      selectedDiningOptions = btn.dataset.value;
       updateTypeButtons();
     });
   }
 
   function updateTypeButtons() {
-    typeButtonsContainer.querySelectorAll('.type-button').forEach(btn => {
-      if (btn.dataset.value === selectedType) {
+    typeButtonsContainer.querySelectorAll('.dining-options-button').forEach(btn => {
+      if (btn.dataset.value === selectedDiningOptions) {
         btn.classList.add('bg-white', 'shadow-sm', 'ring-1', 'ring-inset', 'ring-gray-300');
         btn.classList.remove('hover:bg-gray-50');
       } else {
@@ -1042,20 +1042,20 @@ document.addEventListener('DOMContentLoaded', () => {
       const openingHours = newPlaceData.openingHours;
       const editId = document.getElementById('edit-id').value;
       const notes = document.getElementById('restaurant-notes')?.value || '';
-      const type = selectedType;
+      const diningOptions = selectedDiningOptions;
       const rating = ratingStarsContainer.dataset.rating;
       const dishes = currentDishes;
       try {
         let res;
         if (editId) {
-          const payload = { type, rating, notes, dishes };
+          const payload = { diningOptions, rating, notes, dishes };
           res = await fetch(`/api/restaurants/${editId}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
           });
         } else {
-          const payload = { id, name, address, city, type, rating, mapUri, directionsUri, priceLevel, notes, dishes, openingHours };
+          const payload = { id, name, address, city, diningOptions, rating, mapUri, directionsUri, priceLevel, notes, dishes, openingHours };
           res = await fetch('/api/restaurants', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },

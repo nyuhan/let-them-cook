@@ -24,7 +24,7 @@ def get_db():
                 city TEXT NOT NULL,
                 map_uri TEXT,
                 directions_uri TEXT,
-                type TEXT CHECK(type IN ('dine-in','delivery','both')) NOT NULL,
+                dining_options TEXT CHECK(dining_options IN ('dine-in','delivery','both')) NOT NULL,
                 rating INTEGER CHECK(rating BETWEEN 1 AND 5) NOT NULL,
                 created_at TEXT DEFAULT (CURRENT_TIMESTAMP)
             )'''
@@ -43,6 +43,10 @@ def get_db():
         # Check for opening_hours column and add if missing
         if 'opening_hours' not in columns:
             db.execute('ALTER TABLE restaurants ADD COLUMN opening_hours TEXT')
+
+        # Rename type column to dining_options if needed
+        if 'type' in columns and 'dining_options' not in columns:
+            db.execute('ALTER TABLE restaurants RENAME COLUMN type TO dining_options')
 
         # Create dishes table
         db.execute(
@@ -112,7 +116,7 @@ def restaurants():
         data = request.get_json() or {}
         id = data.get('id')
         name = data.get('name')
-        rtype = data.get('type')
+        rtype = data.get('diningOptions')
         rating = data.get('rating')
         address = data.get('address')
         city = data.get('city')
@@ -135,7 +139,7 @@ def restaurants():
         if not name or rtype not in ('dine-in', 'delivery', 'both') or not (1 <= rating <= 5):
             return jsonify({'error': 'invalid data'}), 400
         db.execute(
-            'INSERT INTO restaurants (id ,name, type, rating, address, city, map_uri, directions_uri, price_level, notes, opening_hours, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?, CURRENT_TIMESTAMP)',
+            'INSERT INTO restaurants (id ,name, dining_options, rating, address, city, map_uri, directions_uri, price_level, notes, opening_hours, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?, CURRENT_TIMESTAMP)',
             (id, name, rtype, rating, address, city, map_uri, directions_uri, price_level, notes, opening_hours_json),
         )
 
@@ -162,7 +166,7 @@ def restaurants():
         db.commit()
         return jsonify({'status': 'ok'}), 201
 
-    cur = db.execute('SELECT id, name, type, rating, address, city, map_uri, directions_uri, price_level, notes, opening_hours, created_at FROM restaurants ORDER BY id DESC')
+    cur = db.execute('SELECT id, name, dining_options, rating, address, city, map_uri, directions_uri, price_level, notes, opening_hours, created_at FROM restaurants ORDER BY id DESC')
     restaurants = []
     for r in cur.fetchall():
         restaurants.append(snake_to_camel(parse_restaurant_row(r)))
@@ -208,7 +212,7 @@ def update_restaurant(rest_id):
     price_level = data.get('priceLevel')
     opening_hours = data.get('openingHours')
 
-    rtype = data.get('type')
+    rtype = data.get('diningOptions')
     rating = data.get('rating')
     notes = data.get('notes')
 
@@ -224,7 +228,7 @@ def update_restaurant(rest_id):
     if rtype is not None and rtype not in ('dine-in', 'delivery', 'both'):
         return jsonify({'error': 'invalid type'}), 400
 
-    cur = db.execute('SELECT id, type, rating, notes, name, address, city, map_uri, directions_uri, price_level, opening_hours FROM restaurants WHERE id = ?', (rest_id,))
+    cur = db.execute('SELECT id, dining_options, rating, notes, name, address, city, map_uri, directions_uri, price_level, opening_hours FROM restaurants WHERE id = ?', (rest_id,))
     row = cur.fetchone()
     if row is None:
         return jsonify({'error': 'not found'}), 404
@@ -233,7 +237,7 @@ def update_restaurant(rest_id):
     current_data = dict(row)
     
     new_name = name if name is not None else current_data['name']
-    new_type = rtype if rtype is not None else current_data['type']
+    new_type = rtype if rtype is not None else current_data['dining_options']
     new_rating = rating if rating is not None else current_data['rating']
     new_notes = notes if notes is not None else current_data['notes']
     new_address = address if address is not None else current_data['address']
@@ -248,7 +252,7 @@ def update_restaurant(rest_id):
 
     db.execute(
         '''UPDATE restaurants SET 
-           name = ?, type = ?, rating = ?, notes = ?, 
+           name = ?, dining_options = ?, rating = ?, notes = ?, 
            address = ?, city = ?, map_uri = ?, directions_uri = ?, 
            price_level = ?, opening_hours = ? 
            WHERE id = ?''',

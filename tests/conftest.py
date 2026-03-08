@@ -29,7 +29,7 @@ def seed_restaurant(client):
         data = {
             "id": "place_abc",
             "name": "Test Restaurant",
-            "type": "dine-in",
+            "diningOptions": "dine-in",
             "rating": 4,
             "address": "123 Main St",
             "city": "TestCity",

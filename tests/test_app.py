@@ -83,7 +83,7 @@ class TestCreateRestaurant:
 
     def test_invalid_rating_string(self, client):
         resp = client.post("/api/restaurants", json={
-            "id": "x", "name": "R", "type": "dine-in", "rating": "bad",
+            "id": "x", "name": "R", "diningOptions": "dine-in", "rating": "bad",
             "address": "a", "city": "c",
         })
         assert resp.status_code == 400
@@ -91,28 +91,28 @@ class TestCreateRestaurant:
 
     def test_rating_out_of_range(self, client):
         resp = client.post("/api/restaurants", json={
-            "id": "x", "name": "R", "type": "dine-in", "rating": 6,
+            "id": "x", "name": "R", "diningOptions": "dine-in", "rating": 6,
             "address": "a", "city": "c",
         })
         assert resp.status_code == 400
 
     def test_rating_zero(self, client):
         resp = client.post("/api/restaurants", json={
-            "id": "x", "name": "R", "type": "dine-in", "rating": 0,
+            "id": "x", "name": "R", "diningOptions": "dine-in", "rating": 0,
             "address": "a", "city": "c",
         })
         assert resp.status_code == 400
 
     def test_invalid_type(self, client):
         resp = client.post("/api/restaurants", json={
-            "id": "x", "name": "R", "type": "takeaway", "rating": 3,
+            "id": "x", "name": "R", "diningOptions": "takeaway", "rating": 3,
             "address": "a", "city": "c",
         })
         assert resp.status_code == 400
 
     def test_missing_name(self, client):
         resp = client.post("/api/restaurants", json={
-            "id": "x", "name": "", "type": "dine-in", "rating": 3,
+            "id": "x", "name": "", "diningOptions": "dine-in", "rating": 3,
             "address": "a", "city": "c",
         })
         assert resp.status_code == 400
@@ -214,7 +214,7 @@ class TestUpdateRestaurant:
         hours = {"weekdayDescriptions": ["Mon: 10–6"], "periods": []}
         resp = client.put("/api/restaurants/r1", json={
             "name": "Updated",
-            "type": "delivery",
+            "diningOptions": "delivery",
             "rating": 2,
             "notes": "new notes",
             "address": "456 New St",
@@ -229,7 +229,7 @@ class TestUpdateRestaurant:
         listing = client.get("/api/restaurants").get_json()
         r = next(x for x in listing if x["id"] == "r1")
         assert r["name"] == "Updated"
-        assert r["type"] == "delivery"
+        assert r["diningOptions"] == "delivery"
         assert r["rating"] == 2
         assert r["city"] == "NewCity"
         assert r["priceLevel"] == 3
@@ -251,7 +251,7 @@ class TestUpdateRestaurant:
 
     def test_invalid_type(self, client, seed_restaurant):
         seed_restaurant(id="r1")
-        resp = client.put("/api/restaurants/r1", json={"type": "takeaway"})
+        resp = client.put("/api/restaurants/r1", json={"diningOptions": "takeaway"})
         assert resp.status_code == 400
 
     def test_dishes_insert(self, client, seed_restaurant):

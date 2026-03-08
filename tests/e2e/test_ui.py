@@ -83,12 +83,12 @@ class TestEmptyState:
 
 class TestCardsRender:
     def test_cards_render_with_data(self, live_server, seed, page):
-        seed(id="r1", name="Burger Palace", city="Amsterdam", type="dine-in",
+        seed(id="r1", name="Burger Palace", city="Amsterdam", diningOptions="dine-in",
              rating=5, priceLevel=1, notes="Best burgers in town")
-        seed(id="r2", name="Pasta House", city="Zurich", type="delivery",
+        seed(id="r2", name="Pasta House", city="Zurich", diningOptions="delivery",
              rating=3, priceLevel=3, notes="",
              dishes=[{"name": "Carbonara", "rating": 1}, {"name": "Pesto Penne", "rating": 0}])
-        seed(id="r3", name="Sushi Bar", city="Amsterdam", type="both",
+        seed(id="r3", name="Sushi Bar", city="Amsterdam", diningOptions="both",
              rating=4, priceLevel=2)
 
         _goto(page, live_server)
@@ -130,7 +130,7 @@ class TestAddModalOpenClose:
         assert submit.is_disabled()
 
         # Default type is dine-in (has active ring classes)
-        dine_in_btn = page.locator("#type-buttons button[data-value='dine-in']")
+        dine_in_btn = page.locator("#dining-options-buttons button[data-value='dine-in']")
         assert "ring-1" in dine_in_btn.get_attribute("class")
 
         # Default rating is 5
@@ -165,7 +165,7 @@ class TestAddModalOutsideClick:
 
 class TestEditRestaurant:
     def test_view_and_modify(self, live_server, seed, page):
-        seed(id="edit_r1", name="Taco Spot", type="delivery", rating=3,
+        seed(id="edit_r1", name="Taco Spot", diningOptions="delivery", rating=3,
              notes="Spicy food",
              dishes=[{"name": "Taco", "rating": 1}, {"name": "Burrito", "rating": 0}])
 
@@ -182,7 +182,7 @@ class TestEditRestaurant:
         assert page.locator("#place-autocomplete").is_hidden()
 
         # Delivery button should be active
-        delivery_btn = page.locator("#type-buttons button[data-value='delivery']")
+        delivery_btn = page.locator("#dining-options-buttons button[data-value='delivery']")
         assert "ring-1" in delivery_btn.get_attribute("class")
 
         # Rating is 3
@@ -205,7 +205,7 @@ class TestEditRestaurant:
 
         # --- Modify ---
         # Change type to dine-in
-        page.locator("#type-buttons button[data-value='dine-in']").click()
+        page.locator("#dining-options-buttons button[data-value='dine-in']").click()
 
         # Change rating to 2 (click 2nd star, 0-indexed)
         stars = page.locator("#rating-stars svg")
@@ -230,7 +230,7 @@ class TestEditRestaurant:
         modal.wait_for(state="visible")
 
         assert page.locator("#restaurant-notes").input_value() == "Updated notes"
-        dine_in_btn = page.locator("#type-buttons button[data-value='dine-in']")
+        dine_in_btn = page.locator("#dining-options-buttons button[data-value='dine-in']")
         assert "ring-1" in dine_in_btn.get_attribute("class")
         assert page.locator("#rating-stars").get_attribute("data-rating") == "2"
 
@@ -309,16 +309,16 @@ class TestFilterSearch:
 
 class TestFilterDropdowns:
     def test_filter_combinations(self, live_server, seed, page):
-        seed(id="f1", name="Dine One", type="dine-in", city="Amsterdam", rating=5, priceLevel=1)
-        seed(id="f2", name="Dine Two", type="dine-in", city="Zurich", rating=3, priceLevel=3)
-        seed(id="f3", name="Deliver One", type="delivery", city="Amsterdam", rating=4, priceLevel=2)
-        seed(id="f4", name="Both One", type="both", city="Zurich", rating=2, priceLevel=4)
+        seed(id="f1", name="Dine One", diningOptions="dine-in", city="Amsterdam", rating=5, priceLevel=1)
+        seed(id="f2", name="Dine Two", diningOptions="dine-in", city="Zurich", rating=3, priceLevel=3)
+        seed(id="f3", name="Deliver One", diningOptions="delivery", city="Amsterdam", rating=4, priceLevel=2)
+        seed(id="f4", name="Both One", diningOptions="both", city="Zurich", rating=2, priceLevel=4)
 
         _goto(page, live_server)
         assert _card_locators(page).count() == 4
 
         # Type: dine-in  (should match dine-in + both)
-        _select_dropdown_option(page, "Type", "dine-in")
+        _select_dropdown_option(page, "Dining Options", "dine-in")
         page.wait_for_timeout(300)
         names = _card_names(page)
         assert "Dine One" in names
