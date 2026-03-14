@@ -280,8 +280,10 @@ function estimateCardHeight(r) {
 
 function renderList(items) {
   const container = document.getElementById('list');
+  const fab = document.getElementById('add-restaurant-btn-fab');
   container.innerHTML = '';
   if (!Array.isArray(items) || items.length === 0) {
+    fab.classList.add('hidden');
     if (restaurantsCache.length === 0) {
       // Database is empty
       container.innerHTML = `
@@ -350,6 +352,7 @@ function renderList(items) {
   });
 
   columns.forEach(col => container.appendChild(col));
+  fab.classList.remove('hidden');
 }
 
 async function loadCities() {
@@ -854,6 +857,8 @@ function escapeHtml(str) {
 function enterEditMode(r) {
   const modal = document.getElementById('restaurant-modal');
   if (modal) modal.classList.remove('hidden');
+  const fab = document.getElementById('add-restaurant-btn-fab');
+  fab.classList.add('hidden');
   const title = document.getElementById('modal-title');
   if (title) title.textContent = 'Restaurant';
 
@@ -941,6 +946,8 @@ function exitEditMode() {
   const modal = document.getElementById('restaurant-modal');
   if (modal) modal.classList.add('hidden');
   document.body.classList.remove('overflow-hidden');
+  const fab = document.getElementById('add-restaurant-btn-fab');
+  fab.classList.remove('hidden');
   const title = document.getElementById('modal-title');
   if (title) title.textContent = 'Add Restaurant';
   document.getElementById('edit-id').value = '';
@@ -1111,21 +1118,24 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // Modal handling
-  addBtn.addEventListener('click', () => {
+  const fab = document.getElementById('add-restaurant-btn-fab');
+  const openModal = () => {
     exitEditMode(); // Reset form for adding
     modal.classList.remove('hidden');
     document.body.classList.add('overflow-hidden');
-  });
-  closeBtn.addEventListener('click', () => {
+    fab.classList.add('hidden');
+  };
+  const closeModal = () => {
     modal.classList.add('hidden');
     document.body.classList.remove('overflow-hidden');
-  });
+    fab.classList.remove('hidden');
+  };
+  addBtn.addEventListener('click', openModal);
+  fab.addEventListener('click', openModal);
+  closeBtn.addEventListener('click', closeModal);
   // Close modal on outside click
   window.addEventListener('click', (e) => {
-    if (e.target === modal) {
-      modal.classList.add('hidden');
-      document.body.classList.remove('overflow-hidden');
-    }
+    if (e.target === modal) closeModal();
   });
 
   const cityFilter = document.getElementById('filter-city');
