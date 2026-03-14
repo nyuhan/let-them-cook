@@ -27,11 +27,11 @@ def live_server(tmp_path):
     thread.start()
 
     # Wait for server to be ready
-    for _ in range(50):
+    for _ in range(100):
         try:
-            requests.get(f"{base_url}/api/cities", timeout=1)
+            requests.get(f"{base_url}/api/cities", timeout=2)
             break
-        except requests.ConnectionError:
+        except requests.exceptions.RequestException:
             time.sleep(0.1)
 
     yield base_url
