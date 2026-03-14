@@ -6,7 +6,7 @@
     <title>Let Them Cook</title>
     <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}">
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}?v=workinghours">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}?v=2">
     <style>
       /* Simple transition for modal */
       #restaurant-modal.hidden { display: none; }
@@ -302,6 +302,6 @@
 
     <script async src="https://maps.googleapis.com/maps/api/js?key={{ google_api_key }}&libraries=places&loading=async"></script>
     <script src="https://cdn.jsdelivr.net/npm/@googlemaps/js-api-loader@1.16.2/dist/index.min.js"></script>
-    <script src="{{ url_for('static', filename='app.js') }}?v=workinghours"></script>
+    <script src="{{ url_for('static', filename='app.js') }}?v=2"></script>
   </body>
 </html>
