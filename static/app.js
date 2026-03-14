@@ -283,7 +283,7 @@ function renderList(items) {
   const fab = document.getElementById('add-restaurant-btn-fab');
   container.innerHTML = '';
   if (!Array.isArray(items) || items.length === 0) {
-    if (fab) fab.classList.add('hidden');
+    fab.classList.add('hidden');
     if (restaurantsCache.length === 0) {
       // Database is empty
       container.innerHTML = `
@@ -352,7 +352,7 @@ function renderList(items) {
   });
 
   columns.forEach(col => container.appendChild(col));
-  if (fab) fab.classList.remove('hidden');
+  fab.classList.remove('hidden');
 }
 
 async function loadCities() {
@@ -858,7 +858,7 @@ function enterEditMode(r) {
   const modal = document.getElementById('restaurant-modal');
   if (modal) modal.classList.remove('hidden');
   const fab = document.getElementById('add-restaurant-btn-fab');
-  if (fab) fab.classList.add('hidden');
+  fab.classList.add('hidden');
   const title = document.getElementById('modal-title');
   if (title) title.textContent = 'Restaurant';
 
@@ -947,7 +947,7 @@ function exitEditMode() {
   if (modal) modal.classList.add('hidden');
   document.body.classList.remove('overflow-hidden');
   const fab = document.getElementById('add-restaurant-btn-fab');
-  if (fab) fab.classList.remove('hidden');
+  fab.classList.remove('hidden');
   const title = document.getElementById('modal-title');
   if (title) title.textContent = 'Add Restaurant';
   document.getElementById('edit-id').value = '';
@@ -1123,15 +1123,15 @@ document.addEventListener('DOMContentLoaded', () => {
     exitEditMode(); // Reset form for adding
     modal.classList.remove('hidden');
     document.body.classList.add('overflow-hidden');
-    if (fab) fab.classList.add('hidden');
+    fab.classList.add('hidden');
   };
   const closeModal = () => {
     modal.classList.add('hidden');
     document.body.classList.remove('overflow-hidden');
-    if (fab) fab.classList.remove('hidden');
+    fab.classList.remove('hidden');
   };
   addBtn.addEventListener('click', openModal);
-  if (fab) fab.addEventListener('click', openModal);
+  fab.addEventListener('click', openModal);
   closeBtn.addEventListener('click', closeModal);
   // Close modal on outside click
   window.addEventListener('click', (e) => {
