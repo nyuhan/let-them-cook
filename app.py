@@ -2,6 +2,7 @@ from flask import Flask, g, jsonify, request, render_template
 import os
 import sqlite3
 import json
+import hashlib
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
@@ -65,6 +66,23 @@ def get_db():
     return db
 
 app = Flask(__name__, static_folder='static', template_folder='templates')
+
+
+def _file_hash(path):
+    """Return a short MD5 hash of a file's contents."""
+    try:
+        with open(path, 'rb') as f:
+            return hashlib.md5(f.read()).hexdigest()[:8]
+    except OSError:
+        return '0'
+
+
+@app.template_global()
+def versioned_url(filename):
+    """Return a versioned URL for a static file, e.g. /static/app.js?v=abc12345."""
+    from flask import url_for
+    path = os.path.join(app.static_folder, filename)
+    return f"{url_for('static', filename=filename)}?v={_file_hash(path)}"
 
 
 def snake_to_camel(snake_dict):
