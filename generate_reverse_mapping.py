@@ -6,7 +6,8 @@ with open("static/cuisine_mapping.json") as f:
 
 reverse = defaultdict(list)
 for place_type, cuisine in cuisine_mapping.items():
-    reverse[cuisine].append(place_type)
+    key = cuisine if cuisine is not None else "null"
+    reverse[key].append(place_type)
 
 # Sort keys and lists for consistency
 output = {cuisine: sorted(types) for cuisine, types in sorted(reverse.items())}
