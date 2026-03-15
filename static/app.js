@@ -766,18 +766,9 @@ function renderCard(r) {
       const nameSpan = document.createElement('span');
       nameSpan.className = 'text-sm font-medium text-gray-900 truncate';
       nameSpan.textContent = d.name;
-
       headerDiv.appendChild(ratingIcon);
       headerDiv.appendChild(nameSpan);
       contentDiv.appendChild(headerDiv);
-
-      // if (d.notes) {
-      //     const notesP = document.createElement('p');
-      //     notesP.className = 'text-xs text-gray-500 mt-0.5 truncate';
-      //     notesP.textContent = d.notes;
-      //     contentDiv.appendChild(notesP);
-      // }
-
       dishItem.appendChild(contentDiv);
       dishesEl.appendChild(dishItem);
     });
