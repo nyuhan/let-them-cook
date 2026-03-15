@@ -618,13 +618,9 @@ function renderCard(r) {
   const header = document.createElement('div');
   header.className = 'flex justify-between items-center mb-2';
 
-  const titleLink = document.createElement('a');
-  titleLink.href = r.mapUri || '#';
-  titleLink.target = '_blank';
-  titleLink.rel = 'noopener noreferrer';
-  titleLink.className = 'text-lg font-bold text-gray-900 hover:text-indigo-600 line-clamp-1 mr-2';
+  const titleLink = document.createElement('span');
+  titleLink.className = 'text-lg font-bold text-gray-900 line-clamp-1 mr-2';
   titleLink.textContent = r.name;
-  titleLink.addEventListener('click', (e) => e.stopPropagation());
   header.appendChild(titleLink);
 
   const metaDiv = document.createElement('div');
@@ -803,17 +799,29 @@ function renderCard(r) {
   footer.className = 'mt-auto pt-3 border-t border-gray-100 flex items-center justify-between';
 
   // Left: Go actions
+  const leftActions = document.createElement('div');
+  leftActions.className = 'flex items-center';
+
+  const mapsBtn = document.createElement('a');
+  mapsBtn.href = r.mapUri || '#';
+  mapsBtn.target = '_blank';
+  mapsBtn.rel = 'noopener';
+  mapsBtn.title = 'Open in Google Maps';
+  mapsBtn.className = 'text-gray-400 hover:text-red-500 p-2 rounded-full hover:bg-red-50 transition-colors';
+  mapsBtn.innerHTML = `<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>`;
+  mapsBtn.addEventListener('click', (e) => e.stopPropagation());
+  leftActions.appendChild(mapsBtn);
+
   const goBtn = document.createElement('a');
   goBtn.href = r.directionsUri || r.mapUri || '#'; // Prefer directionsUri
   goBtn.target = '_blank';
   goBtn.rel = 'noopener';
-  goBtn.className = 'inline-flex items-center text-sm font-medium text-green-700 hover:text-green-800 bg-green-50 hover:bg-green-100 px-3 py-1.5 rounded-full transition-colors';
-  goBtn.innerHTML = `
-    <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 9l3 3m0 0l-3 3m3-3H8m13 0a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-    Let's go!
-  `;
+  goBtn.title = 'Navigate';
+  goBtn.className = 'text-gray-400 hover:text-blue-600 p-2 rounded-full hover:bg-blue-50 transition-colors';
+  goBtn.innerHTML = `<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z"/></svg>`;
   goBtn.addEventListener('click', (e) => e.stopPropagation());
-  footer.appendChild(goBtn);
+  leftActions.appendChild(goBtn);
+  footer.appendChild(leftActions);
 
   // Right: Edit/Delete
   const rightActions = document.createElement('div');
