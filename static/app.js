@@ -105,7 +105,7 @@ function initAutocomplete() {
       const directionsUri = place.googleMapsLinks?.directionsURI || 'UNKNOWN';
       const types = place.types || [];
 
-      if (!types.includes('restaurant') && !types.includes('food')) {
+      if (!types.includes('restaurant') && !types.includes('food') && !types.includes('tea_house') && !types.includes('cafe')) {
         showMessage('Selected place is not a restaurant', true);
         clearSelection();
         return;
