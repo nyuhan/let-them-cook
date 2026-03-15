@@ -16,7 +16,7 @@ class TestSchema:
     def test_restaurant_columns(self, client):
         expected = {
             "id", "name", "address", "city", "map_uri", "directions_uri",
-            "dining_options", "rating", "created_at", "price_level", "notes", "opening_hours",
+            "dining_options", "rating", "created_at", "price_level", "notes", "opening_hours", "types",
         }
         with flask_app.app_context():
             db = app_module.get_db()

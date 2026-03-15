@@ -45,6 +45,10 @@ def get_db():
         if 'opening_hours' not in columns:
             db.execute('ALTER TABLE restaurants ADD COLUMN opening_hours TEXT')
 
+        # Check for types column and add if missing
+        if 'types' not in columns:
+            db.execute('ALTER TABLE restaurants ADD COLUMN types TEXT')
+
         # Rename type column to dining_options if needed
         if 'type' in columns and 'dining_options' not in columns:
             db.execute('ALTER TABLE restaurants RENAME COLUMN type TO dining_options')
@@ -96,13 +100,20 @@ def snake_to_camel(snake_dict):
 
 
 def parse_restaurant_row(row):
-    """Convert a DB row to a dict with opening_hours deserialized."""
+    """Convert a DB row to a dict with opening_hours and types deserialized."""
     d = dict(row)
     if d.get('opening_hours'):
         try:
             d['opening_hours'] = json.loads(d['opening_hours'])
         except (json.JSONDecodeError, TypeError):
             d['opening_hours'] = None
+    if d.get('types'):
+        try:
+            d['types'] = json.loads(d['types'])
+        except (json.JSONDecodeError, TypeError):
+            d['types'] = []
+    else:
+        d['types'] = []
     return d
 
 
@@ -134,7 +145,7 @@ def restaurants():
         data = request.get_json() or {}
         id = data.get('id')
         name = data.get('name')
-        rtype = data.get('diningOptions')
+        dining_options = data.get('diningOptions')
         rating = data.get('rating')
         address = data.get('address')
         city = data.get('city')
@@ -144,21 +155,24 @@ def restaurants():
         notes = data.get('notes')
         dishes = data.get('dishes')
         opening_hours = data.get('openingHours')
+        types = data.get('types')
         
         # Serialize opening_hours to JSON string if present
         opening_hours_json = None
         if opening_hours:
             opening_hours_json = json.dumps(opening_hours)
 
+        types_json = json.dumps(types) if types is not None else None
+
         try:
             rating = int(rating)
         except Exception:
             return jsonify({'error': 'rating must be an integer 1-5'}), 400
-        if not name or rtype not in ('dine-in', 'delivery', 'both') or not (1 <= rating <= 5):
+        if not name or dining_options not in ('dine-in', 'delivery', 'both') or not (1 <= rating <= 5):
             return jsonify({'error': 'invalid data'}), 400
         db.execute(
-            'INSERT INTO restaurants (id ,name, dining_options, rating, address, city, map_uri, directions_uri, price_level, notes, opening_hours, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?, CURRENT_TIMESTAMP)',
-            (id, name, rtype, rating, address, city, map_uri, directions_uri, price_level, notes, opening_hours_json),
+            'INSERT INTO restaurants (id ,name, dining_options, rating, address, city, map_uri, directions_uri, price_level, notes, opening_hours, types, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?, CURRENT_TIMESTAMP)',
+            (id, name, dining_options, rating, address, city, map_uri, directions_uri, price_level, notes, opening_hours_json, types_json),
         )
 
         if dishes and isinstance(dishes, list):
@@ -184,7 +198,7 @@ def restaurants():
         db.commit()
         return jsonify({'status': 'ok'}), 201
 
-    cur = db.execute('SELECT id, name, dining_options, rating, address, city, map_uri, directions_uri, price_level, notes, opening_hours, created_at FROM restaurants ORDER BY id DESC')
+    cur = db.execute('SELECT id, name, dining_options, rating, address, city, map_uri, directions_uri, price_level, notes, opening_hours, types, created_at FROM restaurants ORDER BY id DESC')
     restaurants = []
     for r in cur.fetchall():
         restaurants.append(snake_to_camel(parse_restaurant_row(r)))
@@ -229,8 +243,9 @@ def update_restaurant(rest_id):
     directions_uri = data.get('directionsUri')
     price_level = data.get('priceLevel')
     opening_hours = data.get('openingHours')
+    types = data.get('types')
 
-    rtype = data.get('diningOptions')
+    dining_options = data.get('diningOptions')
     rating = data.get('rating')
     notes = data.get('notes')
 
@@ -243,10 +258,10 @@ def update_restaurant(rest_id):
         except:
              return jsonify({'error': 'rating must be integer'}), 400
 
-    if rtype is not None and rtype not in ('dine-in', 'delivery', 'both'):
+    if dining_options is not None and dining_options not in ('dine-in', 'delivery', 'both'):
         return jsonify({'error': 'invalid type'}), 400
 
-    cur = db.execute('SELECT id, dining_options, rating, notes, name, address, city, map_uri, directions_uri, price_level, opening_hours FROM restaurants WHERE id = ?', (rest_id,))
+    cur = db.execute('SELECT id, dining_options, rating, notes, name, address, city, map_uri, directions_uri, price_level, opening_hours, types FROM restaurants WHERE id = ?', (rest_id,))
     row = cur.fetchone()
     if row is None:
         return jsonify({'error': 'not found'}), 404
@@ -255,7 +270,7 @@ def update_restaurant(rest_id):
     current_data = dict(row)
     
     new_name = name if name is not None else current_data['name']
-    new_type = rtype if rtype is not None else current_data['dining_options']
+    new_type = dining_options if dining_options is not None else current_data['dining_options']
     new_rating = rating if rating is not None else current_data['rating']
     new_notes = notes if notes is not None else current_data['notes']
     new_address = address if address is not None else current_data['address']
@@ -268,15 +283,19 @@ def update_restaurant(rest_id):
     if opening_hours is not None:
         new_opening_hours_json = json.dumps(opening_hours)
 
+    new_types_json = current_data['types']
+    if types is not None:
+        new_types_json = json.dumps(types)
+
     db.execute(
         '''UPDATE restaurants SET 
            name = ?, dining_options = ?, rating = ?, notes = ?, 
            address = ?, city = ?, map_uri = ?, directions_uri = ?, 
-           price_level = ?, opening_hours = ? 
+           price_level = ?, opening_hours = ?, types = ?
            WHERE id = ?''',
         (new_name, new_type, new_rating, new_notes, 
          new_address, new_city, new_map_uri, new_directions_uri, 
-         new_price_level, new_opening_hours_json, rest_id),
+         new_price_level, new_opening_hours_json, new_types_json, rest_id),
     )
 
     dishes = data.get('dishes')

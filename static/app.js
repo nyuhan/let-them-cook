@@ -493,12 +493,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const openingHours = getOpeningHours(place);
 
+        const types = place.types || [];
+
         // Send update to backend
         const res = await fetch(`/api/restaurants/${editId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            name, address, city, mapUri, directionsUri, priceLevel, openingHours
+            name, address, city, mapUri, directionsUri, priceLevel, openingHours, types
           })
         });
 
@@ -1065,6 +1067,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const directionsUri = newPlaceData.directionsUri;
       const priceLevel = newPlaceData.priceLevel;
       const openingHours = newPlaceData.openingHours;
+      const types = newPlaceData.types;
       const editId = document.getElementById('edit-id').value;
       const notes = document.getElementById('restaurant-notes')?.value || '';
       const diningOptions = selectedDiningOptions;
@@ -1080,7 +1083,7 @@ document.addEventListener('DOMContentLoaded', () => {
             body: JSON.stringify(payload)
           });
         } else {
-          const payload = { id, name, address, city, diningOptions, rating, mapUri, directionsUri, priceLevel, notes, dishes, openingHours };
+          const payload = { id, name, address, city, diningOptions, rating, mapUri, directionsUri, priceLevel, notes, dishes, openingHours, types };
           res = await fetch('/api/restaurants', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
