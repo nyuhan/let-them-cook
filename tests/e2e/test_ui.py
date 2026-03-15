@@ -25,7 +25,7 @@ def _card_names(page):
     count = cards.count()
     names = []
     for i in range(count):
-        name_el = cards.nth(i).locator("a.text-lg.font-bold")
+        name_el = cards.nth(i).locator("span.text-lg.font-bold")
         names.append(name_el.text_content().strip())
     return names
 
@@ -267,7 +267,7 @@ class TestDeleteRestaurant:
         delete_modal.wait_for(state="hidden")
 
         # Only 1 card should remain
-        page.locator("a.text-lg.font-bold:has-text('Keep Me')").wait_for(state="visible")
+        page.locator("span.text-lg.font-bold:has-text('Keep Me')").wait_for(state="visible")
         assert _card_locators(page).count() == 1
         names = _card_names(page)
         assert "Keep Me" in names
