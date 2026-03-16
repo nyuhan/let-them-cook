@@ -11,6 +11,13 @@ load_dotenv()
 BASE_DIR = os.path.dirname(__file__)
 DATABASE = os.environ.get('SQLITE_FILE_PATH') or os.path.join(BASE_DIR, 'instance', 'restaurants.db')
 
+_types_mapping_path = os.path.join(BASE_DIR, 'static', 'types.json')
+try:
+    with open(_types_mapping_path) as _f:
+        TYPES_MAPPING = json.load(_f)
+except OSError:
+    TYPES_MAPPING = {}
+
 def get_db():
     db = getattr(g, '_database', None)
     if db is None:
@@ -114,6 +121,15 @@ def parse_restaurant_row(row):
             d['types'] = []
     else:
         d['types'] = []
+    # Compute deduplicated cuisine labels from types
+    seen = set()
+    cuisines = []
+    for t in d['types']:
+        label = TYPES_MAPPING.get(t)
+        if label is not None and label not in seen:
+            seen.add(label)
+            cuisines.append(label)
+    d['cuisines'] = cuisines
     return d
 
 

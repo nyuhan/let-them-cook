@@ -267,6 +267,7 @@ function getNotesLineCount(notes) {
 
 function estimateCardHeight(r) {
   let h = 160; // base: header + city/badge + rating/price + footer
+  if ((r.cuisines || []).length > 0) h += 28;
   const noteLines = getNotesLineCount(r.notes);
   if (noteLines > 0) h += 16 + noteLines * 20 + 16; // padding (p-2=16) + lines*lineHeight + mb-4
   if (r.dishes && r.dishes.length > 0) {
@@ -713,7 +714,19 @@ function renderCard(r) {
 
   body.appendChild(thirdLine);
 
-  // Notes (each line truncated with ellipsis, max 3 lines)
+  // Cuisine type badges
+  const cuisines = r.cuisines || [];
+  if (cuisines.length > 0) {
+    const typesRow = document.createElement('div');
+    typesRow.className = 'flex flex-wrap gap-1 mb-4';
+    cuisines.forEach(label => {
+      const badge = document.createElement('span');
+      badge.className = 'inline-flex items-center px-2 py-0.5 rounded text-xs bg-indigo-50 text-indigo-700 border border-indigo-100';
+      badge.textContent = label;
+      typesRow.appendChild(badge);
+    });
+    body.appendChild(typesRow);
+  }
   if (r.notes) {
     const notesEl = document.createElement('div');
     notesEl.className = 'mb-4 text-sm text-gray-600 bg-gray-50 p-2 rounded border border-gray-100 italic';
