@@ -81,7 +81,7 @@ function initAutocomplete() {
     await place.fetchFields({
       fields: ['displayName', 'formattedAddress', 'location', 'addressComponents', 'googleMapsLinks', 'googleMapsURI', 'types', 'priceLevel', 'regularOpeningHours', 'utcOffsetMinutes'],
     });
-    console.log(place.types);
+    console.log('Place', JSON.stringify(place.toJSON(), /* replacer */ null, /* space */ 2));
 
     if (place && place.id) {
       // Check if restaurant already exists
@@ -265,25 +265,25 @@ function getNotesLineCount(notes) {
   return Math.min(notes.split('\n').length, 3);
 }
 
-function estimateCardHeight(r) {
+function estimateCardHeight(restaurant) {
   let h = 160; // base: header + city/badge + rating/price + footer
-  if ((r.cuisines || []).length > 0) h += 28;
-  const noteLines = getNotesLineCount(r.notes);
+  if (restaurant.cuisines.length > 0) h += 28;
+  const noteLines = getNotesLineCount(restaurant.notes);
   if (noteLines > 0) h += 16 + noteLines * 20 + 16; // padding (p-2=16) + lines*lineHeight + mb-4
-  if (r.dishes && r.dishes.length > 0) {
+  if (restaurant.dishes && restaurant.dishes.length > 0) {
     h += 28; // "DISHES" title + top border
-    const shown = Math.min(r.dishes.length, 10);
+    const shown = Math.min(restaurant.dishes.length, 10);
     h += shown * 36; // each dish item
-    if (r.dishes.length > 10) h += 24; // "+ N more"
+    if (restaurant.dishes.length > 10) h += 24; // "+ N more"
   }
   return h;
 }
 
-function renderList(items) {
+function renderList(restaurants) {
   const container = document.getElementById('list');
   const fab = document.getElementById('add-restaurant-btn-fab');
   container.innerHTML = '';
-  if (!Array.isArray(items) || items.length === 0) {
+  if (!Array.isArray(restaurants) || restaurants.length === 0) {
     fab.classList.add('hidden');
     if (restaurantsCache.length === 0) {
       // Database is empty
@@ -338,10 +338,10 @@ function renderList(items) {
 
   const colHeights = new Array(colCount).fill(0);
   const gap = 24; // gap-6 = 1.5rem = 24px
-  const cards = items.map(r => renderCard(r));
+  const cards = restaurants.map(r => renderCard(r));
 
   cards.forEach((card, i) => {
-    const h = estimateCardHeight(items[i]);
+    const h = estimateCardHeight(restaurants[i]);
 
     // Find the shortest column
     let minIdx = 0;
@@ -715,13 +715,13 @@ function renderCard(r) {
   body.appendChild(thirdLine);
 
   // Cuisine type badges
-  const cuisines = r.cuisines || [];
+  const cuisines = r.cuisines;
   if (cuisines.length > 0) {
     const typesRow = document.createElement('div');
     typesRow.className = 'flex flex-wrap gap-1 mb-4';
     cuisines.forEach(label => {
       const badge = document.createElement('span');
-      badge.className = 'inline-flex items-center px-2 py-0.5 rounded text-xs bg-indigo-50 text-indigo-700 border border-indigo-100';
+      badge.className = 'inline-flex items-center px-2 py-0.5 rounded-md text-xs bg-indigo-50 text-indigo-700 border border-indigo-100';
       badge.textContent = label;
       typesRow.appendChild(badge);
     });
@@ -1439,7 +1439,7 @@ document.addEventListener('DOMContentLoaded', () => {
       try {
         const res = await fetch(`/api/restaurants/${restaurantToDelete.id}`, { method: 'DELETE' });
         if (res.ok) {
-          restaurantsCache = restaurantsCache.filter(item => item.id !== restaurantToDelete.id);
+          restaurantsCache = restaurantsCache.filter(r => r.id !== restaurantToDelete.id);
           applyFilters();
           // Also reload cities in case the only restaurant in a city was deleted
           loadCities();

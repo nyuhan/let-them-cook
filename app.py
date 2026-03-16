@@ -109,11 +109,13 @@ def snake_to_camel(snake_dict):
 def parse_restaurant_row(row):
     """Convert a DB row to a dict with opening_hours and types deserialized."""
     d = dict(row)
+
     if d.get('opening_hours'):
         try:
             d['opening_hours'] = json.loads(d['opening_hours'])
         except (json.JSONDecodeError, TypeError):
             d['opening_hours'] = None
+
     if d.get('types'):
         try:
             d['types'] = json.loads(d['types'])
@@ -121,15 +123,14 @@ def parse_restaurant_row(row):
             d['types'] = []
     else:
         d['types'] = []
-    # Compute deduplicated cuisine labels from types
-    seen = set()
-    cuisines = []
+
+    cuisines = set()
     for t in d['types']:
-        label = TYPES_MAPPING.get(t)
-        if label is not None and label not in seen:
-            seen.add(label)
-            cuisines.append(label)
-    d['cuisines'] = cuisines
+        cuisine = TYPES_MAPPING.get(t)
+        if cuisine is not None:
+            cuisines.add(cuisine)
+    d['cuisines'] = sorted(cuisines)
+
     return d
 
 
