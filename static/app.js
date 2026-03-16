@@ -1,5 +1,11 @@
 let restaurantsCache = [];
 let selectedDiningOptions = 'both';
+let allowedTypes = new Set();
+
+const allowedTypesReady = fetch('/static/types.json')
+  .then(r => r.json())
+  .then(mapping => { allowedTypes = new Set(Object.keys(mapping)); })
+  .catch(() => {});
 
 const ICON_DINE_IN = `<svg class="w-3 h-3 flex-shrink-0" fill="currentColor" aria-hidden="true"><use href="#icon-dine-in"/></svg>`;
 const ICON_DELIVERY = `<svg class="w-3 h-3 flex-shrink-0" fill="currentColor" aria-hidden="true"><use href="#icon-delivery"/></svg>`;
@@ -77,6 +83,7 @@ function initAutocomplete() {
   });
 
   placeAutocomplete.addEventListener('gmp-select', async (event) => {
+    await allowedTypesReady;
     const place = event.placePrediction.toPlace();
     await place.fetchFields({
       fields: ['displayName', 'formattedAddress', 'location', 'addressComponents', 'googleMapsLinks', 'googleMapsURI', 'types', 'priceLevel', 'regularOpeningHours', 'utcOffsetMinutes'],
@@ -105,7 +112,7 @@ function initAutocomplete() {
       const directionsUri = place.googleMapsLinks?.directionsURI || 'UNKNOWN';
       const types = place.types || [];
 
-      if (!types.includes('restaurant') && !types.includes('food') && !types.includes('tea_house') && !types.includes('cafe')) {
+      if (!types.some(t => allowedTypes.has(t))) {
         showMessage('Selected place is not a restaurant', true);
         clearSelection();
         return;
@@ -265,24 +272,25 @@ function getNotesLineCount(notes) {
   return Math.min(notes.split('\n').length, 3);
 }
 
-function estimateCardHeight(r) {
+function estimateCardHeight(restaurant) {
   let h = 160; // base: header + city/badge + rating/price + footer
-  const noteLines = getNotesLineCount(r.notes);
+  if (restaurant.cuisines.length > 0) h += 28;
+  const noteLines = getNotesLineCount(restaurant.notes);
   if (noteLines > 0) h += 16 + noteLines * 20 + 16; // padding (p-2=16) + lines*lineHeight + mb-4
-  if (r.dishes && r.dishes.length > 0) {
+  if (restaurant.dishes && restaurant.dishes.length > 0) {
     h += 28; // "DISHES" title + top border
-    const shown = Math.min(r.dishes.length, 10);
+    const shown = Math.min(restaurant.dishes.length, 10);
     h += shown * 36; // each dish item
-    if (r.dishes.length > 10) h += 24; // "+ N more"
+    if (restaurant.dishes.length > 10) h += 24; // "+ N more"
   }
   return h;
 }
 
-function renderList(items) {
+function renderList(restaurants) {
   const container = document.getElementById('list');
   const fab = document.getElementById('add-restaurant-btn-fab');
   container.innerHTML = '';
-  if (!Array.isArray(items) || items.length === 0) {
+  if (!Array.isArray(restaurants) || restaurants.length === 0) {
     fab.classList.add('hidden');
     if (restaurantsCache.length === 0) {
       // Database is empty
@@ -337,10 +345,10 @@ function renderList(items) {
 
   const colHeights = new Array(colCount).fill(0);
   const gap = 24; // gap-6 = 1.5rem = 24px
-  const cards = items.map(r => renderCard(r));
+  const cards = restaurants.map(r => renderCard(r));
 
   cards.forEach((card, i) => {
-    const h = estimateCardHeight(items[i]);
+    const h = estimateCardHeight(restaurants[i]);
 
     // Find the shortest column
     let minIdx = 0;
@@ -493,12 +501,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const openingHours = getOpeningHours(place);
 
+        const types = place.types || [];
+
         // Send update to backend
         const res = await fetch(`/api/restaurants/${editId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            name, address, city, mapUri, directionsUri, priceLevel, openingHours
+            name, address, city, mapUri, directionsUri, priceLevel, openingHours, types
           })
         });
 
@@ -711,7 +721,19 @@ function renderCard(r) {
 
   body.appendChild(thirdLine);
 
-  // Notes (each line truncated with ellipsis, max 3 lines)
+  // Cuisine type badges
+  const cuisines = r.cuisines;
+  if (cuisines.length > 0) {
+    const typesRow = document.createElement('div');
+    typesRow.className = 'flex flex-wrap gap-1 mb-4';
+    cuisines.forEach(label => {
+      const badge = document.createElement('span');
+      badge.className = 'inline-flex items-center px-2 py-0.5 rounded-md text-xs bg-indigo-50 text-indigo-700 border border-indigo-100';
+      badge.textContent = label;
+      typesRow.appendChild(badge);
+    });
+    body.appendChild(typesRow);
+  }
   if (r.notes) {
     const notesEl = document.createElement('div');
     notesEl.className = 'mb-4 text-sm text-gray-600 bg-gray-50 p-2 rounded border border-gray-100 italic';
@@ -1065,6 +1087,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const directionsUri = newPlaceData.directionsUri;
       const priceLevel = newPlaceData.priceLevel;
       const openingHours = newPlaceData.openingHours;
+      const types = newPlaceData.types;
       const editId = document.getElementById('edit-id').value;
       const notes = document.getElementById('restaurant-notes')?.value || '';
       const diningOptions = selectedDiningOptions;
@@ -1080,7 +1103,7 @@ document.addEventListener('DOMContentLoaded', () => {
             body: JSON.stringify(payload)
           });
         } else {
-          const payload = { id, name, address, city, diningOptions, rating, mapUri, directionsUri, priceLevel, notes, dishes, openingHours };
+          const payload = { id, name, address, city, diningOptions, rating, mapUri, directionsUri, priceLevel, notes, dishes, openingHours, types };
           res = await fetch('/api/restaurants', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -1423,7 +1446,7 @@ document.addEventListener('DOMContentLoaded', () => {
       try {
         const res = await fetch(`/api/restaurants/${restaurantToDelete.id}`, { method: 'DELETE' });
         if (res.ok) {
-          restaurantsCache = restaurantsCache.filter(item => item.id !== restaurantToDelete.id);
+          restaurantsCache = restaurantsCache.filter(r => r.id !== restaurantToDelete.id);
           applyFilters();
           // Also reload cities in case the only restaurant in a city was deleted
           loadCities();

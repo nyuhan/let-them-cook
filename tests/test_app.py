@@ -81,6 +81,19 @@ class TestCreateRestaurant:
         listing = client.get("/api/restaurants").get_json()
         assert listing[0]["openingHours"] == hours
 
+    def test_with_types(self, client, seed_restaurant):
+        types = ["restaurant", "food", "italian_restaurant"]
+        data, resp = seed_restaurant(types=types)
+        assert resp.status_code == 201
+        listing = client.get("/api/restaurants").get_json()
+        assert listing[0]["types"] == types
+
+    def test_types_default_empty(self, client, seed_restaurant):
+        data, resp = seed_restaurant(types=None)
+        assert resp.status_code == 201
+        listing = client.get("/api/restaurants").get_json()
+        assert listing[0]["types"] == []
+
     def test_invalid_rating_string(self, client):
         resp = client.post("/api/restaurants", json={
             "id": "x", "name": "R", "diningOptions": "dine-in", "rating": "bad",
@@ -150,6 +163,7 @@ class TestListRestaurants:
         assert "priceLevel" in r
         assert "createdAt" in r
         assert "openingHours" in r
+        assert "types" in r
 
     def test_includes_dishes(self, client, seed_restaurant):
         seed_restaurant(dishes=[{"name": "Tacos", "rating": 1}])
@@ -162,6 +176,12 @@ class TestListRestaurants:
         seed_restaurant(openingHours=hours)
         listing = client.get("/api/restaurants").get_json()
         assert listing[0]["openingHours"] == hours
+
+    def test_types_deserialized(self, client, seed_restaurant):
+        types = ["restaurant", "japanese_restaurant"]
+        seed_restaurant(types=types)
+        listing = client.get("/api/restaurants").get_json()
+        assert listing[0]["types"] == types
 
     def test_ordered_by_id_desc(self, client, seed_restaurant):
         seed_restaurant(id="aaa", name="First")
@@ -190,6 +210,12 @@ class TestGetRestaurant:
         resp = client.get("/api/restaurants/r1")
         assert resp.get_json()["openingHours"] == hours
 
+    def test_types_returned(self, client, seed_restaurant):
+        types = ["restaurant", "korean_restaurant"]
+        seed_restaurant(id="r1", types=types)
+        resp = client.get("/api/restaurants/r1")
+        assert resp.get_json()["types"] == types
+
     def test_not_found(self, client):
         resp = client.get("/api/restaurants/nonexistent")
         assert resp.status_code == 404
@@ -212,6 +238,7 @@ class TestUpdateRestaurant:
     def test_full_update(self, client, seed_restaurant):
         seed_restaurant(id="r1")
         hours = {"weekdayDescriptions": ["Mon: 10–6"], "periods": []}
+        types = ["restaurant", "french_restaurant"]
         resp = client.put("/api/restaurants/r1", json={
             "name": "Updated",
             "diningOptions": "delivery",
@@ -223,6 +250,7 @@ class TestUpdateRestaurant:
             "directionsUri": "https://new.dir",
             "priceLevel": 3,
             "openingHours": hours,
+            "types": types,
         })
         assert resp.status_code == 200
         # Use list endpoint which correctly deserializes opening_hours
@@ -234,6 +262,23 @@ class TestUpdateRestaurant:
         assert r["city"] == "NewCity"
         assert r["priceLevel"] == 3
         assert r["openingHours"] == hours
+        assert r["types"] == types
+
+    def test_types_update(self, client, seed_restaurant):
+        seed_restaurant(id="r1", types=["restaurant"])
+        resp = client.put("/api/restaurants/r1", json={"types": ["restaurant", "sushi_restaurant"]})
+        assert resp.status_code == 200
+        listing = client.get("/api/restaurants").get_json()
+        r = next(x for x in listing if x["id"] == "r1")
+        assert r["types"] == ["restaurant", "sushi_restaurant"]
+
+    def test_types_preserved_when_not_in_payload(self, client, seed_restaurant):
+        seed_restaurant(id="r1", types=["restaurant", "thai_restaurant"])
+        resp = client.put("/api/restaurants/r1", json={"rating": 5})
+        assert resp.status_code == 200
+        listing = client.get("/api/restaurants").get_json()
+        r = next(x for x in listing if x["id"] == "r1")
+        assert r["types"] == ["restaurant", "thai_restaurant"]
 
     def test_not_found(self, client):
         resp = client.put("/api/restaurants/missing", json={"rating": 3})

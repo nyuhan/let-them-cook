@@ -54,6 +54,7 @@ def seed(live_server):
             "directionsUri": "https://maps.example.com/dir",
             "priceLevel": 2,
             "notes": "Great place",
+            "types": [],
         }
         data.update(overrides)
         resp = requests.post(f"{live_server}/api/restaurants", json=data)

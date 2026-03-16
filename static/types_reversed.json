@@ -1,0 +1,308 @@
+{
+  "Afghan": [
+    "afghani_restaurant"
+  ],
+  "African": [
+    "african_restaurant"
+  ],
+  "American": [
+    "american_restaurant",
+    "bar_and_grill",
+    "californian_restaurant",
+    "soul_food_restaurant",
+    "southwestern_us_restaurant",
+    "western_restaurant"
+  ],
+  "Argentinian": [
+    "argentinian_restaurant"
+  ],
+  "Asian": [
+    "asian_restaurant"
+  ],
+  "Asian Fusion": [
+    "asian_fusion_restaurant"
+  ],
+  "Australian": [
+    "australian_restaurant"
+  ],
+  "Austrian": [
+    "austrian_restaurant"
+  ],
+  "Bangladeshi": [
+    "bangladeshi_restaurant"
+  ],
+  "Basque": [
+    "basque_restaurant"
+  ],
+  "Belgian": [
+    "belgian_restaurant"
+  ],
+  "Brazilian": [
+    "acai_shop",
+    "brazilian_restaurant"
+  ],
+  "British": [
+    "british_restaurant",
+    "fish_and_chips_restaurant"
+  ],
+  "Burmese": [
+    "burmese_restaurant"
+  ],
+  "Cajun": [
+    "cajun_restaurant"
+  ],
+  "Cambodian": [
+    "cambodian_restaurant"
+  ],
+  "Caribbean": [
+    "caribbean_restaurant"
+  ],
+  "Chilean": [
+    "chilean_restaurant"
+  ],
+  "Chinese": [
+    "cantonese_restaurant",
+    "chinese_noodle_restaurant",
+    "chinese_restaurant",
+    "dim_sum_restaurant",
+    "dumpling_restaurant",
+    "hot_pot_restaurant"
+  ],
+  "Colombian": [
+    "colombian_restaurant"
+  ],
+  "Croatian": [
+    "croatian_restaurant"
+  ],
+  "Cuban": [
+    "cuban_restaurant"
+  ],
+  "Czech": [
+    "czech_restaurant"
+  ],
+  "Danish": [
+    "danish_restaurant"
+  ],
+  "Dutch": [
+    "dutch_restaurant"
+  ],
+  "Eastern European": [
+    "eastern_european_restaurant"
+  ],
+  "Ethiopian": [
+    "ethiopian_restaurant"
+  ],
+  "European": [
+    "european_restaurant"
+  ],
+  "Filipino": [
+    "filipino_restaurant"
+  ],
+  "French": [
+    "french_restaurant"
+  ],
+  "Fusion": [
+    "fusion_restaurant"
+  ],
+  "German": [
+    "bavarian_restaurant",
+    "german_restaurant"
+  ],
+  "Greek": [
+    "greek_restaurant",
+    "gyro_restaurant"
+  ],
+  "Hawaiian": [
+    "hawaiian_restaurant"
+  ],
+  "Hungarian": [
+    "hungarian_restaurant"
+  ],
+  "Indian": [
+    "indian_restaurant",
+    "north_indian_restaurant",
+    "south_indian_restaurant"
+  ],
+  "Indonesian": [
+    "indonesian_restaurant"
+  ],
+  "Irish": [
+    "irish_pub",
+    "irish_restaurant"
+  ],
+  "Israeli": [
+    "israeli_restaurant"
+  ],
+  "Italian": [
+    "italian_restaurant"
+  ],
+  "Japanese": [
+    "japanese_curry_restaurant",
+    "japanese_izakaya_restaurant",
+    "japanese_restaurant",
+    "sushi_restaurant",
+    "tonkatsu_restaurant",
+    "yakiniku_restaurant",
+    "yakitori_restaurant"
+  ],
+  "Korean": [
+    "korean_barbecue_restaurant",
+    "korean_restaurant"
+  ],
+  "Latin American": [
+    "latin_american_restaurant"
+  ],
+  "Lebanese": [
+    "lebanese_restaurant"
+  ],
+  "Malaysian": [
+    "malaysian_restaurant"
+  ],
+  "Mediterranean": [
+    "mediterranean_restaurant"
+  ],
+  "Mexican": [
+    "burrito_restaurant",
+    "mexican_restaurant",
+    "taco_restaurant"
+  ],
+  "Middle Eastern": [
+    "falafel_restaurant",
+    "kebab_shop",
+    "middle_eastern_restaurant",
+    "shawarma_restaurant"
+  ],
+  "Mongolian": [
+    "mongolian_barbecue_restaurant"
+  ],
+  "Moroccan": [
+    "moroccan_restaurant"
+  ],
+  "Pakistani": [
+    "pakistani_restaurant"
+  ],
+  "Persian": [
+    "persian_restaurant"
+  ],
+  "Peruvian": [
+    "peruvian_restaurant"
+  ],
+  "Polish": [
+    "polish_restaurant"
+  ],
+  "Portuguese": [
+    "portuguese_restaurant"
+  ],
+  "Romanian": [
+    "romanian_restaurant"
+  ],
+  "Russian": [
+    "russian_restaurant"
+  ],
+  "Scandinavian": [
+    "scandinavian_restaurant"
+  ],
+  "South American": [
+    "south_american_restaurant"
+  ],
+  "Spanish": [
+    "spanish_restaurant",
+    "tapas_restaurant"
+  ],
+  "Sri Lankan": [
+    "sri_lankan_restaurant"
+  ],
+  "Swiss": [
+    "fondue_restaurant",
+    "swiss_restaurant"
+  ],
+  "Taiwanese": [
+    "taiwanese_restaurant"
+  ],
+  "Tex-Mex": [
+    "tex_mex_restaurant"
+  ],
+  "Thai": [
+    "thai_restaurant"
+  ],
+  "Tibetan": [
+    "tibetan_restaurant"
+  ],
+  "Turkish": [
+    "turkish_restaurant"
+  ],
+  "Ukrainian": [
+    "ukrainian_restaurant"
+  ],
+  "Vietnamese": [
+    "vietnamese_restaurant"
+  ],
+  "null": [
+    "bagel_shop",
+    "bakery",
+    "bar",
+    "barbecue_restaurant",
+    "beer_garden",
+    "bistro",
+    "breakfast_restaurant",
+    "brewery",
+    "brewpub",
+    "brunch_restaurant",
+    "buffet_restaurant",
+    "cafe",
+    "cafeteria",
+    "cake_shop",
+    "candy_store",
+    "cat_cafe",
+    "chicken_restaurant",
+    "chicken_wings_restaurant",
+    "chocolate_factory",
+    "chocolate_shop",
+    "cocktail_bar",
+    "coffee_roastery",
+    "coffee_shop",
+    "coffee_stand",
+    "confectionery",
+    "deli",
+    "dessert_restaurant",
+    "dessert_shop",
+    "diner",
+    "dog_cafe",
+    "donut_shop",
+    "family_restaurant",
+    "fast_food_restaurant",
+    "fine_dining_restaurant",
+    "food_court",
+    "gastropub",
+    "halal_restaurant",
+    "hamburger_restaurant",
+    "hookah_bar",
+    "hot_dog_restaurant",
+    "hot_dog_stand",
+    "ice_cream_shop",
+    "juice_shop",
+    "lounge_bar",
+    "meal_delivery",
+    "meal_takeaway",
+    "noodle_shop",
+    "oyster_bar_restaurant",
+    "pastry_shop",
+    "pizza_delivery",
+    "pizza_restaurant",
+    "pub",
+    "ramen_restaurant",
+    "restaurant",
+    "salad_shop",
+    "sandwich_shop",
+    "seafood_restaurant",
+    "snack_bar",
+    "soup_restaurant",
+    "sports_bar",
+    "steak_house",
+    "tea_house",
+    "vegan_restaurant",
+    "vegetarian_restaurant",
+    "wine_bar",
+    "winery"
+  ]
+}
