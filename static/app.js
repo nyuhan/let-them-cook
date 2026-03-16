@@ -264,7 +264,7 @@ async function loadRestaurants() {
   const res = await fetch('/api/restaurants');
   const data = await res.json();
   restaurantsCache = Array.isArray(data) ? data : [];
-  applyFilters();
+  filterAndRender();
 }
 
 function getNotesLineCount(notes) {
@@ -286,7 +286,7 @@ function estimateCardHeight(restaurant) {
   return h;
 }
 
-function renderList(restaurants) {
+function renderRestaurants(restaurants) {
   const container = document.getElementById('list');
   const fab = document.getElementById('add-restaurant-btn-fab');
   container.innerHTML = '';
@@ -410,7 +410,7 @@ function clearFilters() {
     trigger.classList.add('bg-white', 'border-gray-300', 'text-gray-700');
   });
 
-  applyFilters();
+  filterAndRender();
 }
 
 // Initial Setup for Dropdowns
@@ -454,7 +454,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // Close menu and apply
       menu.classList.add('hidden');
-      applyFilters();
+      filterAndRender();
       return;
     }
 
@@ -546,7 +546,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
-function applyFilters() {
+function filterAndRender() {
   const q = (document.getElementById('search-input')?.value || '').trim().toLowerCase();
   const diningOptions = document.getElementById('filter-dining-options')?.value || '';
   const city = document.getElementById('filter-city')?.value || '';
@@ -569,7 +569,7 @@ function applyFilters() {
 
     return true;
   });
-  renderList(filtered);
+  renderRestaurants(filtered);
 }
 
 function getOpeningStatus(openingHours) {
@@ -1127,7 +1127,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   // wire up filters
   const searchInput = document.getElementById('search-input');
-  if (searchInput) searchInput.addEventListener('input', applyFilters);
+  if (searchInput) searchInput.addEventListener('input', filterAndRender);
 
   // Re-render on resize so column count stays correct
   let lastColCount = window.innerWidth >= 1024 ? 3 : window.innerWidth >= 640 ? 2 : 1;
@@ -1135,7 +1135,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const newColCount = window.innerWidth >= 1024 ? 3 : window.innerWidth >= 640 ? 2 : 1;
     if (newColCount !== lastColCount) {
       lastColCount = newColCount;
-      applyFilters();
+      filterAndRender();
     }
   });
 
@@ -1162,7 +1162,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const cityFilter = document.getElementById('filter-city');
   if (cityFilter) {
-    cityFilter.addEventListener('change', applyFilters);
+    cityFilter.addEventListener('change', filterAndRender);
   }
 
   loadCities();
@@ -1447,7 +1447,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const res = await fetch(`/api/restaurants/${restaurantToDelete.id}`, { method: 'DELETE' });
         if (res.ok) {
           restaurantsCache = restaurantsCache.filter(r => r.id !== restaurantToDelete.id);
-          applyFilters();
+          filterAndRender();
           // Also reload cities in case the only restaurant in a city was deleted
           loadCities();
         } else {
