@@ -1160,11 +1160,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (e.target === modal) closeModal();
   });
 
-  const cityFilter = document.getElementById('filter-city');
-  if (cityFilter) {
-    cityFilter.addEventListener('change', filterAndRender);
-  }
-
   loadCities();
   loadRestaurants();
 
