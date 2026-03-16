@@ -1,5 +1,11 @@
 let restaurantsCache = [];
 let selectedDiningOptions = 'both';
+let allowedTypes = new Set();
+
+const allowedTypesReady = fetch('/static/types.json')
+  .then(r => r.json())
+  .then(mapping => { allowedTypes = new Set(Object.keys(mapping)); })
+  .catch(() => {});
 
 const ICON_DINE_IN = `<svg class="w-3 h-3 flex-shrink-0" fill="currentColor" aria-hidden="true"><use href="#icon-dine-in"/></svg>`;
 const ICON_DELIVERY = `<svg class="w-3 h-3 flex-shrink-0" fill="currentColor" aria-hidden="true"><use href="#icon-delivery"/></svg>`;
@@ -77,6 +83,7 @@ function initAutocomplete() {
   });
 
   placeAutocomplete.addEventListener('gmp-select', async (event) => {
+    await allowedTypesReady;
     const place = event.placePrediction.toPlace();
     await place.fetchFields({
       fields: ['displayName', 'formattedAddress', 'location', 'addressComponents', 'googleMapsLinks', 'googleMapsURI', 'types', 'priceLevel', 'regularOpeningHours', 'utcOffsetMinutes'],
@@ -105,7 +112,7 @@ function initAutocomplete() {
       const directionsUri = place.googleMapsLinks?.directionsURI || 'UNKNOWN';
       const types = place.types || [];
 
-      if (!types.includes('restaurant') && !types.includes('food') && !types.includes('tea_house') && !types.includes('cafe')) {
+      if (!types.some(t => allowedTypes.has(t))) {
         showMessage('Selected place is not a restaurant', true);
         clearSelection();
         return;
