@@ -109,6 +109,22 @@ class TestCardsRender:
         assert page.locator("text=Carbonara").is_visible()
         assert page.locator("text=Pesto Penne").is_visible()
 
+    def test_cuisine_badges_shown(self, live_server, seed, page):
+        seed(id="c1", name="Sushi Place", types=["japanese_restaurant", "sushi_restaurant", "restaurant"])
+        _goto(page, live_server)
+
+        card = page.locator("#list .bg-white.rounded-lg", has=page.locator("text='Sushi Place'"))
+        # "Japanese" should appear as a badge (japanese_restaurant → Japanese)
+        assert card.locator("text=Japanese").is_visible()
+
+    def test_no_cuisine_badges_when_no_types(self, live_server, seed, page):
+        seed(id="c2", name="Mystery Spot", types=["restaurant"])  # "restaurant" maps to null → no badge
+        _goto(page, live_server)
+
+        card = page.locator("#list .bg-white.rounded-lg", has=page.locator("text='Mystery Spot'"))
+        # No badge row should be present
+        assert card.locator(".rounded-full.bg-indigo-50").count() == 0
+
 
 # ---------------------------------------------------------------------------
 # Add Restaurant Modal — Open and Close
