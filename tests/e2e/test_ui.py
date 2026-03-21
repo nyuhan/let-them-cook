@@ -76,6 +76,12 @@ class TestEmptyState:
         assert city_options.count() == 1
         assert city_options.first.text_content().strip() == "Any"
 
+        # Cuisine dropdown should only have "Any"
+        _open_dropdown(page, "Cuisine")
+        cuisine_options = page.locator("#cuisine-filter-options button")
+        assert cuisine_options.count() == 1
+        assert cuisine_options.first.text_content().strip() == "Any"
+
 
 # ---------------------------------------------------------------------------
 # Restaurant Cards Render
@@ -383,6 +389,76 @@ class TestFilterDropdowns:
         page.locator("#top-clear-filters-btn").click()
         page.wait_for_timeout(300)
         assert _card_locators(page).count() == 4
+
+    def test_cuisine_filter_populates_and_filters(self, live_server, seed, page):
+        seed(id="c1", name="Sushi Spot", types=["japanese_restaurant"])
+        seed(id="c2", name="Taco Place", types=["mexican_restaurant"])
+        seed(id="c3", name="Noodle Bar", types=["japanese_restaurant", "chinese_restaurant"])
+        seed(id="c4", name="Plain Diner", types=[])
+
+        _goto(page, live_server)
+        assert _card_locators(page).count() == 4
+
+        # Cuisine dropdown should contain Japanese, Chinese, Mexican (but not blank entries)
+        _open_dropdown(page, "Cuisine")
+        cuisine_options = page.locator("#cuisine-filter-options button")
+        option_texts = [cuisine_options.nth(i).text_content().strip() for i in range(cuisine_options.count())]
+        assert "Japanese" in option_texts
+        assert "Chinese" in option_texts
+        assert "Mexican" in option_texts
+        assert "" not in option_texts
+        # Close the dropdown
+        page.keyboard.press("Escape")
+
+        # Filter by Japanese — should match Sushi Spot and Noodle Bar
+        _select_dropdown_option(page, "Cuisine", "Japanese")
+        page.wait_for_timeout(300)
+        names = _card_names(page)
+        assert "Sushi Spot" in names
+        assert "Noodle Bar" in names
+        assert "Taco Place" not in names
+        assert "Plain Diner" not in names
+
+        page.locator("#top-clear-filters-btn").click()
+        page.wait_for_timeout(300)
+        assert _card_locators(page).count() == 4
+
+        # Filter by Mexican — should match only Taco Place
+        _select_dropdown_option(page, "Cuisine", "Mexican")
+        page.wait_for_timeout(300)
+        names = _card_names(page)
+        assert "Taco Place" in names
+        assert "Sushi Spot" not in names
+        assert "Noodle Bar" not in names
+        assert "Plain Diner" not in names
+
+    def test_cuisine_filter_updates_after_delete(self, live_server, seed, page):
+        seed(id="d1", name="Only Japanese", types=["japanese_restaurant"])
+        seed(id="d2", name="Burger Joint", types=["american_restaurant"])
+
+        _goto(page, live_server)
+
+        # Both cuisines should be present
+        _open_dropdown(page, "Cuisine")
+        option_texts = [
+            page.locator("#cuisine-filter-options button").nth(i).text_content().strip()
+            for i in range(page.locator("#cuisine-filter-options button").count())
+        ]
+        assert "Japanese" in option_texts
+        assert "American" in option_texts
+
+        # Delete the Japanese restaurant via API
+        requests.delete(f"{live_server}/api/restaurants/d1")
+
+        # Reload page — Japanese cuisine should no longer appear
+        _goto(page, live_server)
+        _open_dropdown(page, "Cuisine")
+        option_texts = [
+            page.locator("#cuisine-filter-options button").nth(i).text_content().strip()
+            for i in range(page.locator("#cuisine-filter-options button").count())
+        ]
+        assert "Japanese" not in option_texts
+        assert "American" in option_texts
 
 
 # ---------------------------------------------------------------------------

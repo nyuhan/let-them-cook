@@ -5,7 +5,7 @@ let allowedTypes = new Set();
 const allowedTypesReady = fetch('/static/types.json')
   .then(r => r.json())
   .then(mapping => { allowedTypes = new Set(Object.keys(mapping)); })
-  .catch(() => {});
+  .catch(() => { });
 
 const ICON_DINE_IN = `<svg class="w-3 h-3 flex-shrink-0" fill="currentColor" aria-hidden="true"><use href="#icon-dine-in"/></svg>`;
 const ICON_DELIVERY = `<svg class="w-3 h-3 flex-shrink-0" fill="currentColor" aria-hidden="true"><use href="#icon-delivery"/></svg>`;
@@ -265,6 +265,7 @@ async function loadRestaurants() {
   const data = await res.json();
   restaurantsCache = Array.isArray(data) ? data : [];
   populateCityFilter();
+  populateCuisineFilter();
   filterAndRender();
 }
 
@@ -384,12 +385,33 @@ function populateCityFilter() {
   });
 }
 
+function populateCuisineFilter() {
+  const container = document.getElementById('cuisine-filter-options');
+  if (!container) return;
+
+  const cuisines = [...new Set(restaurantsCache.flatMap(r => r.cuisines || []).filter(Boolean))].sort();
+
+  const firstBtn = container.firstElementChild;
+  container.innerHTML = '';
+  if (firstBtn) container.appendChild(firstBtn);
+
+  cuisines.forEach(cuisine => {
+    const btn = document.createElement('button');
+    btn.className = 'block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100';
+    btn.dataset.value = cuisine;
+    btn.dataset.label = cuisine;
+    btn.textContent = cuisine;
+    container.appendChild(btn);
+  });
+}
+
 function clearFilters() {
   const searchInput = document.getElementById('search-input');
   if (searchInput) searchInput.value = '';
 
   document.getElementById('filter-dining-options').value = '';
   document.getElementById('filter-city').value = '';
+  document.getElementById('filter-cuisine').value = '';
   document.getElementById('filter-rating').value = '0';
   document.getElementById('filter-price').value = '';
   document.getElementById('filter-status').value = '';
@@ -459,10 +481,17 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  // Close dropdowns on Escape
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      document.querySelectorAll('.dropdown-menu').forEach(menu => menu.classList.add('hidden'));
+    }
+  });
+
   // Clear filters button at the top
   const topClearBtn = document.getElementById('top-clear-filters-btn');
   if (topClearBtn) {
-    topClearBtn.addEventListener('click', clearFilters);
+    topClearBtn.addEventListener('click', clearFilters);  
   }
 
   // Refresh Restaurant Button
@@ -545,6 +574,7 @@ function filterAndRender() {
   const q = (document.getElementById('search-input')?.value || '').trim().toLowerCase();
   const diningOptions = document.getElementById('filter-dining-options')?.value || '';
   const city = document.getElementById('filter-city')?.value || '';
+  const cuisine = document.getElementById('filter-cuisine')?.value || '';
   const minRating = parseInt(document.getElementById('filter-rating')?.value || '0', 10);
   const price = document.getElementById('filter-price')?.value || '';
   const status = document.getElementById('filter-status')?.value || '';
@@ -553,6 +583,7 @@ function filterAndRender() {
     if (q && !(r.name || '').toLowerCase().includes(q)) return false;
     if (diningOptions && r.diningOptions !== diningOptions && r.diningOptions !== 'both') return false;
     if (city && r.city !== city) return false;
+    if (cuisine && !(r.cuisines || []).includes(cuisine)) return false;
     if (minRating && (parseInt(r.rating, 10) || 0) < minRating) return false;
     if (price && (r.priceLevel && r.priceLevel > parseInt(price, 10))) return false;
     if (status) {
@@ -1432,7 +1463,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const res = await fetch(`/api/restaurants/${restaurantToDelete.id}`, { method: 'DELETE' });
         if (res.ok) {
           restaurantsCache = restaurantsCache.filter(r => r.id !== restaurantToDelete.id);
+
+          // If the deleted restaurant was the only one in its city/cuisine, we need to update filters before rendering.
           populateCityFilter();
+          populateCuisineFilter();
           filterAndRender();
         } else {
           alert('Failed to delete restaurant.');

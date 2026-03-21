@@ -61,3 +61,10 @@ def seed(live_server):
         assert resp.status_code == 201, f"Seed failed: {resp.text}"
         return data
     return _seed
+
+
+@pytest.fixture()
+def page(page):
+    """Override default Playwright page timeout (30s → 10s)."""
+    page.set_default_timeout(10000)
+    return page
