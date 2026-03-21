@@ -571,7 +571,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function filterAndRender() {
-  const q = (document.getElementById('search-input')?.value || '').trim().toLowerCase();
+  const searchInput = (document.getElementById('search-input')?.value || '').trim().toLowerCase();
   const diningOptions = document.getElementById('filter-dining-options')?.value || '';
   const city = document.getElementById('filter-city')?.value || '';
   const cuisine = document.getElementById('filter-cuisine')?.value || '';
@@ -579,8 +579,12 @@ function filterAndRender() {
   const price = document.getElementById('filter-price')?.value || '';
   const status = document.getElementById('filter-status')?.value || '';
 
+  const hasActiveFilters = searchInput || diningOptions || city || cuisine || minRating > 0 || price || status;
+  const topClearBtn = document.getElementById('top-clear-filters-btn');
+  if (topClearBtn) topClearBtn.classList.toggle('hidden', !hasActiveFilters);
+
   const filtered = restaurantsCache.filter(r => {
-    if (q && !(r.name || '').toLowerCase().includes(q)) return false;
+    if (searchInput && !(r.name || '').toLowerCase().includes(searchInput)) return false;
     if (diningOptions && r.diningOptions !== diningOptions && r.diningOptions !== 'both') return false;
     if (city && r.city !== city) return false;
     if (cuisine && !(r.cuisines || []).includes(cuisine)) return false;
