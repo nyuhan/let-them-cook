@@ -264,6 +264,7 @@ async function loadRestaurants() {
   const res = await fetch('/api/restaurants');
   const data = await res.json();
   restaurantsCache = Array.isArray(data) ? data : [];
+  populateCityFilter();
   filterAndRender();
 }
 
@@ -363,30 +364,24 @@ function renderRestaurants(restaurants) {
   fab.classList.remove('hidden');
 }
 
-async function loadCities() {
+function populateCityFilter() {
   const container = document.getElementById('city-filter-options');
   if (!container) return;
-  try {
-    const res = await fetch('/api/cities');
-    if (res.ok) {
-      const cities = await res.json();
-      // Clear existing except the first "All Cities" button
-      const firstBtn = container.firstElementChild;
-      container.innerHTML = '';
-      if (firstBtn) container.appendChild(firstBtn);
 
-      cities.forEach(city => {
-        const btn = document.createElement('button');
-        btn.className = 'block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100';
-        btn.dataset.value = city;
-        btn.dataset.label = city; // Dynamic label
-        btn.textContent = city;
-        container.appendChild(btn);
-      });
-    }
-  } catch (err) {
-    console.error('Failed to load cities', err);
-  }
+  const cities = [...new Set(restaurantsCache.map(r => r.city).filter(Boolean))].sort();
+
+  const firstBtn = container.firstElementChild;
+  container.innerHTML = '';
+  if (firstBtn) container.appendChild(firstBtn);
+
+  cities.forEach(city => {
+    const btn = document.createElement('button');
+    btn.className = 'block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100';
+    btn.dataset.value = city;
+    btn.dataset.label = city;
+    btn.textContent = city;
+    container.appendChild(btn);
+  });
 }
 
 function clearFilters() {
@@ -1113,7 +1108,6 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
           exitEditMode();
           loadRestaurants();
-          loadCities();
         }
       } catch (err) {
         showMessage('Network error', true);
@@ -1157,7 +1151,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (e.target === modal) closeModal();
   });
 
-  loadCities();
   loadRestaurants();
 
   // Dishes UI Logic
@@ -1439,9 +1432,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const res = await fetch(`/api/restaurants/${restaurantToDelete.id}`, { method: 'DELETE' });
         if (res.ok) {
           restaurantsCache = restaurantsCache.filter(r => r.id !== restaurantToDelete.id);
+          populateCityFilter();
           filterAndRender();
-          // Also reload cities in case the only restaurant in a city was deleted
-          loadCities();
         } else {
           alert('Failed to delete restaurant.');
         }
