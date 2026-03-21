@@ -379,7 +379,7 @@ async function loadCities() {
         const btn = document.createElement('button');
         btn.className = 'block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100';
         btn.dataset.value = city;
-        btn.dataset.label = `City: ${city}`; // Dynamic label
+        btn.dataset.label = city; // Dynamic label
         btn.textContent = city;
         container.appendChild(btn);
       });
@@ -861,11 +861,8 @@ function renderStars(n) {
   const full = Math.max(0, Math.min(5, parseInt(n, 10) || 0));
   let out = '';
   for (let i = 0; i < 5; i++) {
-    if (i < full) {
-      out += '<svg class="w-5 h-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.262 3.89a1 1 0 00.95.69h4.1c.969 0 1.371 1.24.588 1.81l-3.32 2.41a1 1 0 00-.364 1.118l1.262 3.89c.3.921-.755 1.688-1.54 1.118l-3.32-2.41a1 1 0 00-1.176 0l-3.32 2.41c-.785.57-1.84-.197-1.54-1.118l1.262-3.89a1 1 0 00-.364-1.118L2.15 9.317c-.783-.57-.38-1.81.588-1.81h4.1a1 1 0 00.95-.69l1.262-3.89z"/></svg>';
-    } else {
-      out += '<svg class="w-5 h-5 text-gray-300" viewBox="0 0 20 20" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.262 3.89a1 1 0 00.95.69h4.1c.969 0 1.371 1.24.588 1.81l-3.32 2.41a1 1 0 00-.364 1.118l1.262 3.89c.3.921-.755 1.688-1.54 1.118l-3.32-2.41a1 1 0 00-1.176 0l-3.32 2.41c-.785.57-1.84-.197-1.54-1.118l1.262-3.89a1 1 0 00-.364-1.118L2.15 9.317c-.783-.57-.38-1.81.588-1.81h4.1a1 1 0 00.95-.69l1.262-3.89z"/></svg>';
-    }
+    const color = i < full ? 'text-yellow-400' : 'text-gray-300';
+    out += `<svg class="w-5 h-5 ${color}" fill="currentColor"><use href="#icon-star"/></svg>`;
   }
   return out;
 }

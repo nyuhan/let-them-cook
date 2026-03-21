@@ -359,7 +359,7 @@ class TestFilterDropdowns:
         page.wait_for_timeout(300)
 
         # Min Rating: 4
-        _select_dropdown_option(page, "Min Rating", "4")
+        _select_dropdown_option(page, "Rating", "4")
         page.wait_for_timeout(300)
         names = _card_names(page)
         assert "Dine One" in names
@@ -371,7 +371,7 @@ class TestFilterDropdowns:
         page.wait_for_timeout(300)
 
         # Max Price: $$ (priceLevel <= 2)
-        _select_dropdown_option(page, "Max Price", "2")
+        _select_dropdown_option(page, "Price", "2")
         page.wait_for_timeout(300)
         names = _card_names(page)
         assert "Dine One" in names
