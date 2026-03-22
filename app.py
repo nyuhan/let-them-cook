@@ -215,7 +215,7 @@ def restaurants():
         db.commit()
         return jsonify(_get_restaurant(db, id)), 201
 
-    cur = db.execute('SELECT id, name, dining_options, rating, address, city, map_uri, directions_uri, price_level, notes, opening_hours, types, created_at FROM restaurants ORDER BY id DESC')
+    cur = db.execute('SELECT id, name, dining_options, rating, address, city, map_uri, directions_uri, price_level, notes, opening_hours, types, created_at FROM restaurants ORDER BY created_at DESC')
     restaurants = []
     for r in cur.fetchall():
         restaurants.append(snake_to_camel(parse_restaurant_row(r)))

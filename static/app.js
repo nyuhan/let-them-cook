@@ -1135,7 +1135,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const idx = restaurantsCache.findIndex(r => r.id === editId);
             if (idx !== -1) restaurantsCache[idx] = saved;
           } else {
-            restaurantsCache.push(saved);
+            restaurantsCache.unshift(saved);
           }
           exitEditMode();
           populateCityFilter();

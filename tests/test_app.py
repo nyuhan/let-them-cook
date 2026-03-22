@@ -185,9 +185,9 @@ class TestListRestaurants:
         listing = client.get("/api/restaurants").get_json()
         assert listing[0]["types"] == types
 
-    def test_ordered_by_id_desc(self, client, seed_restaurant):
-        seed_restaurant(id="aaa", name="First")
-        seed_restaurant(id="zzz", name="Second")
+    def test_ordered_by_created_at_desc(self, client, seed_restaurant):
+        seed_restaurant(id="aaa", name="First", created_at="2025-01-01 10:00:00")
+        seed_restaurant(id="zzz", name="Second", created_at="2025-01-02 10:00:00")
         listing = client.get("/api/restaurants").get_json()
         assert listing[0]["name"] == "Second"
         assert listing[1]["name"] == "First"
