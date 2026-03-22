@@ -213,7 +213,12 @@ def restaurants():
                 )
 
         db.commit()
-        return jsonify({'status': 'ok'}), 201
+        cur = db.execute('SELECT id, name, dining_options, rating, address, city, map_uri, directions_uri, price_level, notes, opening_hours, types, created_at FROM restaurants WHERE id = ?', (id,))
+        row = cur.fetchone()
+        cur2 = db.execute('SELECT rowid, name, rating, notes FROM dishes WHERE restaurant_id = ? ORDER BY rowid', (id,))
+        restaurant = snake_to_camel(parse_restaurant_row(row))
+        restaurant['dishes'] = [{'id': d['rowid'], 'name': d['name'], 'rating': d['rating'], 'notes': d['notes']} for d in cur2.fetchall()]
+        return jsonify(restaurant), 201
 
     cur = db.execute('SELECT id, name, dining_options, rating, address, city, map_uri, directions_uri, price_level, notes, opening_hours, types, created_at FROM restaurants ORDER BY id DESC')
     restaurants = []
@@ -360,7 +365,12 @@ def update_restaurant(rest_id):
             db.executemany('INSERT INTO dishes (restaurant_id, name, rating, notes) VALUES (?, ?, ?, ?)', to_insert)
 
     db.commit()
-    return jsonify({'status': 'ok'}), 200
+    cur = db.execute('SELECT id, name, dining_options, rating, address, city, map_uri, directions_uri, price_level, notes, opening_hours, types, created_at FROM restaurants WHERE id = ?', (rest_id,))
+    row = cur.fetchone()
+    cur2 = db.execute('SELECT rowid, name, rating, notes FROM dishes WHERE restaurant_id = ? ORDER BY rowid', (rest_id,))
+    restaurant = snake_to_camel(parse_restaurant_row(row))
+    restaurant['dishes'] = [{'id': d['rowid'], 'name': d['name'], 'rating': d['rating'], 'notes': d['notes']} for d in cur2.fetchall()]
+    return jsonify(restaurant), 200
 
 
 @app.route('/api/restaurants/<rest_id>', methods=['DELETE'])

@@ -537,24 +537,13 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         if (res.ok) {
-          // Update UI immediately
-          document.getElementById('edit-name-display').textContent = name || '';
-          displayOpeningHours(openingHours);
-
-          // Update cache entry
-          const data = await res.json(); // Assuming backend returns something or empty JSON
-
-          // Reload list to update cache properly or manually update cache
-          await loadRestaurants();
-
-          // Manually update current view of modal is handled by displayOpeningHours and name display,
-          // but we should probably re-enter edit mode logic to ensure everything is consistent
-          // Find the updated restaurant in cache
-          const updatedRest = restaurantsCache.find(r => r.id === editId);
-          if (updatedRest) {
-            enterEditMode(updatedRest);
-          }
-
+          const updated = await res.json();
+          const idx = restaurantsCache.findIndex(r => r.id === editId);
+          if (idx !== -1) restaurantsCache[idx] = updated;
+          populateCityFilter();
+          populateCuisineFilter();
+          filterAndRender();
+          enterEditMode(updated);
           showMessage('Refreshed Google Maps data successfully');
         } else {
           showMessage('Failed to refresh Google Maps data', true);
@@ -1141,8 +1130,17 @@ document.addEventListener('DOMContentLoaded', () => {
           const err = await res.json();
           showMessage(err.error || 'Failed to save', true);
         } else {
+          const saved = await res.json();
+          if (editId) {
+            const idx = restaurantsCache.findIndex(r => r.id === editId);
+            if (idx !== -1) restaurantsCache[idx] = saved;
+          } else {
+            restaurantsCache.push(saved);
+          }
           exitEditMode();
-          loadRestaurants();
+          populateCityFilter();
+          populateCuisineFilter();
+          filterAndRender();
         }
       } catch (err) {
         showMessage('Network error', true);
