@@ -213,7 +213,7 @@ def restaurants():
                 )
 
         db.commit()
-        return jsonify(_get_restaurant_data(db, id)), 201
+        return jsonify(_get_restaurant(db, id)), 201
 
     cur = db.execute('SELECT id, name, dining_options, rating, address, city, map_uri, directions_uri, price_level, notes, opening_hours, types, created_at FROM restaurants ORDER BY id DESC')
     restaurants = []
@@ -237,7 +237,7 @@ def restaurants():
     return jsonify(restaurants)
 
 
-def _get_restaurant_data(db, rest_id):
+def _get_restaurant(db, rest_id):
     cur = db.execute('SELECT id, name, dining_options, rating, address, city, map_uri, directions_uri, price_level, notes, opening_hours, types, created_at FROM restaurants WHERE id = ?', (rest_id,))
     row = cur.fetchone()
     if row is None:
@@ -251,7 +251,7 @@ def _get_restaurant_data(db, rest_id):
 @app.route('/api/restaurants/<rest_id>', methods=['GET'])
 def get_restaurant(rest_id):
     db = get_db()
-    data = _get_restaurant_data(db, rest_id)
+    data = _get_restaurant(db, rest_id)
     if data is None:
         return jsonify({'error': 'not found'}), 404
     return jsonify(data)
@@ -370,7 +370,7 @@ def update_restaurant(rest_id):
             db.executemany('INSERT INTO dishes (restaurant_id, name, rating, notes) VALUES (?, ?, ?, ?)', to_insert)
 
     db.commit()
-    return jsonify(_get_restaurant_data(db, rest_id)), 200
+    return jsonify(_get_restaurant(db, rest_id)), 200
 
 
 @app.route('/api/restaurants/<rest_id>', methods=['DELETE'])
