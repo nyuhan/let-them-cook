@@ -58,7 +58,9 @@ class TestCreateRestaurant:
     def test_success(self, client, seed_restaurant):
         data, resp = seed_restaurant()
         assert resp.status_code == 201
-        assert resp.get_json()["status"] == "ok"
+        body = resp.get_json()
+        assert body["name"] == "Test Restaurant"
+        assert body["id"] == data["id"]
         # Verify it's persisted
         listing = client.get("/api/restaurants").get_json()
         assert len(listing) == 1
