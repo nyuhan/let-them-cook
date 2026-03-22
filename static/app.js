@@ -1042,7 +1042,7 @@ function exitEditMode() {
   // Reset dishes
   currentDishes = [];
   renderDishesList();
-  resetDistForm();
+  resetDishForm();
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -1198,7 +1198,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (addDishBtn) {
     addDishBtn.addEventListener('click', () => {
-      resetDistForm();
+      resetDishForm();
       addDishForm.classList.remove('hidden');
       addDishBtn.classList.add('hidden');
       document.getElementById('new-dish-name').focus();
@@ -1207,7 +1207,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (cancelDishBtn) {
     cancelDishBtn.addEventListener('click', () => {
-      resetDistForm();
+      resetDishForm();
     });
   }
 
@@ -1230,7 +1230,7 @@ document.addEventListener('DOMContentLoaded', () => {
       currentDishes.push({ name, rating, notes });
 
       renderDishesList();
-      resetDistForm();
+      resetDishForm();
     });
   }
 
@@ -1260,7 +1260,7 @@ function updateDishRatingUI(rating) {
   }
 }
 
-function resetDistForm() {
+function resetDishForm() {
   document.getElementById('add-dish-form').classList.add('hidden');
   document.getElementById('add-dish-btn').classList.remove('hidden');
   document.getElementById('new-dish-name').value = '';
