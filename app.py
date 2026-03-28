@@ -109,12 +109,6 @@ def get_db():
 
 app = Flask(__name__, static_folder="static", template_folder="templates")
 
-_db_dir = os.path.dirname(DATABASE)
-if _db_dir:
-    os.makedirs(_db_dir, exist_ok=True)
-with sqlite3.connect(DATABASE) as _conn:
-    app.secret_key = _init_db(_conn)
-
 # --- Auth setup ---
 login_manager = LoginManager(app)
 login_manager.login_view = "login"
@@ -695,6 +689,13 @@ def delete_restaurant(rest_id):
     db.execute("DELETE FROM restaurants WHERE id = ?", (rest_id,))
     db.commit()
     return jsonify({"status": "deleted"})
+
+
+_db_dir = os.path.dirname(DATABASE)
+if _db_dir:
+    os.makedirs(_db_dir, exist_ok=True)
+with sqlite3.connect(DATABASE) as _conn:
+    app.secret_key = _init_db(_conn)
 
 
 if __name__ == "__main__":
