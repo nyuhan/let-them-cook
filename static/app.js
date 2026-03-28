@@ -1,4 +1,5 @@
 let restaurantsCache = [];
+
 let selectedDiningOptions = 'both';
 let allowedTypes = new Set();
 
@@ -405,6 +406,16 @@ function populateCuisineFilter() {
   });
 }
 
+function setTriggerActive(trigger, isActive) {
+  if (isActive) {
+    trigger.classList.remove('bg-white', 'border-gray-300', 'text-gray-700');
+    trigger.classList.add('bg-indigo-50', 'border-indigo-200', 'text-indigo-700');
+  } else {
+    trigger.classList.remove('bg-indigo-50', 'border-indigo-200', 'text-indigo-700');
+    trigger.classList.add('bg-white', 'border-gray-300', 'text-gray-700');
+  }
+}
+
 function clearFilters() {
   const searchInput = document.getElementById('search-input');
   if (searchInput) searchInput.value = '';
@@ -412,7 +423,7 @@ function clearFilters() {
   document.getElementById('filter-dining-options').value = '';
   document.getElementById('filter-city').value = '';
   document.getElementById('filter-cuisine').value = '';
-  document.getElementById('filter-rating').value = '0';
+  document.getElementById('filter-rating').value = '';
   document.getElementById('filter-price').value = '';
   document.getElementById('filter-status').value = '';
 
@@ -422,9 +433,9 @@ function clearFilters() {
     const defaultText = trigger.dataset.default;
 
     // Reset text
-    trigger.innerHTML = `${defaultText} <svg class="-mr-1 ml-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>`;
-    trigger.classList.remove('bg-indigo-50', 'border-indigo-200', 'text-indigo-700');
-    trigger.classList.add('bg-white', 'border-gray-300', 'text-gray-700');
+    const labelSpan = trigger.querySelector('.filter-label');
+    if (labelSpan) labelSpan.innerHTML = defaultText;
+    setTriggerActive(trigger, false);
   });
 
   filterAndRender();
@@ -449,34 +460,23 @@ document.addEventListener('DOMContentLoaded', () => {
     const optionBtn = e.target.closest('.dropdown-menu button');
     if (optionBtn) {
       const menu = optionBtn.closest('.dropdown-menu');
-      const container = menu.parentElement; // .filter-dropdown
+      const container = menu.parentElement;
       const trigger = container.querySelector('.dropdown-trigger');
-      const input = container.querySelector('input[type="hidden"]');
-
-      // Set value
-      input.value = optionBtn.dataset.value;
-
-      // Update Trigger UI
       const newLabel = optionBtn.dataset.label || optionBtn.textContent;
-      trigger.innerHTML = `${newLabel} <svg class="-mr-1 ml-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>`;
+      const labelSpan = trigger.querySelector('.sort-label, .filter-label');
+      if (labelSpan) labelSpan.innerHTML = newLabel;
+      const input = container.querySelector('input[type="hidden"]');
+      if (input) input.value = optionBtn.dataset.value;
+      const isActive = optionBtn.dataset.value !== '';
+      setTriggerActive(trigger, isActive);
 
-      // Active State
-      if (optionBtn.dataset.value && optionBtn.dataset.value !== '0') {
-        trigger.classList.remove('bg-white', 'border-gray-300', 'text-gray-700');
-        trigger.classList.add('bg-indigo-50', 'border-indigo-200', 'text-indigo-700');
-      } else {
-        trigger.classList.remove('bg-indigo-50', 'border-indigo-200', 'text-indigo-700');
-        trigger.classList.add('bg-white', 'border-gray-300', 'text-gray-700');
-      }
-
-      // Close menu and apply
       menu.classList.add('hidden');
       filterAndRender();
       return;
     }
 
     // Click Outside
-    if (!e.target.closest('.filter-dropdown')) {
+    if (!e.target.closest('.filter-dropdown') && !e.target.closest('.sort-dropdown')) {
       document.querySelectorAll('.dropdown-menu').forEach(menu => menu.classList.add('hidden'));
     }
   });
@@ -559,6 +559,22 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
+function sortRestaurants(restaurants) {
+  const currentSort = document.getElementById('current-sort')?.value || '';
+  const byDate = (a, b) => (b.createdAt || '').localeCompare(a.createdAt || '');
+  if (currentSort === 'name') {
+    restaurants.sort((a, b) => (a.name || '').localeCompare(b.name || '') || byDate(a, b));
+  } else if (currentSort === 'rating') {
+    restaurants.sort((a, b) => ((b.rating || 0) - (a.rating || 0)) || byDate(a, b));
+  } else if (currentSort === 'price') {
+    const price = r => r.priceLevel || Infinity;
+    restaurants.sort((a, b) => (price(a) - price(b)) || byDate(a, b));
+  } else {
+    restaurants.sort(byDate);
+  }
+  return restaurants;
+}
+
 function filterAndRender() {
   const searchInput = (document.getElementById('search-input')?.value || '').trim().toLowerCase();
   const diningOptions = document.getElementById('filter-dining-options')?.value || '';
@@ -588,7 +604,9 @@ function filterAndRender() {
 
     return true;
   });
-  renderRestaurants(filtered);
+  const countEl = document.getElementById('results-count');
+  if (countEl) countEl.textContent = `${filtered.length} restaurant${filtered.length !== 1 ? 's' : ''}`;
+  renderRestaurants(sortRestaurants(filtered));
 }
 
 function getOpeningStatus(openingHours) {
