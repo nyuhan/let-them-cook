@@ -491,7 +491,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Clear filters button at the top
   const topClearBtn = document.getElementById('top-clear-filters-btn');
   if (topClearBtn) {
-    topClearBtn.addEventListener('click', clearFilters);  
+    topClearBtn.addEventListener('click', clearFilters);
   }
 
   // Refresh Restaurant Button

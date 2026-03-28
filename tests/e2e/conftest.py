@@ -42,6 +42,7 @@ def live_server(tmp_path):
 @pytest.fixture()
 def seed(live_server):
     """Factory to POST a restaurant to the live server. Returns the data dict."""
+
     def _seed(**overrides):
         data = {
             "id": "place_abc",
@@ -60,6 +61,7 @@ def seed(live_server):
         resp = requests.post(f"{live_server}/api/restaurants", json=data)
         assert resp.status_code == 201, f"Seed failed: {resp.text}"
         return data
+
     return _seed
 
 

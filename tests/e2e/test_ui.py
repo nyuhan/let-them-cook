@@ -14,6 +14,7 @@ import requests
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _card_locators(page):
     """Return locators for all restaurant cards in the list."""
     return page.locator("#list .bg-white.rounded-lg")
@@ -43,7 +44,9 @@ def _click_card(page, name):
     directly on the card element to reliably trigger the handler — avoids
     flakiness on slow CI runners.
     """
-    card = page.locator("#list .bg-white.rounded-lg", has=page.locator(f"text='{name}'"))
+    card = page.locator(
+        "#list .bg-white.rounded-lg", has=page.locator(f"text='{name}'")
+    )
     card.dispatch_event("click")
 
 
@@ -55,7 +58,9 @@ def _open_dropdown(page, trigger_default_text):
 def _select_dropdown_option(page, trigger_default_text, option_value):
     """Select an option in a filter dropdown."""
     _open_dropdown(page, trigger_default_text)
-    container = page.locator(f".dropdown-trigger[data-default='{trigger_default_text}']").locator("..")
+    container = page.locator(
+        f".dropdown-trigger[data-default='{trigger_default_text}']"
+    ).locator("..")
     container.locator(f".dropdown-menu button[data-value='{option_value}']").click()
 
 
@@ -63,12 +68,15 @@ def _select_dropdown_option(page, trigger_default_text, option_value):
 # Empty State Renders
 # ---------------------------------------------------------------------------
 
+
 class TestEmptyState:
     def test_empty_state_renders(self, live_server, page):
         _goto(page, live_server)
 
         assert page.locator("text=No restaurants yet").is_visible()
-        assert page.locator("#empty-state-add-btn, button:has-text('Add Restaurant')").first.is_visible()
+        assert page.locator(
+            "#empty-state-add-btn, button:has-text('Add Restaurant')"
+        ).first.is_visible()
 
         # City dropdown should only have "Any"
         _open_dropdown(page, "City")
@@ -87,15 +95,39 @@ class TestEmptyState:
 # Restaurant Cards Render
 # ---------------------------------------------------------------------------
 
+
 class TestCardsRender:
     def test_cards_render_with_data(self, live_server, seed, page):
-        seed(id="r1", name="Burger Palace", city="Amsterdam", diningOptions="dine-in",
-             rating=5, priceLevel=1, notes="Best burgers in town")
-        seed(id="r2", name="Pasta House", city="Zurich", diningOptions="delivery",
-             rating=3, priceLevel=3, notes="",
-             dishes=[{"name": "Carbonara", "rating": 1}, {"name": "Pesto Penne", "rating": 0}])
-        seed(id="r3", name="Sushi Bar", city="Amsterdam", diningOptions="both",
-             rating=4, priceLevel=2)
+        seed(
+            id="r1",
+            name="Burger Palace",
+            city="Amsterdam",
+            diningOptions="dine-in",
+            rating=5,
+            priceLevel=1,
+            notes="Best burgers in town",
+        )
+        seed(
+            id="r2",
+            name="Pasta House",
+            city="Zurich",
+            diningOptions="delivery",
+            rating=3,
+            priceLevel=3,
+            notes="",
+            dishes=[
+                {"name": "Carbonara", "rating": 1},
+                {"name": "Pesto Penne", "rating": 0},
+            ],
+        )
+        seed(
+            id="r3",
+            name="Sushi Bar",
+            city="Amsterdam",
+            diningOptions="both",
+            rating=4,
+            priceLevel=2,
+        )
 
         _goto(page, live_server)
 
@@ -116,18 +148,28 @@ class TestCardsRender:
         assert page.locator("text=Pesto Penne").is_visible()
 
     def test_cuisine_badges_shown(self, live_server, seed, page):
-        seed(id="c1", name="Sushi Place", types=["japanese_restaurant", "sushi_restaurant", "restaurant"])
+        seed(
+            id="c1",
+            name="Sushi Place",
+            types=["japanese_restaurant", "sushi_restaurant", "restaurant"],
+        )
         _goto(page, live_server)
 
-        card = page.locator("#list .bg-white.rounded-lg", has=page.locator("text='Sushi Place'"))
+        card = page.locator(
+            "#list .bg-white.rounded-lg", has=page.locator("text='Sushi Place'")
+        )
         # "Japanese" should appear as a badge (japanese_restaurant → Japanese)
         assert card.locator("text=Japanese").is_visible()
 
     def test_no_cuisine_badges_when_no_types(self, live_server, seed, page):
-        seed(id="c2", name="Mystery Spot", types=["restaurant"])  # "restaurant" maps to null → no badge
+        seed(
+            id="c2", name="Mystery Spot", types=["restaurant"]
+        )  # "restaurant" maps to null → no badge
         _goto(page, live_server)
 
-        card = page.locator("#list .bg-white.rounded-lg", has=page.locator("text='Mystery Spot'"))
+        card = page.locator(
+            "#list .bg-white.rounded-lg", has=page.locator("text='Mystery Spot'")
+        )
         # No badge row should be present
         assert card.locator(".rounded-full.bg-indigo-50").count() == 0
 
@@ -135,6 +177,7 @@ class TestCardsRender:
 # ---------------------------------------------------------------------------
 # Add Restaurant Modal — Open and Close
 # ---------------------------------------------------------------------------
+
 
 class TestAddModalOpenClose:
     def test_modal_open_and_close(self, live_server, seed, page):
@@ -167,6 +210,7 @@ class TestAddModalOpenClose:
 # Add Restaurant Modal — Close on Outside Click
 # ---------------------------------------------------------------------------
 
+
 class TestAddModalOutsideClick:
     def test_close_on_outside_click(self, live_server, seed, page):
         seed()
@@ -185,11 +229,17 @@ class TestAddModalOutsideClick:
 # Edit Restaurant — View and Modify
 # ---------------------------------------------------------------------------
 
+
 class TestEditRestaurant:
     def test_view_and_modify(self, live_server, seed, page):
-        seed(id="edit_r1", name="Taco Spot", diningOptions="delivery", rating=3,
-             notes="Spicy food",
-             dishes=[{"name": "Taco", "rating": 1}, {"name": "Burrito", "rating": 0}])
+        seed(
+            id="edit_r1",
+            name="Taco Spot",
+            diningOptions="delivery",
+            rating=3,
+            notes="Spicy food",
+            dishes=[{"name": "Taco", "rating": 1}, {"name": "Burrito", "rating": 0}],
+        )
 
         _goto(page, live_server)
 
@@ -204,7 +254,9 @@ class TestEditRestaurant:
         assert page.locator("#place-autocomplete").is_hidden()
 
         # Delivery button should be active
-        delivery_btn = page.locator("#dining-options-buttons button[data-value='delivery']")
+        delivery_btn = page.locator(
+            "#dining-options-buttons button[data-value='delivery']"
+        )
         assert "ring-1" in delivery_btn.get_attribute("class")
 
         # Rating is 3
@@ -251,7 +303,9 @@ class TestEditRestaurant:
         modal.wait_for(state="visible")
 
         assert page.locator("#restaurant-notes").input_value() == "Updated notes"
-        dine_in_btn = page.locator("#dining-options-buttons button[data-value='dine-in']")
+        dine_in_btn = page.locator(
+            "#dining-options-buttons button[data-value='dine-in']"
+        )
         assert "ring-1" in dine_in_btn.get_attribute("class")
         assert page.locator("#rating-stars").get_attribute("data-rating") == "2"
 
@@ -259,6 +313,7 @@ class TestEditRestaurant:
 # ---------------------------------------------------------------------------
 # Delete Restaurant — Cancel and Confirm
 # ---------------------------------------------------------------------------
+
 
 class TestDeleteRestaurant:
     def test_cancel_then_confirm(self, live_server, seed, page):
@@ -270,7 +325,9 @@ class TestDeleteRestaurant:
 
         # --- Cancel flow ---
         # Find the delete button on "Delete Me" card
-        delete_me_card = page.locator("#list .bg-white.rounded-lg", has=page.locator("text=Delete Me"))
+        delete_me_card = page.locator(
+            "#list .bg-white.rounded-lg", has=page.locator("text=Delete Me")
+        )
         delete_me_card.locator("button[title='Delete']").click()
 
         delete_modal = page.locator("#delete-modal")
@@ -281,7 +338,9 @@ class TestDeleteRestaurant:
         assert _card_locators(page).count() == 2
 
         # --- Confirm flow ---
-        delete_me_card = page.locator("#list .bg-white.rounded-lg", has=page.locator("text=Delete Me"))
+        delete_me_card = page.locator(
+            "#list .bg-white.rounded-lg", has=page.locator("text=Delete Me")
+        )
         delete_me_card.locator("button[title='Delete']").click()
         delete_modal.wait_for(state="visible")
 
@@ -289,7 +348,9 @@ class TestDeleteRestaurant:
         delete_modal.wait_for(state="hidden")
 
         # Only 1 card should remain
-        page.locator("span.text-lg.font-bold:has-text('Keep Me')").wait_for(state="visible")
+        page.locator("span.text-lg.font-bold:has-text('Keep Me')").wait_for(
+            state="visible"
+        )
         assert _card_locators(page).count() == 1
         names = _card_names(page)
         assert "Keep Me" in names
@@ -299,6 +360,7 @@ class TestDeleteRestaurant:
 # ---------------------------------------------------------------------------
 # Filter — Search by Name
 # ---------------------------------------------------------------------------
+
 
 class TestFilterSearch:
     def test_search_by_name(self, live_server, seed, page):
@@ -328,12 +390,41 @@ class TestFilterSearch:
 # Filter — By Type, City, Rating, Price + Clear Filters
 # ---------------------------------------------------------------------------
 
+
 class TestFilterDropdowns:
     def test_filter_combinations(self, live_server, seed, page):
-        seed(id="f1", name="Dine One", diningOptions="dine-in", city="Amsterdam", rating=5, priceLevel=1)
-        seed(id="f2", name="Dine Two", diningOptions="dine-in", city="Zurich", rating=3, priceLevel=3)
-        seed(id="f3", name="Deliver One", diningOptions="delivery", city="Amsterdam", rating=4, priceLevel=2)
-        seed(id="f4", name="Both One", diningOptions="both", city="Zurich", rating=2, priceLevel=4)
+        seed(
+            id="f1",
+            name="Dine One",
+            diningOptions="dine-in",
+            city="Amsterdam",
+            rating=5,
+            priceLevel=1,
+        )
+        seed(
+            id="f2",
+            name="Dine Two",
+            diningOptions="dine-in",
+            city="Zurich",
+            rating=3,
+            priceLevel=3,
+        )
+        seed(
+            id="f3",
+            name="Deliver One",
+            diningOptions="delivery",
+            city="Amsterdam",
+            rating=4,
+            priceLevel=2,
+        )
+        seed(
+            id="f4",
+            name="Both One",
+            diningOptions="both",
+            city="Zurich",
+            rating=2,
+            priceLevel=4,
+        )
 
         _goto(page, live_server)
         assert _card_locators(page).count() == 4
@@ -393,7 +484,11 @@ class TestFilterDropdowns:
     def test_cuisine_filter_populates_and_filters(self, live_server, seed, page):
         seed(id="c1", name="Sushi Spot", types=["japanese_restaurant"])
         seed(id="c2", name="Taco Place", types=["mexican_restaurant"])
-        seed(id="c3", name="Noodle Bar", types=["japanese_restaurant", "chinese_restaurant"])
+        seed(
+            id="c3",
+            name="Noodle Bar",
+            types=["japanese_restaurant", "chinese_restaurant"],
+        )
         seed(id="c4", name="Plain Diner", types=[])
 
         _goto(page, live_server)
@@ -402,7 +497,10 @@ class TestFilterDropdowns:
         # Cuisine dropdown should contain Japanese, Chinese, Mexican (but not blank entries)
         _open_dropdown(page, "Cuisine")
         cuisine_options = page.locator("#cuisine-filter-options button")
-        option_texts = [cuisine_options.nth(i).text_content().strip() for i in range(cuisine_options.count())]
+        option_texts = [
+            cuisine_options.nth(i).text_content().strip()
+            for i in range(cuisine_options.count())
+        ]
         assert "Japanese" in option_texts
         assert "Chinese" in option_texts
         assert "Mexican" in option_texts
@@ -465,6 +563,7 @@ class TestFilterDropdowns:
 # No Matches — "Clear Filters" Button
 # ---------------------------------------------------------------------------
 
+
 class TestNoMatches:
     def test_no_matches_clear_filters(self, live_server, seed, page):
         seed(id="nm1", name="Lonely Restaurant")
@@ -488,6 +587,7 @@ class TestNoMatches:
 # ---------------------------------------------------------------------------
 # Dishes — Add Dish in Edit Modal
 # ---------------------------------------------------------------------------
+
 
 class TestDishAdd:
     def test_add_dish(self, live_server, seed, page):
@@ -535,6 +635,7 @@ class TestDishAdd:
 # Add Restaurant via Google Maps + Refresh (live API)
 # ---------------------------------------------------------------------------
 
+
 class TestGoogleMaps:
     @pytest.mark.google_maps
     def test_add_and_refresh(self, live_server, page):
@@ -564,7 +665,8 @@ class TestGoogleMaps:
         )
 
         # Dispatch synthetic gmp-select with a real Place
-        page.evaluate("""async () => {
+        page.evaluate(
+            """async () => {
             const el = document.getElementById('place-autocomplete');
             const { Place } = google.maps.places;
 
@@ -580,7 +682,8 @@ class TestGoogleMaps:
             const event = new Event('gmp-select', { bubbles: true });
             event.placePrediction = { toPlace: () => place };
             el.dispatchEvent(event);
-        }""")
+        }"""
+        )
 
         # Wait for fetchFields → handler to enable the submit button
         submit = page.locator("#submit-btn")
@@ -600,10 +703,13 @@ class TestGoogleMaps:
         # --- Overwrite metadata via backend API ---
         resp = requests.get(f"{live_server}/api/restaurants")
         rest_id = resp.json()[0]["id"]
-        requests.put(f"{live_server}/api/restaurants/{rest_id}", json={
-            "name": "Stale Name",
-            "address": "Old Address",
-        })
+        requests.put(
+            f"{live_server}/api/restaurants/{rest_id}",
+            json={
+                "name": "Stale Name",
+                "address": "Old Address",
+            },
+        )
 
         # Reload page to pick up the stale data
         _goto(page, live_server)
@@ -633,10 +739,14 @@ class TestGoogleMaps:
 # Dishes — Edit Dish Inline
 # ---------------------------------------------------------------------------
 
+
 class TestDishEdit:
     def test_edit_dish_inline(self, live_server, seed, page):
-        seed(id="dish_edit_r1", name="Edit Dish Place",
-             dishes=[{"name": "Fries", "rating": 1, "notes": "Crispy"}])
+        seed(
+            id="dish_edit_r1",
+            name="Edit Dish Place",
+            dishes=[{"name": "Fries", "rating": 1, "notes": "Crispy"}],
+        )
 
         _goto(page, live_server)
 
@@ -679,10 +789,14 @@ class TestDishEdit:
 # Dishes — Delete Dish
 # ---------------------------------------------------------------------------
 
+
 class TestDishDelete:
     def test_delete_dish(self, live_server, seed, page):
-        seed(id="dish_del_r1", name="Del Dish Place",
-             dishes=[{"name": "Wings", "rating": 1}, {"name": "Nachos", "rating": 0}])
+        seed(
+            id="dish_del_r1",
+            name="Del Dish Place",
+            dishes=[{"name": "Wings", "rating": 1}, {"name": "Nachos", "rating": 0}],
+        )
 
         _goto(page, live_server)
 
@@ -713,6 +827,7 @@ class TestDishDelete:
 # Dishes — Cancel Add
 # ---------------------------------------------------------------------------
 
+
 class TestDishCancelAdd:
     def test_cancel_add_dish(self, live_server, seed, page):
         seed(id="dish_cancel_r1", name="Cancel Dish Place")
@@ -742,6 +857,7 @@ class TestDishCancelAdd:
 # ---------------------------------------------------------------------------
 # Floating Action Button (FAB)
 # ---------------------------------------------------------------------------
+
 
 class TestFAB:
     """Tests for the mobile FAB (+) button.
@@ -846,11 +962,12 @@ class TestFAB:
 # Sort
 # ---------------------------------------------------------------------------
 
+
 class TestSort:
     def _seed_three(self, seed):
-        seed(id="so1", name="Zebra Grill",  rating=5, priceLevel=1, city="Amsterdam")
+        seed(id="so1", name="Zebra Grill", rating=5, priceLevel=1, city="Amsterdam")
         seed(id="so2", name="Apple Bistro", rating=3, priceLevel=3, city="Amsterdam")
-        seed(id="so3", name="Mango House",  rating=4, priceLevel=2, city="Zurich")
+        seed(id="so3", name="Mango House", rating=4, priceLevel=2, city="Zurich")
 
     def test_sort_by_name(self, live_server, seed, page):
         self._seed_three(seed)
@@ -917,7 +1034,9 @@ class TestSort:
         page.wait_for_timeout(300)
         assert _card_names(page) == ["Apple Bistro", "Mango House", "Zebra Grill"]
 
-        mango_card = page.locator("#list .bg-white.rounded-lg", has=page.locator("text='Mango House'"))
+        mango_card = page.locator(
+            "#list .bg-white.rounded-lg", has=page.locator("text='Mango House'")
+        )
         mango_card.locator("button[title='Delete']").click()
         page.locator("#delete-modal").wait_for(state="visible")
         page.locator("#confirm-delete-btn").click()

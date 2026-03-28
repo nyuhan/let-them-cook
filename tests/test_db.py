@@ -15,8 +15,19 @@ class TestSchema:
 
     def test_restaurant_columns(self, client):
         expected = {
-            "id", "name", "address", "city", "map_uri", "directions_uri",
-            "dining_options", "rating", "created_at", "price_level", "notes", "opening_hours", "types",
+            "id",
+            "name",
+            "address",
+            "city",
+            "map_uri",
+            "directions_uri",
+            "dining_options",
+            "rating",
+            "created_at",
+            "price_level",
+            "notes",
+            "opening_hours",
+            "types",
         }
         with flask_app.app_context():
             db = app_module.get_db()
@@ -38,6 +49,7 @@ class TestSchema:
             db1 = app_module.get_db()
             # Force a second init by clearing the cached db
             from flask import g
+
             g._database = None
             db2 = app_module.get_db()
             # Both should work fine

@@ -6,6 +6,7 @@ from app import snake_to_camel
 # snake_to_camel helper
 # ---------------------------------------------------------------------------
 
+
 class TestSnakeToCamel:
     def test_basic_conversion(self):
         assert snake_to_camel({"map_uri": "x"}) == {"mapUri": "x"}
@@ -25,6 +26,7 @@ class TestSnakeToCamel:
 # GET /
 # ---------------------------------------------------------------------------
 
+
 class TestIndex:
     def test_index_renders(self, client):
         resp = client.get("/")
@@ -35,6 +37,7 @@ class TestIndex:
 # ---------------------------------------------------------------------------
 # GET /api/cities
 # ---------------------------------------------------------------------------
+
 
 class TestGetCities:
     def test_empty_db(self, client):
@@ -53,6 +56,7 @@ class TestGetCities:
 # ---------------------------------------------------------------------------
 # POST /api/restaurants
 # ---------------------------------------------------------------------------
+
 
 class TestCreateRestaurant:
     def test_success(self, client, seed_restaurant):
@@ -97,39 +101,74 @@ class TestCreateRestaurant:
         assert listing[0]["types"] == []
 
     def test_invalid_rating_string(self, client):
-        resp = client.post("/api/restaurants", json={
-            "id": "x", "name": "R", "diningOptions": "dine-in", "rating": "bad",
-            "address": "a", "city": "c",
-        })
+        resp = client.post(
+            "/api/restaurants",
+            json={
+                "id": "x",
+                "name": "R",
+                "diningOptions": "dine-in",
+                "rating": "bad",
+                "address": "a",
+                "city": "c",
+            },
+        )
         assert resp.status_code == 400
         assert "rating" in resp.get_json()["error"].lower()
 
     def test_rating_out_of_range(self, client):
-        resp = client.post("/api/restaurants", json={
-            "id": "x", "name": "R", "diningOptions": "dine-in", "rating": 6,
-            "address": "a", "city": "c",
-        })
+        resp = client.post(
+            "/api/restaurants",
+            json={
+                "id": "x",
+                "name": "R",
+                "diningOptions": "dine-in",
+                "rating": 6,
+                "address": "a",
+                "city": "c",
+            },
+        )
         assert resp.status_code == 400
 
     def test_rating_zero(self, client):
-        resp = client.post("/api/restaurants", json={
-            "id": "x", "name": "R", "diningOptions": "dine-in", "rating": 0,
-            "address": "a", "city": "c",
-        })
+        resp = client.post(
+            "/api/restaurants",
+            json={
+                "id": "x",
+                "name": "R",
+                "diningOptions": "dine-in",
+                "rating": 0,
+                "address": "a",
+                "city": "c",
+            },
+        )
         assert resp.status_code == 400
 
     def test_invalid_type(self, client):
-        resp = client.post("/api/restaurants", json={
-            "id": "x", "name": "R", "diningOptions": "takeaway", "rating": 3,
-            "address": "a", "city": "c",
-        })
+        resp = client.post(
+            "/api/restaurants",
+            json={
+                "id": "x",
+                "name": "R",
+                "diningOptions": "takeaway",
+                "rating": 3,
+                "address": "a",
+                "city": "c",
+            },
+        )
         assert resp.status_code == 400
 
     def test_missing_name(self, client):
-        resp = client.post("/api/restaurants", json={
-            "id": "x", "name": "", "diningOptions": "dine-in", "rating": 3,
-            "address": "a", "city": "c",
-        })
+        resp = client.post(
+            "/api/restaurants",
+            json={
+                "id": "x",
+                "name": "",
+                "diningOptions": "dine-in",
+                "rating": 3,
+                "address": "a",
+                "city": "c",
+            },
+        )
         assert resp.status_code == 400
 
     def test_dish_with_invalid_rating_skipped(self, client, seed_restaurant):
@@ -149,6 +188,7 @@ class TestCreateRestaurant:
 # ---------------------------------------------------------------------------
 # GET /api/restaurants (list)
 # ---------------------------------------------------------------------------
+
 
 class TestListRestaurants:
     def test_empty(self, client):
@@ -197,6 +237,7 @@ class TestListRestaurants:
 # GET /api/restaurants/<id>
 # ---------------------------------------------------------------------------
 
+
 class TestGetRestaurant:
     def test_found(self, client, seed_restaurant):
         seed_restaurant(id="r1")
@@ -227,6 +268,7 @@ class TestGetRestaurant:
 # PUT /api/restaurants/<id>
 # ---------------------------------------------------------------------------
 
+
 class TestUpdateRestaurant:
     def test_partial_update(self, client, seed_restaurant):
         seed_restaurant(id="r1", rating=3)
@@ -241,19 +283,22 @@ class TestUpdateRestaurant:
         seed_restaurant(id="r1")
         hours = {"weekdayDescriptions": ["Mon: 10–6"], "periods": []}
         types = ["restaurant", "french_restaurant"]
-        resp = client.put("/api/restaurants/r1", json={
-            "name": "Updated",
-            "diningOptions": "delivery",
-            "rating": 2,
-            "notes": "new notes",
-            "address": "456 New St",
-            "city": "NewCity",
-            "mapUri": "https://new.map",
-            "directionsUri": "https://new.dir",
-            "priceLevel": 3,
-            "openingHours": hours,
-            "types": types,
-        })
+        resp = client.put(
+            "/api/restaurants/r1",
+            json={
+                "name": "Updated",
+                "diningOptions": "delivery",
+                "rating": 2,
+                "notes": "new notes",
+                "address": "456 New St",
+                "city": "NewCity",
+                "mapUri": "https://new.map",
+                "directionsUri": "https://new.dir",
+                "priceLevel": 3,
+                "openingHours": hours,
+                "types": types,
+            },
+        )
         assert resp.status_code == 200
         # Use list endpoint which correctly deserializes opening_hours
         listing = client.get("/api/restaurants").get_json()
@@ -268,7 +313,9 @@ class TestUpdateRestaurant:
 
     def test_types_update(self, client, seed_restaurant):
         seed_restaurant(id="r1", types=["restaurant"])
-        resp = client.put("/api/restaurants/r1", json={"types": ["restaurant", "sushi_restaurant"]})
+        resp = client.put(
+            "/api/restaurants/r1", json={"types": ["restaurant", "sushi_restaurant"]}
+        )
         assert resp.status_code == 200
         listing = client.get("/api/restaurants").get_json()
         r = next(x for x in listing if x["id"] == "r1")
@@ -303,9 +350,12 @@ class TestUpdateRestaurant:
 
     def test_dishes_insert(self, client, seed_restaurant):
         seed_restaurant(id="r1")
-        resp = client.put("/api/restaurants/r1", json={
-            "dishes": [{"name": "Burger", "rating": 1, "notes": "juicy"}],
-        })
+        resp = client.put(
+            "/api/restaurants/r1",
+            json={
+                "dishes": [{"name": "Burger", "rating": 1, "notes": "juicy"}],
+            },
+        )
         assert resp.status_code == 200
         listing = client.get("/api/restaurants").get_json()
         r = next(x for x in listing if x["id"] == "r1")
@@ -317,9 +367,19 @@ class TestUpdateRestaurant:
         listing = client.get("/api/restaurants").get_json()
         dish_id = listing[0]["dishes"][0]["id"]
 
-        resp = client.put("/api/restaurants/r1", json={
-            "dishes": [{"id": dish_id, "name": "Cheeseburger", "rating": 0, "notes": "updated"}],
-        })
+        resp = client.put(
+            "/api/restaurants/r1",
+            json={
+                "dishes": [
+                    {
+                        "id": dish_id,
+                        "name": "Cheeseburger",
+                        "rating": 0,
+                        "notes": "updated",
+                    }
+                ],
+            },
+        )
         assert resp.status_code == 200
         listing = client.get("/api/restaurants").get_json()
         r = next(x for x in listing if x["id"] == "r1")
@@ -327,22 +387,43 @@ class TestUpdateRestaurant:
         assert r["dishes"][0]["rating"] == 0
 
     def test_dishes_update_preserves_order(self, client, seed_restaurant):
-        seed_restaurant(id="r1", dishes=[
-            {"name": "Alpha", "rating": 1, "notes": "first"},
-            {"name": "Bravo", "rating": 0, "notes": "second"},
-            {"name": "Charlie", "rating": 1, "notes": "third"},
-        ])
+        seed_restaurant(
+            id="r1",
+            dishes=[
+                {"name": "Alpha", "rating": 1, "notes": "first"},
+                {"name": "Bravo", "rating": 0, "notes": "second"},
+                {"name": "Charlie", "rating": 1, "notes": "third"},
+            ],
+        )
         listing = client.get("/api/restaurants").get_json()
         dishes = listing[0]["dishes"]
         bravo_id = next(d["id"] for d in dishes if d["name"] == "Bravo")
 
-        resp = client.put("/api/restaurants/r1", json={
-            "dishes": [
-                {"id": dishes[0]["id"], "name": "Alpha", "rating": 1, "notes": "first"},
-                {"id": bravo_id, "name": "Bravo-Renamed", "rating": 1, "notes": "updated note"},
-                {"id": dishes[2]["id"], "name": "Charlie", "rating": 1, "notes": "third"},
-            ],
-        })
+        resp = client.put(
+            "/api/restaurants/r1",
+            json={
+                "dishes": [
+                    {
+                        "id": dishes[0]["id"],
+                        "name": "Alpha",
+                        "rating": 1,
+                        "notes": "first",
+                    },
+                    {
+                        "id": bravo_id,
+                        "name": "Bravo-Renamed",
+                        "rating": 1,
+                        "notes": "updated note",
+                    },
+                    {
+                        "id": dishes[2]["id"],
+                        "name": "Charlie",
+                        "rating": 1,
+                        "notes": "third",
+                    },
+                ],
+            },
+        )
         assert resp.status_code == 200
         listing = client.get("/api/restaurants").get_json()
         r = next(x for x in listing if x["id"] == "r1")
@@ -353,10 +434,13 @@ class TestUpdateRestaurant:
         assert updated["notes"] == "updated note"
 
     def test_dishes_delete(self, client, seed_restaurant):
-        seed_restaurant(id="r1", dishes=[
-            {"name": "A", "rating": 1},
-            {"name": "B", "rating": 0},
-        ])
+        seed_restaurant(
+            id="r1",
+            dishes=[
+                {"name": "A", "rating": 1},
+                {"name": "B", "rating": 0},
+            ],
+        )
         listing = client.get("/api/restaurants").get_json()
         assert len(listing[0]["dishes"]) == 2
 
@@ -367,21 +451,27 @@ class TestUpdateRestaurant:
         assert len(listing[0]["dishes"]) == 0
 
     def test_dishes_mixed_operations(self, client, seed_restaurant):
-        seed_restaurant(id="r1", dishes=[
-            {"name": "Keep", "rating": 1},
-            {"name": "Remove", "rating": 0},
-        ])
+        seed_restaurant(
+            id="r1",
+            dishes=[
+                {"name": "Keep", "rating": 1},
+                {"name": "Remove", "rating": 0},
+            ],
+        )
         listing = client.get("/api/restaurants").get_json()
         dishes = listing[0]["dishes"]
         keep_id = next(d["id"] for d in dishes if d["name"] == "Keep")
 
-        resp = client.put("/api/restaurants/r1", json={
-            "dishes": [
-                {"id": keep_id, "name": "Kept-Updated", "rating": 0},  # update
-                {"name": "NewDish", "rating": 1},                       # insert
-                # "Remove" is omitted → delete
-            ],
-        })
+        resp = client.put(
+            "/api/restaurants/r1",
+            json={
+                "dishes": [
+                    {"id": keep_id, "name": "Kept-Updated", "rating": 0},  # update
+                    {"name": "NewDish", "rating": 1},  # insert
+                    # "Remove" is omitted → delete
+                ],
+            },
+        )
         assert resp.status_code == 200
         listing = client.get("/api/restaurants").get_json()
         r = next(x for x in listing if x["id"] == "r1")
@@ -398,6 +488,7 @@ class TestUpdateRestaurant:
 # ---------------------------------------------------------------------------
 # DELETE /api/restaurants/<id>
 # ---------------------------------------------------------------------------
+
 
 class TestDeleteRestaurant:
     def test_success(self, client, seed_restaurant):

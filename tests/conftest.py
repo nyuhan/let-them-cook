@@ -9,7 +9,7 @@ from app import app as flask_app
 @pytest.fixture()
 def app(tmp_path):
     db_path = str(tmp_path / "test.db")
-    os.environ['SQLITE_FILE_PATH'] = db_path
+    os.environ["SQLITE_FILE_PATH"] = db_path
     app_module.DATABASE = db_path
     flask_app.config.update({"TESTING": True})
     yield flask_app
@@ -23,6 +23,7 @@ def client(app):
 @pytest.fixture()
 def seed_restaurant(client):
     """Helper that inserts a restaurant and returns its data dict."""
+
     def _seed(**overrides):
         created_at = overrides.pop("created_at", None)
         data = {
@@ -42,8 +43,12 @@ def seed_restaurant(client):
         resp = client.post("/api/restaurants", json=data)
         if created_at is not None:
             connection = sqlite3.connect(app_module.DATABASE)
-            connection.execute("UPDATE restaurants SET created_at = ? WHERE id = ?", (created_at, data["id"]))
+            connection.execute(
+                "UPDATE restaurants SET created_at = ? WHERE id = ?",
+                (created_at, data["id"]),
+            )
             connection.commit()
             connection.close()
         return data, resp
+
     return _seed

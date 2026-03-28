@@ -6,12 +6,12 @@ A simple Flask application to record and manage your favorite restaurants. Featu
 
 ### Prerequisites
 
-*   Python 3.9+
-*   A Google Maps API Key with **Places API** and **Maps JavaScript API** enabled.
+* Python 3.9+
+* A Google Maps API Key with **Places API** and **Maps JavaScript API** enabled.
 
 ### Setup
 
-1.  **Create a virtual environment and install dependencies**:
+1. **Create a virtual environment and install dependencies**:
 
     ```bash
     python3 -m venv .venv
@@ -19,20 +19,20 @@ A simple Flask application to record and manage your favorite restaurants. Featu
     pip install -r requirements.txt
     ```
 
-1.  **Configure Environment Variables**:
+1. **Configure Environment Variables**:
     Create a `.env` file in the project root and add your Google Maps API key:
 
     ```bash
     echo 'GOOGLE_MAPS_API_KEY="YOUR_API_KEY"' > .env
     ```
 
-1.  **Run the application**:
+1. **Run the application**:
 
     ```bash
     python app.py
     ```
 
-1.  **Access the app**:
+1. **Access the app**:
     Open [http://localhost:5000](http://localhost:5000) in your browser.
 
     *Note: Data will be stored in `instance/restaurants.db` by default.*
@@ -43,18 +43,18 @@ A simple Flask application to record and manage your favorite restaurants. Featu
 
 ### Prerequisites
 
-*   Docker installed on your machine.
-*   A Google Maps API Key.
+* Docker installed on your machine.
+* A Google Maps API Key.
 
 ### Build and Run
 
-1.  **Build the Docker image**:
+1. **Build the Docker image**:
 
     ```bash
     docker build -t let-them-cook .
     ```
 
-1.  **Run the container**:
+1. **Run the container**:
     You **must** provide the API key as an environment variable and mount the data volume to `/data`.
 
     ```bash
@@ -64,17 +64,17 @@ A simple Flask application to record and manage your favorite restaurants. Featu
       let-them-cook
     ```
 
-1.  **Access the app**:
+1. **Access the app**:
     Open [http://localhost:5000](http://localhost:5000) in your browser.
 
 ## API Endpoints
 
-*   `GET /api/restaurants` — Returns a list of all recorded restaurants.
-*   `POST /api/restaurants` — Add a new restaurant.
-    *   Body: `{ "name": "...", "type": "dine-in|delivery|both", "rating": 1-5, ... }`
-*   `PUT /api/restaurants/<id>` — Update an existing restaurant.
-*   `DELETE /api/restaurants/<id>` — Delete a restaurant.
-*   `GET /api/cities` — Returns a list of distinct cities from the stored restaurants.
+* `GET /api/restaurants` — Returns a list of all recorded restaurants.
+* `POST /api/restaurants` — Add a new restaurant.
+  * Body: `{ "name": "...", "type": "dine-in|delivery|both", "rating": 1-5, ... }`
+* `PUT /api/restaurants/<id>` — Update an existing restaurant.
+* `DELETE /api/restaurants/<id>` — Delete a restaurant.
+* `GET /api/cities` — Returns a list of distinct cities from the stored restaurants.
 
 ## Testing
 

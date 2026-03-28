@@ -1,12 +1,25 @@
 /* small custom tweaks */
-body { -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale }
-.container { max-width: 64rem }
+body {
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale
+}
+
+.container {
+	max-width: 64rem
+}
 
 /* make star SVGs align better */
-.star { vertical-align: middle }
+.star {
+	vertical-align: middle
+}
 
 /* card tweaks */
-.card-title { font-size: 1.15rem; font-weight: 700; letter-spacing: 0.5px; }
+.card-title {
+	font-size: 1.15rem;
+	font-weight: 700;
+	letter-spacing: 0.5px;
+}
+
 .card-badge {
 	letter-spacing: 0.2px;
 	font-size: 0.85rem;
@@ -21,22 +34,27 @@ body { -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale }
 	box-shadow: none;
 	border: 1px solid #c7d2fe;
 }
+
 .card {
-	transition: transform .18s cubic-bezier(.16,.84,.24,1), box-shadow .18s;
-	border: 1px solid rgba(15,23,42,0.07);
-	box-shadow: 0 2px 8px rgba(2,6,23,0.08);
+	transition: transform .18s cubic-bezier(.16, .84, .24, 1), box-shadow .18s;
+	border: 1px solid rgba(15, 23, 42, 0.07);
+	box-shadow: 0 2px 8px rgba(2, 6, 23, 0.08);
 	border-radius: 1.25rem;
 	margin-bottom: 0.5rem;
 	padding: 1.2rem 1.5rem 1.1rem 1.5rem;
 }
+
 .card:hover {
 	transform: translateY(-8px) scale(1.02);
-	box-shadow: 0 12px 32px rgba(2,6,23,0.13);
+	box-shadow: 0 12px 32px rgba(2, 6, 23, 0.13);
 	border-color: #6366f1;
 }
 
 /* badge tweaks applied via utility classes in template; helper for subtle badge */
-.card .inline-flex { padding-left: 0.5rem; padding-right: 0.5rem }
+.card .inline-flex {
+	padding-left: 0.5rem;
+	padding-right: 0.5rem
+}
 
 /* address link styling */
 .card a {
@@ -45,12 +63,19 @@ body { -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale }
 	font-weight: 500;
 	transition: color 0.13s;
 }
+
 .card a:hover {
 	text-decoration: underline;
 	color: #4338ca;
 }
-.card .text-yellow-600 { color: #d97706 }
-.card .text-yellow-400 { color: #fbbf24 }
+
+.card .text-yellow-600 {
+	color: #d97706
+}
+
+.card .text-yellow-400 {
+	color: #fbbf24
+}
 
 /* Card header improvements */
 .card .card-header {
@@ -88,32 +113,35 @@ body { -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale }
 }
 
 /* Card action buttons */
-.card .card-actions button, .card .card-actions a {
-		border: 1px solid #e0e7ff;
-		box-shadow: none;
-		vertical-align: middle;
+.card .card-actions button,
+.card .card-actions a {
+	border: 1px solid #e0e7ff;
+	box-shadow: none;
+	vertical-align: middle;
 	color: #4338ca;
 	border-radius: 0.5rem;
 	padding: 0.3em 0.9em;
 	font-size: 0.95rem;
 	font-weight: 500;
 	border: none;
-	box-shadow: 0 1px 2px rgba(67,56,202,0.08);
+	box-shadow: 0 1px 2px rgba(67, 56, 202, 0.08);
 	transition: background 0.13s, color 0.13s;
 	cursor: pointer;
 	display: inline-flex;
 	align-items: center;
 	gap: 0.3em;
 }
-.card .card-actions button:hover, .card .card-actions a:hover {
+
+.card .card-actions button:hover,
+.card .card-actions a:hover {
 	background: #6366f1;
 	color: #fff;
-		border-color: #6366f1;
+	border-color: #6366f1;
 }
 
 /* fix google maps autocomplete theme issue */
 gmp-place-autocomplete {
-  color-scheme: light;
+	color-scheme: light;
 }
 
 /* Input padding fix */
@@ -122,5 +150,5 @@ gmp-place-autocomplete {
 #new-dish-notes,
 #dishes-container input[type="text"],
 #dishes-container textarea {
-    padding: 0.5rem 0.75rem;
+	padding: 0.5rem 0.75rem;
 }
