@@ -560,20 +560,19 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
-function sortRestaurants(arr) {
-  const sorted = [...arr];
+function sortRestaurants(restaurants) {
   const byDate = (a, b) => (b.createdAt || '').localeCompare(a.createdAt || '');
   if (currentSort === 'name') {
-    sorted.sort((a, b) => (a.name || '').localeCompare(b.name || '') || byDate(a, b));
+    restaurants.sort((a, b) => (a.name || '').localeCompare(b.name || '') || byDate(a, b));
   } else if (currentSort === 'rating') {
-    sorted.sort((a, b) => ((b.rating || 0) - (a.rating || 0)) || byDate(a, b));
+    restaurants.sort((a, b) => ((b.rating || 0) - (a.rating || 0)) || byDate(a, b));
   } else if (currentSort === 'price') {
     const price = r => r.priceLevel || Infinity;
-    sorted.sort((a, b) => (price(a) - price(b)) || byDate(a, b));
+    restaurants.sort((a, b) => (price(a) - price(b)) || byDate(a, b));
   } else {
-    sorted.sort(byDate);
+    restaurants.sort(byDate);
   }
-  return sorted;
+  return restaurants;
 }
 
 function filterAndRender() {
