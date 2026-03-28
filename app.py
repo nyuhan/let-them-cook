@@ -1,8 +1,13 @@
-from flask import Flask, g, jsonify, request, render_template
+from flask import Flask, g, jsonify, request, render_template, redirect, url_for, session
+from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
+from werkzeug.security import check_password_hash, generate_password_hash
+from urllib.parse import urlparse, urljoin
 import os
+import secrets
 import sqlite3
 import json
 import hashlib
+import pyotp
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
@@ -19,6 +24,30 @@ try:
         TYPES_MAPPING = json.load(_f)
 except OSError:
     TYPES_MAPPING = {}
+
+
+def _get_or_create_secret_key():
+    """Create the settings table if needed, seed defaults, and return the app secret key."""
+    db_dir = os.path.dirname(DATABASE)
+    if db_dir:
+        os.makedirs(db_dir, exist_ok=True)
+    conn = sqlite3.connect(DATABASE)
+    conn.execute(
+        """CREATE TABLE IF NOT EXISTS settings (
+            id INTEGER PRIMARY KEY CHECK (id = 1),
+            secret_key TEXT NOT NULL,
+            password_hash TEXT NOT NULL,
+            totp_secret TEXT
+        )"""
+    )
+    conn.execute(
+        "INSERT OR IGNORE INTO settings (id, secret_key, password_hash, totp_secret) VALUES (1, ?, ?, NULL)",
+        (secrets.token_hex(32), generate_password_hash("letthemcook")),
+    )
+    conn.commit()
+    key = conn.execute("SELECT secret_key FROM settings WHERE id = 1").fetchone()[0]
+    conn.close()
+    return key
 
 
 def get_db():
@@ -76,11 +105,61 @@ def get_db():
             )"""
         )
 
+        db.execute(
+            """CREATE TABLE IF NOT EXISTS settings (
+                id INTEGER PRIMARY KEY CHECK (id = 1),
+                secret_key TEXT NOT NULL,
+                password_hash TEXT NOT NULL,
+                totp_secret TEXT
+            )"""
+        )
+
         db.commit()
     return db
 
 
 app = Flask(__name__, static_folder="static", template_folder="templates")
+app.secret_key = _get_or_create_secret_key()
+
+# --- Auth setup ---
+login_manager = LoginManager(app)
+login_manager.login_view = "login"
+
+
+class User(UserMixin):
+    id = "admin"
+
+
+_USER = User()
+
+
+LOGIN_DISABLED = os.environ.get("DISABLE_LOGIN", "").lower() in ("1", "true", "yes")
+
+
+@login_manager.user_loader
+def load_user(user_id):
+    if user_id == "admin":
+        return _USER
+    return None
+
+
+@login_manager.unauthorized_handler
+def unauthorized():
+    if request.path.startswith("/api/"):
+        return jsonify({"error": "unauthorized"}), 401
+    return redirect(url_for("login", next=request.path))
+
+
+@app.before_request
+def auto_login_if_disabled():
+    if LOGIN_DISABLED and not current_user.is_authenticated:
+        login_user(_USER, remember=True)
+
+
+def _is_safe_url(target):
+    ref = urlparse(request.host_url)
+    test = urlparse(urljoin(request.host_url, target))
+    return test.scheme in ("http", "https") and ref.netloc == test.netloc
 
 
 def _file_hash(path):
@@ -146,13 +225,155 @@ def close_connection(exception):
         db.close()
 
 
+def _get_settings(db):
+    row = db.execute(
+        "SELECT secret_key, password_hash, totp_secret FROM settings WHERE id = 1"
+    ).fetchone()
+    return dict(row) if row else {"secret_key": "", "password_hash": "", "totp_secret": None}
+
+
+def _make_qr_svg(secret):
+    import io
+    import qrcode
+    import qrcode.image.svg
+
+    totp = pyotp.TOTP(secret)
+    uri = totp.provisioning_uri(name="admin", issuer_name="Let Them Cook")
+    qr = qrcode.make(uri, image_factory=qrcode.image.svg.SvgPathImage)
+    buf = io.BytesIO()
+    qr.save(buf)
+    return buf.getvalue().decode("utf-8")
+
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if current_user.is_authenticated:
+        return redirect(url_for("index"))
+
+    db = get_db()
+    s = _get_settings(db)
+    totp_enabled = bool(s.get("totp_secret"))
+    error = None
+
+    if request.method == "POST":
+        password = request.form.get("password", "")
+        totp_code = request.form.get("totp_code", "").strip()
+
+        password_ok = bool(s["password_hash"]) and check_password_hash(s["password_hash"], password)
+
+        if s["totp_secret"]:
+            totp = pyotp.TOTP(s["totp_secret"])
+            totp_ok = totp.verify(totp_code)
+        else:
+            totp_ok = True
+
+        if password_ok and totp_ok:
+            login_user(_USER, remember=True)
+            next_page = request.args.get("next", "")
+            if next_page and _is_safe_url(next_page):
+                return redirect(next_page)
+            return redirect(url_for("index"))
+
+        error = "Invalid credentials."
+
+    return render_template("login.html", error=error, totp_enabled=totp_enabled)
+
+
+@app.route("/logout")
+@login_required
+def logout():
+    logout_user()
+    return redirect(url_for("login"))
+
+
+@app.route("/settings", methods=["GET", "POST"])
+@login_required
+def settings():
+    if LOGIN_DISABLED:
+        return "", 404
+    db = get_db()
+    s = _get_settings(db)
+    totp_enabled = bool(s.get("totp_secret"))
+    error = None
+    success = None
+
+    if request.method == "POST":
+        current_password = request.form.get("current_password", "")
+        new_password = request.form.get("new_password", "")
+        confirm_password = request.form.get("confirm_password", "")
+
+        if not check_password_hash(s["password_hash"], current_password):
+            error = "Current password is incorrect."
+        elif len(new_password) < 8:
+            error = "New password must be at least 8 characters."
+        elif new_password != confirm_password:
+            error = "New passwords do not match."
+        else:
+            db.execute(
+                "UPDATE settings SET password_hash = ? WHERE id = 1",
+                (generate_password_hash(new_password),),
+            )
+            db.commit()
+            success = "Password updated successfully."
+
+    return render_template("settings.html", totp_enabled=totp_enabled, error=error, success=success)
+
+
+@app.route("/setup-2fa", methods=["GET", "POST"])
+@login_required
+def setup_2fa():
+    if LOGIN_DISABLED:
+        return "", 404
+    db = get_db()
+
+    if request.method == "POST":
+        provisional_secret = session.get("provisional_totp_secret")
+        totp_code = request.form.get("totp_code", "").strip()
+
+        if not provisional_secret:
+            return redirect(url_for("setup_2fa"))
+
+        totp = pyotp.TOTP(provisional_secret)
+        if totp.verify(totp_code):
+            db.execute(
+                "UPDATE settings SET totp_secret = ? WHERE id = 1", (provisional_secret,)
+            )
+            db.commit()
+            session.pop("provisional_totp_secret", None)
+            return redirect(url_for("settings"))
+
+        qr_svg = _make_qr_svg(provisional_secret)
+        return render_template(
+            "setup_2fa.html", qr_svg=qr_svg, secret=provisional_secret,
+            error="Invalid code. Please try again."
+        )
+
+    provisional_secret = pyotp.random_base32()
+    session["provisional_totp_secret"] = provisional_secret
+    qr_svg = _make_qr_svg(provisional_secret)
+    return render_template("setup_2fa.html", qr_svg=qr_svg, secret=provisional_secret, error=None)
+
+
+@app.route("/disable-2fa", methods=["POST"])
+@login_required
+def disable_2fa():
+    if LOGIN_DISABLED:
+        return "", 404
+    db = get_db()
+    db.execute("UPDATE settings SET totp_secret = NULL WHERE id = 1")
+    db.commit()
+    return redirect(url_for("settings"))
+
+
 @app.route("/")
+@login_required
 def index():
     key = os.environ.get("GOOGLE_MAPS_API_KEY")
-    return render_template("index.html", google_api_key=key)
+    return render_template("index.html", google_api_key=key, login_disabled=LOGIN_DISABLED)
 
 
 @app.route("/api/cities")
+@login_required
 def get_cities():
     db = get_db()
     cur = db.execute(
@@ -163,6 +384,7 @@ def get_cities():
 
 
 @app.route("/api/restaurants", methods=["GET", "POST"])
+@login_required
 def restaurants():
     db = get_db()
     if request.method == "POST":
@@ -296,6 +518,7 @@ def _get_restaurant(db, rest_id):
 
 
 @app.route("/api/restaurants/<rest_id>", methods=["GET"])
+@login_required
 def get_restaurant(rest_id):
     db = get_db()
     data = _get_restaurant(db, rest_id)
@@ -305,6 +528,7 @@ def get_restaurant(rest_id):
 
 
 @app.route("/api/restaurants/<rest_id>", methods=["PUT"])
+@login_required
 def update_restaurant(rest_id):
     db = get_db()
     data = request.get_json() or {}
@@ -453,6 +677,7 @@ def update_restaurant(rest_id):
 
 
 @app.route("/api/restaurants/<rest_id>", methods=["DELETE"])
+@login_required
 def delete_restaurant(rest_id):
     db = get_db()
     cur = db.execute("SELECT id FROM restaurants WHERE id = ?", (rest_id,))
