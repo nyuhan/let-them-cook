@@ -1,5 +1,5 @@
 let restaurantsCache = [];
-let currentSort = 'date';
+let currentSort = '';
 let selectedDiningOptions = 'both';
 let allowedTypes = new Set();
 
@@ -423,7 +423,7 @@ function clearFilters() {
   document.getElementById('filter-dining-options').value = '';
   document.getElementById('filter-city').value = '';
   document.getElementById('filter-cuisine').value = '';
-  document.getElementById('filter-rating').value = '0';
+  document.getElementById('filter-rating').value = '';
   document.getElementById('filter-price').value = '';
   document.getElementById('filter-status').value = '';
 
@@ -468,9 +468,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const input = container.querySelector('input[type="hidden"]');
       if (input) input.value = optionBtn.dataset.value;
       if (container.classList.contains('sort-dropdown')) currentSort = optionBtn.dataset.value;
-      const isActive = container.classList.contains('sort-dropdown')
-        ? currentSort !== 'date'
-        : !!(optionBtn.dataset.value && optionBtn.dataset.value !== '0');
+      const isActive = optionBtn.dataset.value !== '';
       setTriggerActive(trigger, isActive);
 
       menu.classList.add('hidden');
