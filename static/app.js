@@ -406,6 +406,16 @@ function populateCuisineFilter() {
   });
 }
 
+function setTriggerActive(trigger, isActive) {
+  if (isActive) {
+    trigger.classList.remove('bg-white', 'border-gray-300', 'text-gray-700');
+    trigger.classList.add('bg-indigo-50', 'border-indigo-200', 'text-indigo-700');
+  } else {
+    trigger.classList.remove('bg-indigo-50', 'border-indigo-200', 'text-indigo-700');
+    trigger.classList.add('bg-white', 'border-gray-300', 'text-gray-700');
+  }
+}
+
 function clearFilters() {
   const searchInput = document.getElementById('search-input');
   if (searchInput) searchInput.value = '';
@@ -423,9 +433,9 @@ function clearFilters() {
     const defaultText = trigger.dataset.default;
 
     // Reset text
-    trigger.innerHTML = `${defaultText} <svg class="-mr-1 ml-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>`;
-    trigger.classList.remove('bg-indigo-50', 'border-indigo-200', 'text-indigo-700');
-    trigger.classList.add('bg-white', 'border-gray-300', 'text-gray-700');
+    const labelSpan = trigger.querySelector('.filter-label');
+    if (labelSpan) labelSpan.innerHTML = defaultText;
+    setTriggerActive(trigger, false);
   });
 
   filterAndRender();
@@ -453,34 +463,15 @@ document.addEventListener('DOMContentLoaded', () => {
       const container = menu.parentElement;
       const trigger = container.querySelector('.dropdown-trigger');
       const newLabel = optionBtn.dataset.label || optionBtn.textContent;
-      const chevron = `<svg class="-mr-1 ml-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>`;
-
-      if (container.classList.contains('sort-dropdown')) {
-        currentSort = optionBtn.dataset.value;
-        // Update just the label span, preserving the sort icon and prefix
-        const labelSpan = trigger.querySelector('.sort-label');
-        if (labelSpan) labelSpan.textContent = newLabel;
-        // Highlight when non-default sort is active
-        if (currentSort !== 'date') {
-          trigger.classList.remove('bg-white', 'border-gray-300', 'text-gray-700');
-          trigger.classList.add('bg-indigo-50', 'border-indigo-200', 'text-indigo-700');
-        } else {
-          trigger.classList.remove('bg-indigo-50', 'border-indigo-200', 'text-indigo-700');
-          trigger.classList.add('bg-white', 'border-gray-300', 'text-gray-700');
-        }
-      } else {
-        const input = container.querySelector('input[type="hidden"]');
-        input.value = optionBtn.dataset.value;
-        trigger.innerHTML = `${newLabel} ${chevron}`;
-        // Active State
-        if (optionBtn.dataset.value && optionBtn.dataset.value !== '0') {
-          trigger.classList.remove('bg-white', 'border-gray-300', 'text-gray-700');
-          trigger.classList.add('bg-indigo-50', 'border-indigo-200', 'text-indigo-700');
-        } else {
-          trigger.classList.remove('bg-indigo-50', 'border-indigo-200', 'text-indigo-700');
-          trigger.classList.add('bg-white', 'border-gray-300', 'text-gray-700');
-        }
-      }
+      const labelSpan = trigger.querySelector('.sort-label, .filter-label');
+      if (labelSpan) labelSpan.innerHTML = newLabel;
+      const input = container.querySelector('input[type="hidden"]');
+      if (input) input.value = optionBtn.dataset.value;
+      if (container.classList.contains('sort-dropdown')) currentSort = optionBtn.dataset.value;
+      const isActive = container.classList.contains('sort-dropdown')
+        ? currentSort !== 'date'
+        : !!(optionBtn.dataset.value && optionBtn.dataset.value !== '0');
+      setTriggerActive(trigger, isActive);
 
       menu.classList.add('hidden');
       filterAndRender();
