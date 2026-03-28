@@ -1,5 +1,21 @@
-from flask import Flask, g, jsonify, request, render_template, redirect, url_for, session
-from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
+from flask import (
+    Flask,
+    g,
+    jsonify,
+    request,
+    render_template,
+    redirect,
+    url_for,
+    session,
+)
+from flask_login import (
+    LoginManager,
+    UserMixin,
+    login_user,
+    logout_user,
+    login_required,
+    current_user,
+)
 from werkzeug.security import check_password_hash, generate_password_hash
 from urllib.parse import urlparse, urljoin
 import os
@@ -26,12 +42,47 @@ except OSError:
     TYPES_MAPPING = {}
 
 
-def _get_or_create_secret_key():
-    """Create the settings table if needed, seed defaults, and return the app secret key."""
-    db_dir = os.path.dirname(DATABASE)
-    if db_dir:
-        os.makedirs(db_dir, exist_ok=True)
-    conn = sqlite3.connect(DATABASE)
+def _init_db(conn):
+    """Create all tables and seed defaults. Safe to call on every connection."""
+    conn.execute(
+        """CREATE TABLE IF NOT EXISTS restaurants (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            address TEXT NOT NULL,
+            city TEXT NOT NULL,
+            map_uri TEXT,
+            directions_uri TEXT,
+            dining_options TEXT CHECK(dining_options IN ('dine-in','delivery','both')) NOT NULL,
+            rating INTEGER CHECK(rating BETWEEN 1 AND 5) NOT NULL,
+            created_at TEXT DEFAULT (CURRENT_TIMESTAMP)
+        )"""
+    )
+
+    cur = conn.execute("PRAGMA table_info(restaurants)")
+    columns = [row[1] for row in cur.fetchall()]
+    if "price_level" not in columns:
+        conn.execute("ALTER TABLE restaurants ADD COLUMN price_level INTEGER")
+    if "notes" not in columns:
+        conn.execute("ALTER TABLE restaurants ADD COLUMN notes TEXT")
+    if "opening_hours" not in columns:
+        conn.execute("ALTER TABLE restaurants ADD COLUMN opening_hours TEXT")
+    if "types" not in columns:
+        conn.execute("ALTER TABLE restaurants ADD COLUMN types TEXT")
+    if "type" in columns and "dining_options" not in columns:
+        conn.execute("ALTER TABLE restaurants RENAME COLUMN type TO dining_options")
+
+    conn.execute(
+        """CREATE TABLE IF NOT EXISTS dishes (
+            restaurant_id TEXT NOT NULL,
+            name TEXT NOT NULL,
+            rating INTEGER CHECK(rating IN (0, 1)) NOT NULL,
+            notes TEXT,
+            created_at TEXT DEFAULT (CURRENT_TIMESTAMP),
+            PRIMARY KEY (restaurant_id, name),
+            FOREIGN KEY(restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE
+        )"""
+    )
+
     conn.execute(
         """CREATE TABLE IF NOT EXISTS settings (
             id INTEGER PRIMARY KEY CHECK (id = 1),
@@ -45,81 +96,24 @@ def _get_or_create_secret_key():
         (secrets.token_hex(32), generate_password_hash("letthemcook")),
     )
     conn.commit()
-    key = conn.execute("SELECT secret_key FROM settings WHERE id = 1").fetchone()[0]
-    conn.close()
-    return key
+    return conn.execute("SELECT secret_key FROM settings WHERE id = 1").fetchone()[0]
 
 
 def get_db():
     db = getattr(g, "_database", None)
     if db is None:
-        os.makedirs(os.path.dirname(DATABASE), exist_ok=True)
         db = g._database = sqlite3.connect(DATABASE)
         db.row_factory = sqlite3.Row
-        db.execute(
-            """CREATE TABLE IF NOT EXISTS restaurants (
-                id TEXT PRIMARY KEY,
-                name TEXT NOT NULL,
-                address TEXT NOT NULL,
-                city TEXT NOT NULL,
-                map_uri TEXT,
-                directions_uri TEXT,
-                dining_options TEXT CHECK(dining_options IN ('dine-in','delivery','both')) NOT NULL,
-                rating INTEGER CHECK(rating BETWEEN 1 AND 5) NOT NULL,
-                created_at TEXT DEFAULT (CURRENT_TIMESTAMP)
-            )"""
-        )
-
-        # Check for price_level column and add if missing
-        cur = db.execute("PRAGMA table_info(restaurants)")
-        columns = [row["name"] for row in cur.fetchall()]
-        if "price_level" not in columns:
-            db.execute("ALTER TABLE restaurants ADD COLUMN price_level INTEGER")
-
-        # Check for notes column and add if missing
-        if "notes" not in columns:
-            db.execute("ALTER TABLE restaurants ADD COLUMN notes TEXT")
-
-        # Check for opening_hours column and add if missing
-        if "opening_hours" not in columns:
-            db.execute("ALTER TABLE restaurants ADD COLUMN opening_hours TEXT")
-
-        # Check for types column and add if missing
-        if "types" not in columns:
-            db.execute("ALTER TABLE restaurants ADD COLUMN types TEXT")
-
-        # Rename type column to dining_options if needed
-        if "type" in columns and "dining_options" not in columns:
-            db.execute("ALTER TABLE restaurants RENAME COLUMN type TO dining_options")
-
-        # Create dishes table
-        db.execute(
-            """CREATE TABLE IF NOT EXISTS dishes (
-                restaurant_id TEXT NOT NULL,
-                name TEXT NOT NULL,
-                rating INTEGER CHECK(rating IN (0, 1)) NOT NULL,
-                notes TEXT,
-                created_at TEXT DEFAULT (CURRENT_TIMESTAMP),
-                PRIMARY KEY (restaurant_id, name),
-                FOREIGN KEY(restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE
-            )"""
-        )
-
-        db.execute(
-            """CREATE TABLE IF NOT EXISTS settings (
-                id INTEGER PRIMARY KEY CHECK (id = 1),
-                secret_key TEXT NOT NULL,
-                password_hash TEXT NOT NULL,
-                totp_secret TEXT
-            )"""
-        )
-
-        db.commit()
     return db
 
 
 app = Flask(__name__, static_folder="static", template_folder="templates")
-app.secret_key = _get_or_create_secret_key()
+
+_db_dir = os.path.dirname(DATABASE)
+if _db_dir:
+    os.makedirs(_db_dir, exist_ok=True)
+with sqlite3.connect(DATABASE) as _conn:
+    app.secret_key = _init_db(_conn)
 
 # --- Auth setup ---
 login_manager = LoginManager(app)
@@ -229,7 +223,11 @@ def _get_settings(db):
     row = db.execute(
         "SELECT secret_key, password_hash, totp_secret FROM settings WHERE id = 1"
     ).fetchone()
-    return dict(row) if row else {"secret_key": "", "password_hash": "", "totp_secret": None}
+    return (
+        dict(row)
+        if row
+        else {"secret_key": "", "password_hash": "", "totp_secret": None}
+    )
 
 
 def _make_qr_svg(secret):
@@ -259,7 +257,9 @@ def login():
         password = request.form.get("password", "")
         totp_code = request.form.get("totp_code", "").strip()
 
-        password_ok = bool(s["password_hash"]) and check_password_hash(s["password_hash"], password)
+        password_ok = bool(s["password_hash"]) and check_password_hash(
+            s["password_hash"], password
+        )
 
         if s["totp_secret"]:
             totp = pyotp.TOTP(s["totp_secret"])
@@ -316,7 +316,9 @@ def settings():
             db.commit()
             success = "Password updated successfully."
 
-    return render_template("settings.html", totp_enabled=totp_enabled, error=error, success=success)
+    return render_template(
+        "settings.html", totp_enabled=totp_enabled, error=error, success=success
+    )
 
 
 @app.route("/setup-2fa", methods=["GET", "POST"])
@@ -336,7 +338,8 @@ def setup_2fa():
         totp = pyotp.TOTP(provisional_secret)
         if totp.verify(totp_code):
             db.execute(
-                "UPDATE settings SET totp_secret = ? WHERE id = 1", (provisional_secret,)
+                "UPDATE settings SET totp_secret = ? WHERE id = 1",
+                (provisional_secret,),
             )
             db.commit()
             session.pop("provisional_totp_secret", None)
@@ -344,14 +347,18 @@ def setup_2fa():
 
         qr_svg = _make_qr_svg(provisional_secret)
         return render_template(
-            "setup_2fa.html", qr_svg=qr_svg, secret=provisional_secret,
-            error="Invalid code. Please try again."
+            "setup_2fa.html",
+            qr_svg=qr_svg,
+            secret=provisional_secret,
+            error="Invalid code. Please try again.",
         )
 
     provisional_secret = pyotp.random_base32()
     session["provisional_totp_secret"] = provisional_secret
     qr_svg = _make_qr_svg(provisional_secret)
-    return render_template("setup_2fa.html", qr_svg=qr_svg, secret=provisional_secret, error=None)
+    return render_template(
+        "setup_2fa.html", qr_svg=qr_svg, secret=provisional_secret, error=None
+    )
 
 
 @app.route("/disable-2fa", methods=["POST"])
@@ -369,7 +376,9 @@ def disable_2fa():
 @login_required
 def index():
     key = os.environ.get("GOOGLE_MAPS_API_KEY")
-    return render_template("index.html", google_api_key=key, login_disabled=LOGIN_DISABLED)
+    return render_template(
+        "index.html", google_api_key=key, login_disabled=LOGIN_DISABLED
+    )
 
 
 @app.route("/api/cities")

@@ -16,19 +16,12 @@ def app(tmp_path):
     flask_app.secret_key = "test-secret-key"
     flask_app.config.update({"TESTING": True})
 
-    # Seed settings table with known password, no TOTP
+    # Initialize DB and override password for tests
     conn = sqlite3.connect(db_path)
+    app_module._init_db(conn)
     conn.execute(
-        """CREATE TABLE IF NOT EXISTS settings (
-            id INTEGER PRIMARY KEY CHECK (id = 1),
-            secret_key TEXT NOT NULL,
-            password_hash TEXT NOT NULL,
-            totp_secret TEXT
-        )"""
-    )
-    conn.execute(
-        "INSERT OR IGNORE INTO settings (id, secret_key, password_hash, totp_secret) VALUES (1, ?, ?, NULL)",
-        ("test-secret-key", generate_password_hash(_TEST_PASSWORD)),
+        "UPDATE settings SET password_hash = ? WHERE id = 1",
+        (generate_password_hash(_TEST_PASSWORD),),
     )
     conn.commit()
     conn.close()
