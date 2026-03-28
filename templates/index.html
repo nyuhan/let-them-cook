@@ -130,7 +130,7 @@
                         <button class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" data-value="3" data-label="3+<svg class='w-4 h-4 text-yellow-400 inline -mt-0.5' fill='currentColor'><use href='#icon-star'/></svg>">3+<svg class="w-4 h-4 text-yellow-400 inline -mt-0.5" fill="currentColor"><use href="#icon-star"/></svg></button>
                       </div>
                     </div>
-                     <input type="hidden" id="filter-rating" value="0">
+                     <input type="hidden" id="filter-rating" value="">
                   </div>
 
                    <!-- Price Filter Dropdown -->
@@ -179,6 +179,7 @@
         <div class="flex items-center gap-2">
           <!-- Sort Dropdown -->
           <div class="sort-dropdown relative inline-block text-left">
+            <input type="hidden" id="current-sort" value="">
             <button type="button" class="dropdown-trigger inline-flex items-center rounded-md border border-gray-300 shadow-sm px-3 py-1.5 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" data-default="Recently Added">
               <svg class="mr-1.5 h-4 w-4 text-gray-400 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                 <path d="M3 3a1 1 0 000 2h11a1 1 0 100-2H3zM3 7a1 1 0 000 2h7a1 1 0 100-2H3zM3 11a1 1 0 100 2h4a1 1 0 100-2H3zM15 8a1 1 0 10-2 0v5.586l-1.293-1.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L15 13.586V8z" />

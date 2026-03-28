@@ -1,5 +1,5 @@
 let restaurantsCache = [];
-let currentSort = '';
+
 let selectedDiningOptions = 'both';
 let allowedTypes = new Set();
 
@@ -467,7 +467,6 @@ document.addEventListener('DOMContentLoaded', () => {
       if (labelSpan) labelSpan.innerHTML = newLabel;
       const input = container.querySelector('input[type="hidden"]');
       if (input) input.value = optionBtn.dataset.value;
-      if (container.classList.contains('sort-dropdown')) currentSort = optionBtn.dataset.value;
       const isActive = optionBtn.dataset.value !== '';
       setTriggerActive(trigger, isActive);
 
@@ -561,6 +560,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function sortRestaurants(restaurants) {
+  const currentSort = document.getElementById('current-sort')?.value || '';
   const byDate = (a, b) => (b.createdAt || '').localeCompare(a.createdAt || '');
   if (currentSort === 'name') {
     restaurants.sort((a, b) => (a.name || '').localeCompare(b.name || '') || byDate(a, b));
