@@ -1,22 +1,8 @@
-<!doctype html>
-<html lang="en">
+{% extends "base.html" %}
 
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Setup 2FA – Let Them Cook</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-</head>
+{% block title %}Setup 2FA – Let Them Cook{% endblock %}
 
-<body class="bg-gray-100 text-gray-800 font-sans">
-  <header class="bg-white shadow-sm">
-    <div class="max-w-6xl mx-auto py-4 px-4 sm:px-6 lg:px-8 flex items-center justify-between">
-      <div class="flex items-center">
-        <img src="/static/logo.png" alt="Logo" class="h-10 w-auto mr-3">
-        <h1 class="text-xl font-bold text-gray-900">Let Them Cook</h1>
-      </div>
-    </div>
-  </header>
+{% block body %}
 
   <main class="max-w-lg mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
     <h2 class="text-2xl font-bold text-gray-900 mt-2">Setup Two-Factor Authentication</h2>
@@ -63,6 +49,4 @@
       </a>
     </div>
   </main>
-</body>
-
-</html>
+{% endblock %}
