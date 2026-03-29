@@ -5,9 +5,9 @@ Most tests are offline (no external APIs).
 Tests marked google_maps require network + Google Maps API key in .env.
 """
 
+import json
 import re
 import pytest
-import requests
 
 
 # ---------------------------------------------------------------------------
@@ -546,7 +546,7 @@ class TestFilterDropdowns:
         assert "American" in option_texts
 
         # Delete the Japanese restaurant via API
-        requests.delete(f"{live_server}/api/restaurants/d1")
+        page.request.delete(f"{live_server}/api/restaurants/d1")
 
         # Reload page — Japanese cuisine should no longer appear
         _goto(page, live_server)
@@ -701,14 +701,12 @@ class TestGoogleMaps:
         assert _card_locators(page).count() == 1
 
         # --- Overwrite metadata via backend API ---
-        resp = requests.get(f"{live_server}/api/restaurants")
+        resp = page.request.get(f"{live_server}/api/restaurants")
         rest_id = resp.json()[0]["id"]
-        requests.put(
+        page.request.put(
             f"{live_server}/api/restaurants/{rest_id}",
-            json={
-                "name": "Stale Name",
-                "address": "Old Address",
-            },
+            data=json.dumps({"name": "Stale Name", "address": "Old Address"}),
+            headers={"Content-Type": "application/json"},
         )
 
         # Reload page to pick up the stale data
