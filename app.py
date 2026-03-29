@@ -7,6 +7,7 @@ from flask import (
     redirect,
     url_for,
     session,
+    flash,
 )
 from flask_login import (
     LoginManager,
@@ -298,7 +299,10 @@ def settings():
             success = "Password updated successfully."
 
     return render_template(
-        "settings.html", totp_enabled=totp_enabled, error=error, success=success
+        "settings.html",
+        totp_enabled=totp_enabled,
+        error=error,
+        success=success,
     )
 
 
@@ -348,6 +352,11 @@ def disable_2fa():
     if LOGIN_DISABLED:
         return "", 404
     db = get_db()
+    s = _get_settings(db)
+    totp = pyotp.TOTP(s["totp_secret"])
+    if not totp.verify(request.form.get("totp_code", "").strip()):
+        flash("Invalid authenticator code.", "totp_error")
+        return redirect(url_for("settings"))
     db.execute("UPDATE settings SET totp_secret = NULL WHERE id = 1")
     db.commit()
     return redirect(url_for("settings"))
