@@ -126,19 +126,19 @@ class TestLogoutUI:
 
 class TestSetup2faUI:
     def test_setup_page_shows_qr_and_input(self, page, live_server):
-        page.goto(live_server + "/setup-2fa")
+        page.goto(live_server + "/set-up-2fa")
         assert page.locator("svg").is_visible()
         assert page.locator("input[name='totp_code']").is_visible()
 
     def test_wrong_code_shows_error(self, page, live_server):
-        page.goto(live_server + "/setup-2fa")
+        page.goto(live_server + "/set-up-2fa")
         page.fill("input[name='totp_code']", "000000")
         page.click("button[type='submit']")
-        page.wait_for_url(f"{live_server}/setup-2fa")
+        page.wait_for_url(f"{live_server}/set-up-2fa")
         assert "Invalid code" in page.locator("div.bg-red-50").text_content()
 
     def test_correct_code_enables_2fa(self, page, live_server):
-        page.goto(live_server + "/setup-2fa")
+        page.goto(live_server + "/set-up-2fa")
         secret = page.locator("code").text_content().strip()
         page.fill("input[name='totp_code']", pyotp.TOTP(secret).now())
         page.click("button[type='submit']")
@@ -201,5 +201,5 @@ class TestLoginDisabled:
     ):
         resp = unauthed_page.request.get(login_disabled_server + "/settings")
         assert resp.status == 404
-        resp2 = unauthed_page.request.get(login_disabled_server + "/setup-2fa")
+        resp2 = unauthed_page.request.get(login_disabled_server + "/set-up-2fa")
         assert resp2.status == 404

@@ -198,13 +198,13 @@ class TestSettingsPasswordChange:
 
 
 # ---------------------------------------------------------------------------
-# GET /setup-2fa
+# GET /set-up-2fa
 # ---------------------------------------------------------------------------
 
 
 class TestSetup2faGet:
     def test_renders_qr_and_secret(self, client):
-        resp = client.get("/setup-2fa")
+        resp = client.get("/set-up-2fa")
         soup = BeautifulSoup(resp.data, "html.parser")
         assert resp.status_code == 200
         assert soup.find("svg") is not None
@@ -214,27 +214,27 @@ class TestSetup2faGet:
         )
 
     def test_reuses_provisional_secret_on_second_visit(self, client):
-        client.get("/setup-2fa")
+        client.get("/set-up-2fa")
         with client.session_transaction() as session:
             secret1 = session["provisional_totp_secret"]
-        client.get("/setup-2fa")
+        client.get("/set-up-2fa")
         with client.session_transaction() as session:
             secret2 = session["provisional_totp_secret"]
         assert secret1 == secret2
 
 
 # ---------------------------------------------------------------------------
-# POST /setup-2fa
+# POST /set-up-2fa
 # ---------------------------------------------------------------------------
 
 
 class TestSetup2faPost:
     def test_correct_code_saves_secret_and_redirects(self, client):
-        client.get("/setup-2fa")
+        client.get("/set-up-2fa")
         with client.session_transaction() as session:
             secret = session["provisional_totp_secret"]
         code = pyotp.TOTP(secret).now()
-        resp = client.post("/setup-2fa", data={"totp_code": code})
+        resp = client.post("/set-up-2fa", data={"totp_code": code})
         assert resp.status_code == 302
         assert resp.location.endswith("/settings")
 
@@ -249,11 +249,11 @@ class TestSetup2faPost:
             assert "provisional_totp_secret" not in session
 
     def test_wrong_code_flashes_error(self, client):
-        client.get("/setup-2fa")
-        resp = client.post("/setup-2fa", data={"totp_code": "000000"})
+        client.get("/set-up-2fa")
+        resp = client.post("/set-up-2fa", data={"totp_code": "000000"})
         assert resp.status_code == 302
-        assert resp.location.endswith("/setup-2fa")
-        assert _get_flashed(client, "setup_2fa_error") == [
+        assert resp.location.endswith("/set-up-2fa")
+        assert _get_flashed(client, "set_up_2fa_error") == [
             "Invalid code. Please try again."
         ]
 
@@ -264,9 +264,9 @@ class TestSetup2faPost:
         assert row[0] is None
 
     def test_no_provisional_secret_in_session_redirects(self, client):
-        resp = client.post("/setup-2fa", data={"totp_code": "123456"})
+        resp = client.post("/set-up-2fa", data={"totp_code": "123456"})
         assert resp.status_code == 302
-        assert resp.location.endswith("/setup-2fa")
+        assert resp.location.endswith("/set-up-2fa")
 
 
 # ---------------------------------------------------------------------------

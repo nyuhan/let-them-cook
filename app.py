@@ -303,9 +303,9 @@ def settings():
     )
 
 
-@app.route("/setup-2fa", methods=["GET", "POST"])
+@app.route("/set-up-2fa", methods=["GET", "POST"])
 @login_required
-def setup_2fa():
+def set_up_2fa():
     if LOGIN_DISABLED:
         return "", 404
     db = get_db()
@@ -315,7 +315,7 @@ def setup_2fa():
         totp_code = request.form.get("totp_code", "").strip()
 
         if not provisional_secret:
-            return redirect(url_for("setup_2fa"))
+            return redirect(url_for("set_up_2fa"))
 
         totp = pyotp.TOTP(provisional_secret)
         if totp.verify(totp_code):
@@ -327,13 +327,13 @@ def setup_2fa():
             session.pop("provisional_totp_secret", None)
             return redirect(url_for("settings"))
         else:
-            flash("Invalid code. Please try again.", "setup_2fa_error")
-            return redirect(url_for("setup_2fa"))
+            flash("Invalid code. Please try again.", "set_up_2fa_error")
+            return redirect(url_for("set_up_2fa"))
 
     provisional_secret = session.get("provisional_totp_secret") or pyotp.random_base32()
     session["provisional_totp_secret"] = provisional_secret
     qr_svg = _make_qr_svg(provisional_secret)
-    return render_template("setup_2fa.html", qr_svg=qr_svg, secret=provisional_secret)
+    return render_template("set_up_2fa.html", qr_svg=qr_svg, secret=provisional_secret)
 
 
 @app.route("/disable-2fa", methods=["POST"])
