@@ -42,7 +42,10 @@ class TestLoginPage:
         unauthed_page.fill("input[name='password']", "wrongpassword")
         unauthed_page.click("button[type='submit']")
         unauthed_page.wait_for_url(f"{live_server}/login")
-        assert "Invalid credentials" in unauthed_page.locator("div.bg-red-50").text_content()
+        assert (
+            "Invalid credentials"
+            in unauthed_page.locator("div.bg-red-50").text_content()
+        )
 
     def test_correct_password_lands_on_index(self, unauthed_page, live_server):
         unauthed_page.goto(live_server + "/login")
@@ -72,7 +75,10 @@ class TestLoginPage:
             unauthed_page.fill("input[name='totp_code']", "000000")
             unauthed_page.click("button[type='submit']")
             unauthed_page.wait_for_url(f"{live_server}/login")
-            assert "Invalid credentials" in unauthed_page.locator("div.bg-red-50").text_content()
+            assert (
+                "Invalid credentials"
+                in unauthed_page.locator("div.bg-red-50").text_content()
+            )
         finally:
             _clear_totp_from_db()
 
@@ -156,7 +162,10 @@ class TestDisable2faUI:
         page.wait_for_url(f"{live_server}/settings")
         # JS auto-opens modal when totp_error flash is present
         assert page.locator("#disable-2fa-modal").is_visible()
-        assert "Invalid authenticator code" in page.locator("#disable-2fa-modal").text_content()
+        assert (
+            "Invalid authenticator code"
+            in page.locator("#disable-2fa-modal").text_content()
+        )
 
     def test_correct_totp_disables_2fa(self, page, live_server):
         secret = pyotp.random_base32()
@@ -187,7 +196,9 @@ class TestLoginDisabled:
         unauthed_page.goto(login_disabled_server + "/")
         assert "/login" not in unauthed_page.url
 
-    def test_settings_and_setup_2fa_return_404(self, unauthed_page, login_disabled_server):
+    def test_settings_and_setup_2fa_return_404(
+        self, unauthed_page, login_disabled_server
+    ):
         resp = unauthed_page.request.get(login_disabled_server + "/settings")
         assert resp.status == 404
         resp2 = unauthed_page.request.get(login_disabled_server + "/setup-2fa")
