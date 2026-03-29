@@ -22,7 +22,10 @@ import secrets
 import sqlite3
 import json
 import hashlib
+import io
 import pyotp
+import qrcode
+import qrcode.image.svg
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
@@ -215,10 +218,6 @@ def _get_settings(db):
 
 
 def _make_qr_svg(secret):
-    import io
-    import qrcode
-    import qrcode.image.svg
-
     totp = pyotp.TOTP(secret)
     uri = totp.provisioning_uri(name="admin", issuer_name="Let Them Cook")
     qr = qrcode.make(uri, image_factory=qrcode.image.svg.SvgPathImage)
@@ -233,20 +232,20 @@ def login():
         return redirect(url_for("index"))
 
     db = get_db()
-    s = _get_settings(db)
-    totp_enabled = bool(s.get("totp_secret"))
+    settings = _get_settings(db)
+    totp_enabled = bool(settings.get("totp_secret"))
     error = None
 
     if request.method == "POST":
         password = request.form.get("password", "")
         totp_code = request.form.get("totp_code", "").strip()
 
-        password_ok = bool(s["password_hash"]) and check_password_hash(
-            s["password_hash"], password
+        password_ok = bool(settings["password_hash"]) and check_password_hash(
+            settings["password_hash"], password
         )
 
-        if s["totp_secret"]:
-            totp = pyotp.TOTP(s["totp_secret"])
+        if settings["totp_secret"]:
+            totp = pyotp.TOTP(settings["totp_secret"])
             totp_ok = totp.verify(totp_code)
         else:
             totp_ok = True
@@ -274,8 +273,8 @@ def settings():
     if LOGIN_DISABLED:
         return "", 404
     db = get_db()
-    s = _get_settings(db)
-    totp_enabled = bool(s.get("totp_secret"))
+    settings = _get_settings(db)
+    totp_enabled = bool(settings.get("totp_secret"))
     error = None
     success = None
 
@@ -284,7 +283,7 @@ def settings():
         new_password = request.form.get("new_password", "")
         confirm_password = request.form.get("confirm_password", "")
 
-        if not check_password_hash(s["password_hash"], current_password):
+        if not check_password_hash(settings["password_hash"], current_password):
             error = "Current password is incorrect."
         elif len(new_password) < 8:
             error = "New password must be at least 8 characters."
