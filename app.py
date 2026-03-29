@@ -342,8 +342,8 @@ def disable_2fa():
     if LOGIN_DISABLED:
         return "", 404
     db = get_db()
-    s = _get_settings(db)
-    totp = pyotp.TOTP(s["totp_secret"])
+    settings = _get_settings(db)
+    totp = pyotp.TOTP(settings["totp_secret"])
     if not totp.verify(request.form.get("totp_code", "").strip()):
         flash("Invalid authenticator code.", "totp_error")
         return redirect(url_for("settings"))
