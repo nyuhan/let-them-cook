@@ -126,7 +126,6 @@ def seed(live_server):
 def page(page):
     """Set a shorter default timeout for all e2e tests."""
     page.set_default_timeout(10000)
-    page.route("**/cdn.tailwindcss.com/**", lambda route: route.abort())
     return page
 
 
