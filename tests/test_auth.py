@@ -196,6 +196,41 @@ class TestSettingsPasswordChange:
         assert resp2.status_code == 302
         assert resp2.location.endswith("/")
 
+    def test_totp_required_when_enabled(self, client):
+        secret = pyotp.random_base32()
+        conn = sqlite3.connect(app_module.DATABASE)
+        conn.execute("UPDATE settings SET totp_secret = ? WHERE id = 1", (secret,))
+        conn.commit()
+        conn.close()
+
+        # Missing / wrong code is rejected
+        resp = client.post(
+            "/settings",
+            data={
+                "current_password": _TEST_PASSWORD,
+                "new_password": "newpassword123",
+                "confirm_password": "newpassword123",
+                "totp_code": "000000",
+            },
+        )
+        assert resp.status_code == 302
+        assert resp.location.endswith("/settings")
+        assert _get_flashed(client, "error") == ["Invalid authenticator code."]
+
+        # Correct code succeeds
+        resp2 = client.post(
+            "/settings",
+            data={
+                "current_password": _TEST_PASSWORD,
+                "new_password": "newpassword123",
+                "confirm_password": "newpassword123",
+                "totp_code": pyotp.TOTP(secret).now(),
+            },
+        )
+        assert resp2.status_code == 302
+        assert resp2.location.endswith("/settings")
+        assert _get_flashed(client, "success") == ["Password updated successfully."]
+
 
 # ---------------------------------------------------------------------------
 # GET /set-up-2fa

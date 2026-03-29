@@ -147,6 +147,105 @@ class TestSetup2faUI:
 
 
 # ---------------------------------------------------------------------------
+# TestSettingsPasswordChangeUI
+# ---------------------------------------------------------------------------
+
+
+class TestSettingsPasswordChangeUI:
+    def _fill_password_form(self, page, current, new, confirm, totp_code=None):
+        page.fill("input[name='current_password']", current)
+        page.fill("input[name='new_password']", new)
+        page.fill("input[name='confirm_password']", confirm)
+        if totp_code is not None:
+            page.fill("input[name='totp_code']", totp_code)
+        page.locator("button[type='submit']", has_text="Update Password").click()
+
+    def test_wrong_current_password_shows_error(self, page, live_server):
+        page.goto(live_server + "/settings")
+        self._fill_password_form(
+            page, "wrongpassword", "newpassword123", "newpassword123"
+        )
+        page.wait_for_url(f"{live_server}/settings")
+        assert (
+            "Current password is incorrect"
+            in page.locator("div.bg-red-50").text_content()
+        )
+
+    def test_mismatched_passwords_shows_error(self, page, live_server):
+        page.goto(live_server + "/settings")
+        self._fill_password_form(page, _PASSWORD, "newpassword123", "differentpassword")
+        page.wait_for_url(f"{live_server}/settings")
+        assert "do not match" in page.locator("div.bg-red-50").text_content()
+
+    def test_valid_change_shows_success(self, page, live_server):
+        page.goto(live_server + "/settings")
+        self._fill_password_form(page, _PASSWORD, "newpassword123", "newpassword123")
+        page.wait_for_url(f"{live_server}/settings")
+        assert (
+            "Password updated successfully"
+            in page.locator("div.bg-green-50").text_content()
+        )
+        # Restore original password
+        page.goto(live_server + "/settings")
+        self._fill_password_form(page, "newpassword123", _PASSWORD, _PASSWORD)
+
+    def test_totp_field_shown_when_2fa_enabled(self, page, live_server):
+        secret = pyotp.random_base32()
+        _set_totp_in_db(secret)
+        try:
+            page.goto(live_server + "/settings")
+            assert page.locator("input[id='totp_code']").is_visible()
+        finally:
+            _clear_totp_from_db()
+
+    def test_wrong_totp_blocks_password_change(self, page, live_server):
+        secret = pyotp.random_base32()
+        _set_totp_in_db(secret)
+        try:
+            page.goto(live_server + "/settings")
+            self._fill_password_form(
+                page, _PASSWORD, "newpassword123", "newpassword123", "000000"
+            )
+            page.wait_for_url(f"{live_server}/settings")
+            assert (
+                "Invalid authenticator code"
+                in page.locator("div.bg-red-50").text_content()
+            )
+        finally:
+            _clear_totp_from_db()
+
+    def test_correct_totp_allows_password_change(self, page, live_server):
+        secret = pyotp.random_base32()
+        _set_totp_in_db(secret)
+        try:
+            page.goto(live_server + "/settings")
+            self._fill_password_form(
+                page,
+                _PASSWORD,
+                "newpassword123",
+                "newpassword123",
+                pyotp.TOTP(secret).now(),
+            )
+            page.wait_for_url(f"{live_server}/settings")
+            assert (
+                "Password updated successfully"
+                in page.locator("div.bg-green-50").text_content()
+            )
+        finally:
+            _clear_totp_from_db()
+            # Restore original password
+            conn = sqlite3.connect(app_module.DATABASE)
+            from werkzeug.security import generate_password_hash
+
+            conn.execute(
+                "UPDATE settings SET password_hash = ? WHERE id = 1",
+                (generate_password_hash(_PASSWORD),),
+            )
+            conn.commit()
+            conn.close()
+
+
+# ---------------------------------------------------------------------------
 # TestDisable2faUI
 # ---------------------------------------------------------------------------
 

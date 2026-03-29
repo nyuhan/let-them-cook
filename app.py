@@ -288,6 +288,10 @@ def settings():
             flash("New password must be at least 8 characters.", "error")
         elif new_password != confirm_password:
             flash("New passwords do not match.", "error")
+        elif settings["totp_secret"] and not pyotp.TOTP(settings["totp_secret"]).verify(
+            request.form.get("totp_code", "").strip()
+        ):
+            flash("Invalid authenticator code.", "error")
         else:
             db.execute(
                 "UPDATE settings SET password_hash = ? WHERE id = 1",
