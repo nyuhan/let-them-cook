@@ -95,25 +95,26 @@
           </div>
           <h3 class="text-lg leading-6 font-medium text-gray-900 mt-2">Disable 2FA</h3>
           <form method="POST" action="{{ url_for('disable_2fa') }}">
-          <div class="mt-2 px-7 py-3">
-            <p class="text-sm text-gray-500">Enter your authenticator code to confirm.</p>
-            {% if totp_errors %}
-            <p class="text-sm text-red-600 mt-2">{{ totp_errors[0] }}</p>
-            {% endif %}
-            <input type="text" id="disable-2fa-totp" name="totp_code" inputmode="numeric" maxlength="6" autocomplete="one-time-code"
-              class="mt-3 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-center tracking-widest focus:outline-none focus:ring-2 focus:ring-red-500"
-              placeholder="000000">
-          </div>
-          <div class="items-center px-4 py-3">
-            <button type="submit"
-              class="px-4 py-2 bg-red-600 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500">
-              Disable
-            </button>
-            <button type="button" id="cancel-disable-2fa-btn"
-              class="mt-3 px-4 py-2 bg-white text-gray-700 text-base font-medium rounded-md w-full shadow-sm border border-gray-300 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-              Cancel
-            </button>
-          </div>
+            <div class="mt-2 px-7 py-3">
+              <p class="text-sm text-gray-500">Enter your authenticator code to confirm.</p>
+              {% if totp_errors %}
+              <p class="text-sm text-red-600 mt-2">{{ totp_errors[0] }}</p>
+              {% endif %}
+              <input type="text" id="disable-2fa-totp" name="totp_code" inputmode="numeric" maxlength="6"
+                autocomplete="one-time-code"
+                class="mt-3 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-center tracking-widest focus:outline-none focus:ring-2 focus:ring-red-500"
+                placeholder="000000">
+            </div>
+            <div class="items-center px-4 py-3">
+              <button type="submit"
+                class="px-4 py-2 bg-red-600 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500">
+                Disable
+              </button>
+              <button type="button" id="cancel-disable-2fa-btn"
+                class="mt-3 px-4 py-2 bg-white text-gray-700 text-base font-medium rounded-md w-full shadow-sm border border-gray-300 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                Cancel
+              </button>
+            </div>
           </form>
         </div>
       </div>
@@ -132,7 +133,7 @@
     document.getElementById('disable-2fa-btn').addEventListener('click', () => modal.classList.remove('hidden'));
     document.getElementById('cancel-disable-2fa-btn').addEventListener('click', () => modal.classList.add('hidden'));
     modal.addEventListener('click', (e) => { if (e.target === modal) modal.classList.add('hidden'); });
-    {% if totp_errors %}modal.classList.remove('hidden');{% endif %}
+    {% if totp_errors %} modal.classList.remove('hidden'); {% endif %}
   </script>
 </body>
 

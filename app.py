@@ -329,21 +329,14 @@ def setup_2fa():
             db.commit()
             session.pop("provisional_totp_secret", None)
             return redirect(url_for("settings"))
+        else:
+            flash("Invalid code. Please try again.", "setup_2fa_error")
+            return redirect(url_for("setup_2fa"))
 
-        qr_svg = _make_qr_svg(provisional_secret)
-        return render_template(
-            "setup_2fa.html",
-            qr_svg=qr_svg,
-            secret=provisional_secret,
-            error="Invalid code. Please try again.",
-        )
-
-    provisional_secret = pyotp.random_base32()
+    provisional_secret = session.get("provisional_totp_secret") or pyotp.random_base32()
     session["provisional_totp_secret"] = provisional_secret
     qr_svg = _make_qr_svg(provisional_secret)
-    return render_template(
-        "setup_2fa.html", qr_svg=qr_svg, secret=provisional_secret, error=None
-    )
+    return render_template("setup_2fa.html", qr_svg=qr_svg, secret=provisional_secret)
 
 
 @app.route("/disable-2fa", methods=["POST"])
