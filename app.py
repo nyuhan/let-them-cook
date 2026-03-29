@@ -235,7 +235,6 @@ def login():
     db = get_db()
     settings = _get_settings(db)
     totp_enabled = bool(settings.get("totp_secret"))
-    error = None
 
     if request.method == "POST":
         password = request.form.get("password", "")
@@ -256,9 +255,10 @@ def login():
             login_user(_USER, remember=remember)
             return redirect(url_for("index"))
 
-        error = "Invalid credentials."
+        flash("Invalid credentials.", "error")
+        return redirect(url_for("login"))
 
-    return render_template("login.html", error=error, totp_enabled=totp_enabled)
+    return render_template("login.html", totp_enabled=totp_enabled)
 
 
 @app.route("/logout")
