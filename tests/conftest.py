@@ -29,6 +29,12 @@ def client(app):
 
 
 @pytest.fixture()
+def unauthed_client(app):
+    with app.test_client() as c:
+        yield c
+
+
+@pytest.fixture()
 def seed_restaurant(client):
     """Helper that inserts a restaurant and returns its data dict."""
 
