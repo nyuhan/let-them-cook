@@ -276,8 +276,6 @@ def settings():
     db = get_db()
     settings = _get_settings(db)
     totp_enabled = bool(settings.get("totp_secret"))
-    error = None
-    success = None
 
     if request.method == "POST":
         current_password = request.form.get("current_password", "")
@@ -285,24 +283,23 @@ def settings():
         confirm_password = request.form.get("confirm_password", "")
 
         if not check_password_hash(settings["password_hash"], current_password):
-            error = "Current password is incorrect."
+            flash("Current password is incorrect.", "error")
         elif len(new_password) < 8:
-            error = "New password must be at least 8 characters."
+            flash("New password must be at least 8 characters.", "error")
         elif new_password != confirm_password:
-            error = "New passwords do not match."
+            flash("New passwords do not match.", "error")
         else:
             db.execute(
                 "UPDATE settings SET password_hash = ? WHERE id = 1",
                 (generate_password_hash(new_password),),
             )
             db.commit()
-            success = "Password updated successfully."
+            flash("Password updated successfully.", "success")
+        return redirect(url_for("settings"))
 
     return render_template(
         "settings.html",
         totp_enabled=totp_enabled,
-        error=error,
-        success=success,
     )
 
 

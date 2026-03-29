@@ -11,14 +11,18 @@
   <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
     <h3 class="text-lg font-semibold text-gray-800 mb-4">Change Password</h3>
 
-    {% if error %}
-    <div class="bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 mb-4 text-sm">{{ error }}</div>
+    {% with errors = get_flashed_messages(category_filter=['error']) %}
+    {% if errors %}
+    <div class="bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 mb-4 text-sm">{{ errors[0] }}</div>
     {% endif %}
+    {% endwith %}
 
-    {% if success %}
-    <div class="bg-green-50 border border-green-200 text-green-700 rounded-lg px-4 py-3 mb-4 text-sm">{{ success }}
+    {% with messages = get_flashed_messages(category_filter=['success']) %}
+    {% if messages %}
+    <div class="bg-green-50 border border-green-200 text-green-700 rounded-lg px-4 py-3 mb-4 text-sm">{{ messages[0] }}
     </div>
     {% endif %}
+    {% endwith %}
 
     <form method="POST" action="{{ url_for('settings') }}" class="space-y-4">
       <div>
