@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{% block title %}Let Them Cook{% endblock %}</title>
+    <link rel="icon" href="/static/favicon.ico">
+    <script src="https://cdn.tailwindcss.com"></script>
+    {% block head %}{% endblock %}
+</head>
+
+<body class="bg-gray-100 text-gray-800 font-sans">
+    {% block before_header %}{% endblock %}
+    <header class="bg-white shadow-sm">
+        <div class="max-w-6xl mx-auto py-4 px-4 sm:px-6 lg:px-8 flex items-center justify-between">
+            <div class="flex items-center">
+                <img src="/static/logo.png" alt="Logo" class="h-10 w-auto mr-3">
+                <h1 class="text-xl font-bold text-gray-900">Let Them Cook</h1>
+            </div>
+            {% block header_actions %}{% endblock %}
+        </div>
+    </header>
+
+    {% block body %}{% endblock %}
+</body>
+
+</html>

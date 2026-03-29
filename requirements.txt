@@ -1,5 +1,9 @@
 Flask
+Flask-Login
+pyotp
+qrcode
 python-dotenv
 pytest
 pytest-cov
 pytest-playwright
+beautifulsoup4

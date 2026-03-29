@@ -1,8 +1,32 @@
-from flask import Flask, g, jsonify, request, render_template
+from flask import (
+    Flask,
+    g,
+    jsonify,
+    request,
+    render_template,
+    redirect,
+    url_for,
+    session,
+    flash,
+)
+from flask_login import (
+    LoginManager,
+    UserMixin,
+    login_user,
+    logout_user,
+    login_required,
+    current_user,
+)
+from werkzeug.security import check_password_hash, generate_password_hash
 import os
+import secrets
 import sqlite3
 import json
 import hashlib
+import io
+import pyotp
+import qrcode
+import qrcode.image.svg
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
@@ -21,66 +45,106 @@ except OSError:
     TYPES_MAPPING = {}
 
 
+def _init_db(conn):
+    """Create all tables and seed defaults. Safe to call on every connection."""
+    conn.execute(
+        """CREATE TABLE IF NOT EXISTS restaurants (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            address TEXT NOT NULL,
+            city TEXT NOT NULL,
+            map_uri TEXT,
+            directions_uri TEXT,
+            dining_options TEXT CHECK(dining_options IN ('dine-in','delivery','both')) NOT NULL,
+            rating INTEGER CHECK(rating BETWEEN 1 AND 5) NOT NULL,
+            created_at TEXT DEFAULT (CURRENT_TIMESTAMP)
+        )"""
+    )
+
+    cur = conn.execute("PRAGMA table_info(restaurants)")
+    columns = [row[1] for row in cur.fetchall()]
+    if "price_level" not in columns:
+        conn.execute("ALTER TABLE restaurants ADD COLUMN price_level INTEGER")
+    if "notes" not in columns:
+        conn.execute("ALTER TABLE restaurants ADD COLUMN notes TEXT")
+    if "opening_hours" not in columns:
+        conn.execute("ALTER TABLE restaurants ADD COLUMN opening_hours TEXT")
+    if "types" not in columns:
+        conn.execute("ALTER TABLE restaurants ADD COLUMN types TEXT")
+    if "type" in columns and "dining_options" not in columns:
+        conn.execute("ALTER TABLE restaurants RENAME COLUMN type TO dining_options")
+
+    conn.execute(
+        """CREATE TABLE IF NOT EXISTS dishes (
+            restaurant_id TEXT NOT NULL,
+            name TEXT NOT NULL,
+            rating INTEGER CHECK(rating IN (0, 1)) NOT NULL,
+            notes TEXT,
+            created_at TEXT DEFAULT (CURRENT_TIMESTAMP),
+            PRIMARY KEY (restaurant_id, name),
+            FOREIGN KEY(restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE
+        )"""
+    )
+
+    conn.execute(
+        """CREATE TABLE IF NOT EXISTS settings (
+            id INTEGER PRIMARY KEY CHECK (id = 1),
+            secret_key TEXT NOT NULL,
+            password_hash TEXT NOT NULL,
+            totp_secret TEXT
+        )"""
+    )
+    conn.execute(
+        "INSERT OR IGNORE INTO settings (id, secret_key, password_hash, totp_secret) VALUES (1, ?, ?, NULL)",
+        (secrets.token_hex(32), generate_password_hash("letthemcook")),
+    )
+    conn.commit()
+    return conn.execute("SELECT secret_key FROM settings WHERE id = 1").fetchone()[0]
+
+
 def get_db():
     db = getattr(g, "_database", None)
     if db is None:
-        os.makedirs(os.path.dirname(DATABASE), exist_ok=True)
         db = g._database = sqlite3.connect(DATABASE)
         db.row_factory = sqlite3.Row
-        db.execute(
-            """CREATE TABLE IF NOT EXISTS restaurants (
-                id TEXT PRIMARY KEY,
-                name TEXT NOT NULL,
-                address TEXT NOT NULL,
-                city TEXT NOT NULL,
-                map_uri TEXT,
-                directions_uri TEXT,
-                dining_options TEXT CHECK(dining_options IN ('dine-in','delivery','both')) NOT NULL,
-                rating INTEGER CHECK(rating BETWEEN 1 AND 5) NOT NULL,
-                created_at TEXT DEFAULT (CURRENT_TIMESTAMP)
-            )"""
-        )
-
-        # Check for price_level column and add if missing
-        cur = db.execute("PRAGMA table_info(restaurants)")
-        columns = [row["name"] for row in cur.fetchall()]
-        if "price_level" not in columns:
-            db.execute("ALTER TABLE restaurants ADD COLUMN price_level INTEGER")
-
-        # Check for notes column and add if missing
-        if "notes" not in columns:
-            db.execute("ALTER TABLE restaurants ADD COLUMN notes TEXT")
-
-        # Check for opening_hours column and add if missing
-        if "opening_hours" not in columns:
-            db.execute("ALTER TABLE restaurants ADD COLUMN opening_hours TEXT")
-
-        # Check for types column and add if missing
-        if "types" not in columns:
-            db.execute("ALTER TABLE restaurants ADD COLUMN types TEXT")
-
-        # Rename type column to dining_options if needed
-        if "type" in columns and "dining_options" not in columns:
-            db.execute("ALTER TABLE restaurants RENAME COLUMN type TO dining_options")
-
-        # Create dishes table
-        db.execute(
-            """CREATE TABLE IF NOT EXISTS dishes (
-                restaurant_id TEXT NOT NULL,
-                name TEXT NOT NULL,
-                rating INTEGER CHECK(rating IN (0, 1)) NOT NULL,
-                notes TEXT,
-                created_at TEXT DEFAULT (CURRENT_TIMESTAMP),
-                PRIMARY KEY (restaurant_id, name),
-                FOREIGN KEY(restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE
-            )"""
-        )
-
-        db.commit()
     return db
 
 
 app = Flask(__name__, static_folder="static", template_folder="templates")
+
+# --- Auth setup ---
+login_manager = LoginManager(app)
+login_manager.login_view = "login"
+
+
+class User(UserMixin):
+    id = "admin"
+
+
+_USER = User()
+
+
+LOGIN_DISABLED = os.environ.get("DISABLE_LOGIN", "").lower() == "true"
+
+
+@login_manager.user_loader
+def load_user(user_id):
+    if user_id == "admin":
+        return _USER
+    return None
+
+
+@login_manager.unauthorized_handler
+def unauthorized():
+    if request.path.startswith("/api/"):
+        return jsonify({"error": "unauthorized"}), 401
+    return redirect(url_for("login"))
+
+
+@app.before_request
+def auto_login_if_disabled():
+    if LOGIN_DISABLED and not current_user.is_authenticated:
+        login_user(_USER)
 
 
 def _file_hash(path):
@@ -146,13 +210,159 @@ def close_connection(exception):
         db.close()
 
 
+def _get_settings(db):
+    return dict(
+        db.execute(
+            "SELECT secret_key, password_hash, totp_secret FROM settings WHERE id = 1"
+        ).fetchone()
+    )
+
+
+def _make_qr_svg(secret):
+    totp = pyotp.TOTP(secret)
+    uri = totp.provisioning_uri(name="admin", issuer_name="Let Them Cook")
+    qr = qrcode.make(uri, image_factory=qrcode.image.svg.SvgPathImage)
+    buf = io.BytesIO()
+    qr.save(buf)
+    return buf.getvalue().decode("utf-8")
+
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if current_user.is_authenticated:
+        return redirect(url_for("index"))
+
+    db = get_db()
+    settings = _get_settings(db)
+    totp_enabled = bool(settings.get("totp_secret"))
+
+    if request.method == "POST":
+        password = request.form.get("password", "")
+        totp_code = request.form.get("totp_code", "").strip()
+
+        password_ok = bool(settings["password_hash"]) and check_password_hash(
+            settings["password_hash"], password
+        )
+
+        if settings["totp_secret"]:
+            totp = pyotp.TOTP(settings["totp_secret"])
+            totp_ok = totp.verify(totp_code)
+        else:
+            totp_ok = True
+
+        if password_ok and totp_ok:
+            remember = request.form.get("remember") == "on"
+            login_user(_USER, remember=remember)
+            return redirect(url_for("index"))
+
+        flash("Invalid credentials.", "error")
+        return redirect(url_for("login"))
+
+    return render_template("login.html", totp_enabled=totp_enabled)
+
+
+@app.route("/logout")
+@login_required
+def logout():
+    logout_user()
+    return redirect(url_for("login"))
+
+
+@app.route("/settings", methods=["GET", "POST"])
+@login_required
+def settings():
+    if LOGIN_DISABLED:
+        return "", 404
+    db = get_db()
+    settings = _get_settings(db)
+    totp_enabled = bool(settings.get("totp_secret"))
+
+    if request.method == "POST":
+        current_password = request.form.get("current_password", "")
+        new_password = request.form.get("new_password", "")
+        confirm_password = request.form.get("confirm_password", "")
+
+        if not check_password_hash(settings["password_hash"], current_password):
+            flash("Current password is incorrect.", "error")
+        elif len(new_password) < 8:
+            flash("New password must be at least 8 characters.", "error")
+        elif new_password != confirm_password:
+            flash("New passwords do not match.", "error")
+        else:
+            db.execute(
+                "UPDATE settings SET password_hash = ? WHERE id = 1",
+                (generate_password_hash(new_password),),
+            )
+            db.commit()
+            flash("Password updated successfully.", "success")
+        return redirect(url_for("settings"))
+
+    return render_template(
+        "settings.html",
+        totp_enabled=totp_enabled,
+    )
+
+
+@app.route("/setup-2fa", methods=["GET", "POST"])
+@login_required
+def setup_2fa():
+    if LOGIN_DISABLED:
+        return "", 404
+    db = get_db()
+
+    if request.method == "POST":
+        provisional_secret = session.get("provisional_totp_secret")
+        totp_code = request.form.get("totp_code", "").strip()
+
+        if not provisional_secret:
+            return redirect(url_for("setup_2fa"))
+
+        totp = pyotp.TOTP(provisional_secret)
+        if totp.verify(totp_code):
+            db.execute(
+                "UPDATE settings SET totp_secret = ? WHERE id = 1",
+                (provisional_secret,),
+            )
+            db.commit()
+            session.pop("provisional_totp_secret", None)
+            return redirect(url_for("settings"))
+        else:
+            flash("Invalid code. Please try again.", "setup_2fa_error")
+            return redirect(url_for("setup_2fa"))
+
+    provisional_secret = session.get("provisional_totp_secret") or pyotp.random_base32()
+    session["provisional_totp_secret"] = provisional_secret
+    qr_svg = _make_qr_svg(provisional_secret)
+    return render_template("setup_2fa.html", qr_svg=qr_svg, secret=provisional_secret)
+
+
+@app.route("/disable-2fa", methods=["POST"])
+@login_required
+def disable_2fa():
+    if LOGIN_DISABLED:
+        return "", 404
+    db = get_db()
+    settings = _get_settings(db)
+    totp = pyotp.TOTP(settings["totp_secret"])
+    if not totp.verify(request.form.get("totp_code", "").strip()):
+        flash("Invalid authenticator code.", "totp_error")
+        return redirect(url_for("settings"))
+    db.execute("UPDATE settings SET totp_secret = NULL WHERE id = 1")
+    db.commit()
+    return redirect(url_for("settings"))
+
+
 @app.route("/")
+@login_required
 def index():
     key = os.environ.get("GOOGLE_MAPS_API_KEY")
-    return render_template("index.html", google_api_key=key)
+    return render_template(
+        "index.html", google_api_key=key, login_disabled=LOGIN_DISABLED
+    )
 
 
 @app.route("/api/cities")
+@login_required
 def get_cities():
     db = get_db()
     cur = db.execute(
@@ -163,6 +373,7 @@ def get_cities():
 
 
 @app.route("/api/restaurants", methods=["GET", "POST"])
+@login_required
 def restaurants():
     db = get_db()
     if request.method == "POST":
@@ -296,6 +507,7 @@ def _get_restaurant(db, rest_id):
 
 
 @app.route("/api/restaurants/<rest_id>", methods=["GET"])
+@login_required
 def get_restaurant(rest_id):
     db = get_db()
     data = _get_restaurant(db, rest_id)
@@ -305,6 +517,7 @@ def get_restaurant(rest_id):
 
 
 @app.route("/api/restaurants/<rest_id>", methods=["PUT"])
+@login_required
 def update_restaurant(rest_id):
     db = get_db()
     data = request.get_json() or {}
@@ -453,6 +666,7 @@ def update_restaurant(rest_id):
 
 
 @app.route("/api/restaurants/<rest_id>", methods=["DELETE"])
+@login_required
 def delete_restaurant(rest_id):
     db = get_db()
     cur = db.execute("SELECT id FROM restaurants WHERE id = ?", (rest_id,))
@@ -461,6 +675,13 @@ def delete_restaurant(rest_id):
     db.execute("DELETE FROM restaurants WHERE id = ?", (rest_id,))
     db.commit()
     return jsonify({"status": "deleted"})
+
+
+_db_dir = os.path.dirname(DATABASE)
+if _db_dir:
+    os.makedirs(_db_dir, exist_ok=True)
+with sqlite3.connect(DATABASE) as _conn:
+    app.secret_key = _init_db(_conn)
 
 
 if __name__ == "__main__":

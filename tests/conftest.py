@@ -1,23 +1,37 @@
-import os
 import sqlite3
-import tempfile
 import pytest
 import app as app_module
 from app import app as flask_app
+
+_TEST_PASSWORD = "letthemcook"
 
 
 @pytest.fixture()
 def app(tmp_path):
     db_path = str(tmp_path / "test.db")
-    os.environ["SQLITE_FILE_PATH"] = db_path
     app_module.DATABASE = db_path
+    flask_app.secret_key = "test-secret-key"
     flask_app.config.update({"TESTING": True})
+
+    # Initialize DB and override password for tests
+    conn = sqlite3.connect(db_path)
+    app_module._init_db(conn)
+    conn.close()
+
     yield flask_app
 
 
 @pytest.fixture()
 def client(app):
-    return app.test_client()
+    with app.test_client() as c:
+        c.post("/login", data={"password": _TEST_PASSWORD, "totp_code": ""})
+        yield c
+
+
+@pytest.fixture()
+def unauthed_client(app):
+    with app.test_client() as c:
+        yield c
 
 
 @pytest.fixture()
