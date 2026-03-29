@@ -120,7 +120,7 @@ class User(UserMixin):
 _USER = User()
 
 
-LOGIN_DISABLED = os.environ.get("DISABLE_LOGIN", "").lower() in ("true", "yes")
+LOGIN_DISABLED = os.environ.get("DISABLE_LOGIN", "").lower() == "true"
 
 
 @login_manager.user_loader
