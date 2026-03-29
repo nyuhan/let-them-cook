@@ -17,7 +17,6 @@ from flask_login import (
     current_user,
 )
 from werkzeug.security import check_password_hash, generate_password_hash
-from urllib.parse import urlparse, urljoin
 import os
 import secrets
 import sqlite3
@@ -121,7 +120,7 @@ class User(UserMixin):
 _USER = User()
 
 
-LOGIN_DISABLED = os.environ.get("DISABLE_LOGIN", "").lower() in ("1", "true", "yes")
+LOGIN_DISABLED = os.environ.get("DISABLE_LOGIN", "").lower() in ("true", "yes")
 
 
 @login_manager.user_loader
@@ -135,19 +134,13 @@ def load_user(user_id):
 def unauthorized():
     if request.path.startswith("/api/"):
         return jsonify({"error": "unauthorized"}), 401
-    return redirect(url_for("login", next=request.path))
+    return redirect(url_for("login"))
 
 
 @app.before_request
 def auto_login_if_disabled():
     if LOGIN_DISABLED and not current_user.is_authenticated:
-        login_user(_USER, remember=True)
-
-
-def _is_safe_url(target):
-    ref = urlparse(request.host_url)
-    test = urlparse(urljoin(request.host_url, target))
-    return test.scheme in ("http", "https") and ref.netloc == test.netloc
+        login_user(_USER)
 
 
 def _file_hash(path):
@@ -214,13 +207,10 @@ def close_connection(exception):
 
 
 def _get_settings(db):
-    row = db.execute(
-        "SELECT secret_key, password_hash, totp_secret FROM settings WHERE id = 1"
-    ).fetchone()
-    return (
-        dict(row)
-        if row
-        else {"secret_key": "", "password_hash": "", "totp_secret": None}
+    return dict(
+        db.execute(
+            "SELECT secret_key, password_hash, totp_secret FROM settings WHERE id = 1"
+        ).fetchone()
     )
 
 
@@ -262,10 +252,8 @@ def login():
             totp_ok = True
 
         if password_ok and totp_ok:
-            login_user(_USER, remember=True)
-            next_page = request.args.get("next", "")
-            if next_page and _is_safe_url(next_page):
-                return redirect(next_page)
+            remember = request.form.get("remember") == "on"
+            login_user(_USER, remember=remember)
             return redirect(url_for("index"))
 
         error = "Invalid credentials."
