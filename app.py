@@ -56,7 +56,12 @@ def _init_db(conn):
             map_uri TEXT,
             directions_uri TEXT,
             dining_options TEXT CHECK(dining_options IN ('dine-in','delivery','both')) NOT NULL,
-            rating INTEGER CHECK(rating BETWEEN 1 AND 5) NOT NULL,
+            rating INTEGER CHECK(rating IS NULL OR (rating BETWEEN 1 AND 5)),
+            wishlisted BOOLEAN NOT NULL DEFAULT 0,
+            price_level INTEGER,
+            notes TEXT,
+            opening_hours TEXT,
+            types TEXT,
             created_at TEXT DEFAULT (CURRENT_TIMESTAMP)
         )"""
     )
@@ -73,6 +78,17 @@ def _init_db(conn):
         conn.execute("ALTER TABLE restaurants ADD COLUMN types TEXT")
     if "type" in columns and "dining_options" not in columns:
         conn.execute("ALTER TABLE restaurants RENAME COLUMN type TO dining_options")
+    if "wishlisted" not in columns:
+        # Make rating nullable: add new nullable column, copy data, swap names
+        conn.execute(
+            "ALTER TABLE restaurants ADD COLUMN rating_new INTEGER CHECK(rating_new IS NULL OR (rating_new BETWEEN 1 AND 5))"
+        )
+        conn.execute("UPDATE restaurants SET rating_new = rating")
+        conn.execute("ALTER TABLE restaurants DROP COLUMN rating")
+        conn.execute("ALTER TABLE restaurants RENAME COLUMN rating_new TO rating")
+        conn.execute(
+            "ALTER TABLE restaurants ADD COLUMN wishlisted BOOLEAN NOT NULL DEFAULT 0"
+        )
 
     conn.execute(
         """CREATE TABLE IF NOT EXISTS dishes (
@@ -199,6 +215,9 @@ def parse_restaurant_row(row):
         if cuisine is not None:
             cuisines.add(cuisine)
     d["cuisines"] = sorted(cuisines)
+
+    if "wishlisted" in d:
+        d["wishlisted"] = bool(d["wishlisted"])
 
     return d
 
@@ -402,24 +421,35 @@ def restaurants():
             opening_hours_json = json.dumps(opening_hours)
 
         types_json = json.dumps(types) if types is not None else None
+        wishlisted = bool(data.get("wishlisted", False))
 
-        try:
-            rating = int(rating)
-        except Exception:
-            return jsonify({"error": "rating must be an integer 1-5"}), 400
-        if (
-            not name
-            or dining_options not in ("dine-in", "delivery", "both")
-            or not (1 <= rating <= 5)
-        ):
+        if wishlisted == (rating is not None):
+            return (
+                jsonify(
+                    {"error": "exactly one of wishlisted (true) and rating must be set"}
+                ),
+                400,
+            )
+
+        if not wishlisted:
+            try:
+                rating = int(rating)
+            except (ValueError, TypeError):
+                return jsonify({"error": "rating must be an integer 1-5"}), 400
+            if not (1 <= rating <= 5):
+                return jsonify({"error": "rating must be between 1 and 5"}), 400
+
+        if not name or dining_options not in ("dine-in", "delivery", "both"):
             return jsonify({"error": "invalid data"}), 400
+
         db.execute(
-            "INSERT INTO restaurants (id ,name, dining_options, rating, address, city, map_uri, directions_uri, price_level, notes, opening_hours, types, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?, CURRENT_TIMESTAMP)",
+            "INSERT INTO restaurants (id, name, dining_options, rating, wishlisted, address, city, map_uri, directions_uri, price_level, notes, opening_hours, types, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?, CURRENT_TIMESTAMP)",
             (
                 id,
                 name,
                 dining_options,
                 rating,
+                wishlisted,
                 address,
                 city,
                 map_uri,
@@ -455,7 +485,7 @@ def restaurants():
         return jsonify(_get_restaurant(db, id)), 201
 
     cur = db.execute(
-        "SELECT id, name, dining_options, rating, address, city, map_uri, directions_uri, price_level, notes, opening_hours, types, created_at FROM restaurants ORDER BY created_at DESC"
+        "SELECT id, name, dining_options, rating, wishlisted, address, city, map_uri, directions_uri, price_level, notes, opening_hours, types, created_at FROM restaurants ORDER BY created_at DESC"
     )
     restaurants = []
     for r in cur.fetchall():
@@ -487,7 +517,7 @@ def restaurants():
 
 def _get_restaurant(db, rest_id):
     cur = db.execute(
-        "SELECT id, name, dining_options, rating, address, city, map_uri, directions_uri, price_level, notes, opening_hours, types, created_at FROM restaurants WHERE id = ?",
+        "SELECT id, name, dining_options, rating, wishlisted, address, city, map_uri, directions_uri, price_level, notes, opening_hours, types, created_at FROM restaurants WHERE id = ?",
         (rest_id,),
     )
     row = cur.fetchone()
@@ -539,39 +569,52 @@ def update_restaurant(rest_id):
     dining_options = data.get("diningOptions")
     rating = data.get("rating")
     notes = data.get("notes")
-
-    # Basic validations if we are updating these fields
-    if rating is not None:
-        try:
-            rating = int(rating)
-            if not (1 <= rating <= 5):
-                return jsonify({"error": "rating must be 1-5"}), 400
-        except:
-            return jsonify({"error": "rating must be integer"}), 400
+    wishlisted = data.get("wishlisted")  # None means not provided
 
     if dining_options is not None and dining_options not in (
         "dine-in",
         "delivery",
         "both",
     ):
-        return jsonify({"error": "invalid type"}), 400
+        return jsonify({"error": "invalid dining_options"}), 400
+
+    if rating is not None:
+        try:
+            rating = int(rating)
+            if not (1 <= rating <= 5):
+                return jsonify({"error": "rating must be 1-5"}), 400
+        except (ValueError, TypeError):
+            return jsonify({"error": "rating must be integer"}), 400
 
     cur = db.execute(
-        "SELECT id, dining_options, rating, notes, name, address, city, map_uri, directions_uri, price_level, opening_hours, types FROM restaurants WHERE id = ?",
+        "SELECT id, dining_options, rating, wishlisted, notes, name, address, city, map_uri, directions_uri, price_level, opening_hours, types FROM restaurants WHERE id = ?",
         (rest_id,),
     )
     row = cur.fetchone()
     if row is None:
         return jsonify({"error": "not found"}), 404
 
-    # Use existing values if not provided (though for refresh we likely provide all)
     current_data = dict(row)
+    current_wishlisted = bool(current_data["wishlisted"])
+
+    new_wishlisted = bool(wishlisted) if wishlisted is not None else current_wishlisted
+    new_rating = rating if rating is not None else current_data["rating"]
+
+    if new_wishlisted == (new_rating is not None):
+        return (
+            jsonify(
+                {"error": "exactly one of wishlisted (true) and rating must be set"}
+            ),
+            400,
+        )
+
+    if new_wishlisted and not current_wishlisted:
+        return jsonify({"error": "cannot mark a visited restaurant as wishlisted"}), 400
 
     new_name = name if name is not None else current_data["name"]
     new_type = (
         dining_options if dining_options is not None else current_data["dining_options"]
     )
-    new_rating = rating if rating is not None else current_data["rating"]
     new_notes = notes if notes is not None else current_data["notes"]
     new_address = address if address is not None else current_data["address"]
     new_city = city if city is not None else current_data["city"]
@@ -592,15 +635,16 @@ def update_restaurant(rest_id):
         new_types_json = json.dumps(types)
 
     db.execute(
-        """UPDATE restaurants SET 
-           name = ?, dining_options = ?, rating = ?, notes = ?, 
-           address = ?, city = ?, map_uri = ?, directions_uri = ?, 
+        """UPDATE restaurants SET
+           name = ?, dining_options = ?, rating = ?, wishlisted = ?, notes = ?,
+           address = ?, city = ?, map_uri = ?, directions_uri = ?,
            price_level = ?, opening_hours = ?, types = ?
            WHERE id = ?""",
         (
             new_name,
             new_type,
             new_rating,
+            new_wishlisted,
             new_notes,
             new_address,
             new_city,

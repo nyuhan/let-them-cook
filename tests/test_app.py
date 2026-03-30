@@ -65,6 +65,8 @@ class TestCreateRestaurant:
         body = resp.get_json()
         assert body["name"] == "Test Restaurant"
         assert body["id"] == data["id"]
+        assert body["wishlisted"] is False
+        assert body["rating"] == 4
         # Verify it's persisted
         listing = client.get("/api/restaurants").get_json()
         assert len(listing) == 1
@@ -184,6 +186,43 @@ class TestCreateRestaurant:
         assert len(listing[0]["dishes"]) == 1
         assert listing[0]["dishes"][0]["name"] == "Good"
 
+    def test_wishlisted_no_rating(self, client, seed_restaurant):
+        _, resp = seed_restaurant(wishlisted=True, rating=None)
+        assert resp.status_code == 201
+        body = resp.get_json()
+        assert body["wishlisted"] is True
+        assert body["rating"] is None
+
+    def test_wishlisted_explicit_false(self, client, seed_restaurant):
+        _, resp = seed_restaurant(wishlisted=False, rating=3)
+        assert resp.status_code == 201
+        body = resp.get_json()
+        assert body["wishlisted"] is False
+        assert body["rating"] == 3
+
+    def test_wishlisted_and_rating_both_set_rejected(self, client, seed_restaurant):
+        _, resp = seed_restaurant(wishlisted=True, rating=4)
+        assert resp.status_code == 400
+        assert "exactly one" in resp.get_json()["error"]
+
+    def test_no_rating_and_not_wishlisted_rejected(self, client, seed_restaurant):
+        # Explicit False + no rating
+        _, resp = seed_restaurant(wishlisted=False, rating=None)
+        assert resp.status_code == 400
+        assert "exactly one" in resp.get_json()["error"]
+        # Neither field provided (wishlisted defaults False)
+        resp2 = client.post(
+            "/api/restaurants",
+            json={
+                "id": "x",
+                "name": "R",
+                "diningOptions": "dine-in",
+                "address": "a",
+                "city": "c",
+            },
+        )
+        assert resp2.status_code == 400
+
 
 # ---------------------------------------------------------------------------
 # GET /api/restaurants (list)
@@ -206,6 +245,7 @@ class TestListRestaurants:
         assert "createdAt" in r
         assert "openingHours" in r
         assert "types" in r
+        assert "wishlisted" in r
 
     def test_includes_dishes(self, client, seed_restaurant):
         seed_restaurant(dishes=[{"name": "Tacos", "rating": 1}])
@@ -232,6 +272,15 @@ class TestListRestaurants:
         assert listing[0]["name"] == "Second"
         assert listing[1]["name"] == "First"
 
+    def test_wishlisted_in_list(self, client, seed_restaurant):
+        seed_restaurant(id="r1")
+        seed_restaurant(id="r2", wishlisted=True, rating=None)
+        listing = client.get("/api/restaurants").get_json()
+        by_id = {r["id"]: r for r in listing}
+        assert by_id["r1"]["wishlisted"] is False
+        assert by_id["r2"]["wishlisted"] is True
+        assert by_id["r2"]["rating"] is None
+
 
 # ---------------------------------------------------------------------------
 # GET /api/restaurants/<id>
@@ -246,6 +295,7 @@ class TestGetRestaurant:
         data = resp.get_json()
         assert data["id"] == "r1"
         assert "mapUri" in data  # camelCase
+        assert data["wishlisted"] is False
 
     def test_opening_hours_deserialized(self, client, seed_restaurant):
         hours = {"weekdayDescriptions": ["Mon: 9–5"], "periods": []}
@@ -262,6 +312,12 @@ class TestGetRestaurant:
     def test_not_found(self, client):
         resp = client.get("/api/restaurants/nonexistent")
         assert resp.status_code == 404
+
+    def test_wishlisted_restaurant(self, client, seed_restaurant):
+        seed_restaurant(id="r1", wishlisted=True, rating=None)
+        data = client.get("/api/restaurants/r1").get_json()
+        assert data["wishlisted"] is True
+        assert data["rating"] is None
 
 
 # ---------------------------------------------------------------------------
@@ -483,6 +539,32 @@ class TestUpdateRestaurant:
         assert dishes[1]["name"] == "NewDish"
         assert dishes[1]["rating"] == 1
         assert dishes[1]["notes"] is None
+
+    def test_promote_wishlisted_to_visited(self, client, seed_restaurant):
+        seed_restaurant(id="r1", wishlisted=True, rating=None)
+        resp = client.put(
+            "/api/restaurants/r1", json={"wishlisted": False, "rating": 4}
+        )
+        assert resp.status_code == 200
+        r = resp.get_json()
+        assert r["wishlisted"] is False
+        assert r["rating"] == 4
+        # Also reflected in the list
+        listing = client.get("/api/restaurants").get_json()
+        r_list = next(x for x in listing if x["id"] == "r1")
+        assert r_list["wishlisted"] is False
+        assert r_list["rating"] == 4
+
+    def test_cannot_demote_visited_to_wishlisted(self, client, seed_restaurant):
+        seed_restaurant(id="r1", rating=4)
+        resp = client.put("/api/restaurants/r1", json={"wishlisted": True})
+        assert resp.status_code == 400
+        assert "wishlisted" in resp.get_json()["error"]
+
+    def test_cannot_add_rating_to_wishlisted(self, client, seed_restaurant):
+        seed_restaurant(id="r1", wishlisted=True, rating=None)
+        resp = client.put("/api/restaurants/r1", json={"rating": 4})
+        assert resp.status_code == 400
 
 
 # ---------------------------------------------------------------------------
