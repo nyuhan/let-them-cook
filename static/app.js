@@ -1,5 +1,6 @@
 let restaurantsCache = [];
 
+let activeWishlistFilter = false;
 let selectedDiningOptions = 'both';
 let allowedTypes = new Set();
 
@@ -294,16 +295,21 @@ function renderRestaurants(restaurants) {
   const fab = document.getElementById('add-restaurant-btn-fab');
   container.innerHTML = '';
   if (!Array.isArray(restaurants) || restaurants.length === 0) {
-    fab.classList.add('hidden');
-    if (restaurantsCache.length === 0) {
-      // Database is empty
+    const viewCount = restaurantsCache.filter(r => r.wishlisted === activeWishlistFilter).length;
+    if (viewCount === 0) {
+      fab.classList.add('hidden');
+      const subtitle = restaurantsCache.length === 0
+        ? 'Get started by adding your first favorite spot.'
+        : activeWishlistFilter
+          ? 'Save restaurants you want to try by marking them as "Want to go".'
+          : 'Add a restaurant and rate it to track the places you\'ve been.';
       container.innerHTML = `
             <div class="col-span-full bg-white p-12 rounded-lg shadow-sm border border-gray-100 text-center" style="column-span: all;">
                  <svg class="mx-auto h-12 w-12 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                 </svg>
-                <h3 class="mt-2 text-sm font-medium text-gray-900">No restaurants yet</h3>
-                <p class="mt-1 text-sm text-gray-500">Get started by adding your first favorite spot.</p>
+                <h3 class="mt-2 text-sm font-medium text-gray-900">Nothing here yet</h3>
+                <p class="mt-1 text-sm text-gray-500">${subtitle}</p>
                 <div class="mt-6">
                     <button id="empty-state-add-btn" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
                         Add Restaurant
@@ -370,7 +376,7 @@ function populateCityFilter() {
   const container = document.getElementById('city-filter-options');
   if (!container) return;
 
-  const cities = [...new Set(restaurantsCache.map(r => r.city).filter(Boolean))].sort();
+  const cities = [...new Set(restaurantsCache.filter(r => r.wishlisted === activeWishlistFilter).map(r => r.city).filter(Boolean))].sort();
 
   const firstBtn = container.firstElementChild;
   container.innerHTML = '';
@@ -390,7 +396,7 @@ function populateCuisineFilter() {
   const container = document.getElementById('cuisine-filter-options');
   if (!container) return;
 
-  const cuisines = [...new Set(restaurantsCache.flatMap(r => r.cuisines || []).filter(Boolean))].sort();
+  const cuisines = [...new Set(restaurantsCache.filter(r => r.wishlisted === activeWishlistFilter).flatMap(r => r.cuisines || []).filter(Boolean))].sort();
 
   const firstBtn = container.firstElementChild;
   container.innerHTML = '';
@@ -490,9 +496,42 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Clear filters button at the top
   const topClearBtn = document.getElementById('top-clear-filters-btn');
-  if (topClearBtn) {
-    topClearBtn.addEventListener('click', clearFilters);
+  if (topClearBtn) topClearBtn.addEventListener('click', clearFilters);
+
+  // Wishlist pills
+  const pillHaveBeen = document.getElementById('pill-have-been');
+  const pillWantToGo = document.getElementById('pill-want-to-go');
+
+  function updatePills() {
+    if (!pillHaveBeen || !pillWantToGo) return;
+    if (activeWishlistFilter) {
+      pillHaveBeen.className = 'px-4 py-1.5 rounded-full text-sm font-medium transition-all text-gray-500 hover:text-gray-700';
+      pillWantToGo.className = 'px-4 py-1.5 rounded-full text-sm font-medium transition-all bg-indigo-600 text-white';
+    } else {
+      pillHaveBeen.className = 'px-4 py-1.5 rounded-full text-sm font-medium transition-all bg-indigo-600 text-white';
+      pillWantToGo.className = 'px-4 py-1.5 rounded-full text-sm font-medium transition-all text-gray-500 hover:text-gray-700';
+    }
   }
+
+  if (pillHaveBeen) {
+    pillHaveBeen.addEventListener('click', () => {
+      activeWishlistFilter = false;
+      updatePills();
+      populateCityFilter();
+      populateCuisineFilter();
+      filterAndRender();
+    });
+  }
+  if (pillWantToGo) {
+    pillWantToGo.addEventListener('click', () => {
+      activeWishlistFilter = true;
+      updatePills();
+      populateCityFilter();
+      populateCuisineFilter();
+      filterAndRender();
+    });
+  }
+  updatePills();
 
   // Refresh Restaurant Button
   const refreshBtn = document.getElementById('refresh-restaurant-btn');
@@ -589,6 +628,7 @@ function filterAndRender() {
   if (topClearBtn) topClearBtn.classList.toggle('hidden', !hasActiveFilters);
 
   const filtered = restaurantsCache.filter(r => {
+    if (r.wishlisted !== activeWishlistFilter) return false;
     if (searchInput && !(r.name || '').toLowerCase().includes(searchInput)) return false;
     if (diningOptions && r.diningOptions !== diningOptions && r.diningOptions !== 'both') return false;
     if (city && r.city !== city) return false;
@@ -604,8 +644,6 @@ function filterAndRender() {
 
     return true;
   });
-  const countEl = document.getElementById('results-count');
-  if (countEl) countEl.textContent = `${filtered.length} restaurant${filtered.length !== 1 ? 's' : ''}`;
   renderRestaurants(sortRestaurants(filtered));
 }
 
@@ -979,7 +1017,7 @@ function enterEditMode(r) {
   document.body.classList.add('overflow-hidden');
 }
 
-function exitEditMode() {
+function closeModal() {
   const form = document.getElementById('restaurant-form');
   if (form) form.reset();
 
@@ -1002,7 +1040,9 @@ function exitEditMode() {
   if (modal) modal.classList.add('hidden');
   document.body.classList.remove('overflow-hidden');
   const fab = document.getElementById('add-restaurant-btn-fab');
-  fab.classList.remove('hidden');
+  if (restaurantsCache.filter(r => r.wishlisted === activeWishlistFilter).length > 0) {
+    fab.classList.remove('hidden');
+  }
   const title = document.getElementById('modal-title');
   if (title) title.textContent = 'Add Restaurant';
   document.getElementById('edit-id').value = '';
@@ -1155,7 +1195,7 @@ document.addEventListener('DOMContentLoaded', () => {
           } else {
             restaurantsCache.unshift(saved);
           }
-          exitEditMode();
+          closeModal();
           populateCityFilter();
           populateCuisineFilter();
           filterAndRender();
@@ -1184,15 +1224,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // Modal handling
   const fab = document.getElementById('add-restaurant-btn-fab');
   const openModal = () => {
-    exitEditMode(); // Reset form for adding
     modal.classList.remove('hidden');
     document.body.classList.add('overflow-hidden');
     fab.classList.add('hidden');
-  };
-  const closeModal = () => {
-    modal.classList.add('hidden');
-    document.body.classList.remove('overflow-hidden');
-    fab.classList.remove('hidden');
   };
   addBtn.addEventListener('click', openModal);
   fab.addEventListener('click', openModal);

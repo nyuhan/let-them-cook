@@ -272,9 +272,20 @@
 
   <!-- Results bar -->
   <div class="flex items-center justify-between mb-4 min-h-[2rem]">
-    <p id="results-count" class="text-sm text-gray-500"></p>
-    <div class="flex items-center gap-2">
-      <!-- Sort Dropdown -->
+    <div class="flex items-center gap-3">
+      <!-- Wishlist pills -->
+      <div class="flex items-center gap-1">
+        <button id="pill-have-been" type="button"
+          class="px-4 py-1.5 rounded-full text-sm font-medium transition-all bg-indigo-600 text-white">
+          Have been
+        </button>
+        <button id="pill-want-to-go" type="button"
+          class="px-4 py-1.5 rounded-full text-sm font-medium transition-all text-gray-500 hover:text-gray-700">
+          Want to go
+        </button>
+      </div>
+    </div>
+    <div class="flex items-center gap-3">
       <div class="sort-dropdown relative inline-block text-left">
         <input type="hidden" id="current-sort" value="">
         <button type="button"
@@ -285,7 +296,7 @@
             <path
               d="M3 3a1 1 0 000 2h11a1 1 0 100-2H3zM3 7a1 1 0 000 2h7a1 1 0 100-2H3zM3 11a1 1 0 100 2h4a1 1 0 100-2H3zM15 8a1 1 0 10-2 0v5.586l-1.293-1.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L15 13.586V8z" />
           </svg>
-          <span>Sort: <span class="sort-label">Recently Added</span></span>
+          <span class="sort-label">Recently Added</span>
           <svg class="-mr-1 ml-1.5 h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"
             aria-hidden="true">
             <path fill-rule="evenodd"
@@ -452,8 +463,8 @@
       </div>
 
       <div class="pt-4 flex items-center gap-3">
-        <button id="submit-btn" type="submit"
-          class="flex-1 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700">Add
+        <button id="submit-btn" type="submit" disabled
+          class="flex-1 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 opacity-50 cursor-not-allowed">Add
           restaurant</button>
       </div>
       <input type="hidden" id="edit-id" />

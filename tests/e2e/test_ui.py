@@ -73,7 +73,7 @@ class TestEmptyState:
     def test_empty_state_renders(self, live_server, page):
         _goto(page, live_server)
 
-        assert page.locator("text=No restaurants yet").is_visible()
+        assert page.locator("text=Nothing here yet").is_visible()
         assert page.locator(
             "#empty-state-add-btn, button:has-text('Add Restaurant')"
         ).first.is_visible()
@@ -644,7 +644,7 @@ class TestGoogleMaps:
         _goto(page, live_server)
 
         # --- Empty state ---
-        assert page.locator("text=No restaurants yet").is_visible()
+        assert page.locator("text=Nothing here yet").is_visible()
 
         # Click empty-state Add Restaurant button
         page.locator("button:has-text('Add Restaurant')").first.click()
@@ -871,7 +871,7 @@ class TestFAB:
         page.set_viewport_size(self.MOBILE)
         _goto(page, live_server)
 
-        assert page.locator("text=No restaurants yet").is_visible()
+        assert page.locator("text=Nothing here yet").is_visible()
         assert page.locator("#add-restaurant-btn-fab").is_hidden()
 
     def test_fab_visible_with_restaurants(self, live_server, seed, page):
@@ -954,6 +954,23 @@ class TestFAB:
         page.locator("#submit-btn").click()
         page.locator("#restaurant-modal").wait_for(state="hidden")
         assert fab.is_visible()
+
+    def test_fab_hidden_when_switching_to_empty_pill_view(
+        self, live_server, seed, page
+    ):
+        """FAB stays hidden when switching to a pill view that has no restaurants."""
+        seed(id="fab_r7", name="FAB Have Been Place")
+        page.set_viewport_size(self.MOBILE)
+        _goto(page, live_server)
+
+        # FAB is visible on "Have been" (has one restaurant)
+        fab = page.locator("#add-restaurant-btn-fab")
+        assert fab.is_visible()
+
+        # Switch to "Want to go" — no wishlisted restaurants exist
+        page.locator("#pill-want-to-go").click()
+        assert page.locator("text=Nothing here yet").is_visible()
+        assert fab.is_hidden()
 
 
 # ---------------------------------------------------------------------------
