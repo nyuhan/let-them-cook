@@ -447,156 +447,7 @@ function clearFilters() {
   filterAndRender();
 }
 
-// Initial Setup for Dropdowns
-document.addEventListener('DOMContentLoaded', () => {
-  // Dropdown Toggles using Event Delegation
-  document.addEventListener('click', (e) => {
-    const trigger = e.target.closest('.dropdown-trigger');
-    if (trigger) {
-      const currentMenu = trigger.nextElementSibling;
-      // Close others
-      document.querySelectorAll('.dropdown-menu').forEach(menu => {
-        if (menu !== currentMenu) menu.classList.add('hidden');
-      });
-      currentMenu.classList.toggle('hidden');
-      return;
-    }
 
-    // Option Click
-    const optionBtn = e.target.closest('.dropdown-menu button');
-    if (optionBtn) {
-      const menu = optionBtn.closest('.dropdown-menu');
-      const container = menu.parentElement;
-      const trigger = container.querySelector('.dropdown-trigger');
-      const newLabel = optionBtn.dataset.label || optionBtn.textContent;
-      const labelSpan = trigger.querySelector('.sort-label, .filter-label');
-      if (labelSpan) labelSpan.innerHTML = newLabel;
-      const input = container.querySelector('input[type="hidden"]');
-      if (input) input.value = optionBtn.dataset.value;
-      const isActive = optionBtn.dataset.value !== '';
-      setTriggerActive(trigger, isActive);
-
-      menu.classList.add('hidden');
-      filterAndRender();
-      return;
-    }
-
-    // Click Outside
-    if (!e.target.closest('.filter-dropdown') && !e.target.closest('.sort-dropdown')) {
-      document.querySelectorAll('.dropdown-menu').forEach(menu => menu.classList.add('hidden'));
-    }
-  });
-
-  // Close dropdowns on Escape
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') {
-      document.querySelectorAll('.dropdown-menu').forEach(menu => menu.classList.add('hidden'));
-    }
-  });
-
-  // Clear filters button at the top
-  const topClearBtn = document.getElementById('top-clear-filters-btn');
-  if (topClearBtn) topClearBtn.addEventListener('click', clearFilters);
-
-  // Wishlist pills
-  const pillVisited = document.getElementById('pill-visited');
-  const pillWantToGo = document.getElementById('pill-want-to-go');
-
-  function updatePills() {
-    if (!pillVisited || !pillWantToGo) return;
-    if (activeWishlistFilter) {
-      pillVisited.className = 'px-4 py-1.5 rounded-full text-sm font-medium transition-all text-gray-500 hover:text-gray-700';
-      pillWantToGo.className = 'px-4 py-1.5 rounded-full text-sm font-medium transition-all bg-indigo-600 text-white';
-    } else {
-      pillVisited.className = 'px-4 py-1.5 rounded-full text-sm font-medium transition-all bg-indigo-600 text-white';
-      pillWantToGo.className = 'px-4 py-1.5 rounded-full text-sm font-medium transition-all text-gray-500 hover:text-gray-700';
-    }
-  }
-
-  if (pillVisited) {
-    pillVisited.addEventListener('click', () => {
-      activeWishlistFilter = false;
-      updatePills();
-      populateCityFilter();
-      populateCuisineFilter();
-      filterAndRender();
-    });
-  }
-  if (pillWantToGo) {
-    pillWantToGo.addEventListener('click', () => {
-      activeWishlistFilter = true;
-      updatePills();
-      populateCityFilter();
-      populateCuisineFilter();
-      filterAndRender();
-    });
-  }
-  updatePills();
-
-  // Refresh Restaurant Button
-  const refreshBtn = document.getElementById('refresh-restaurant-btn');
-  if (refreshBtn) {
-    refreshBtn.addEventListener('click', async (e) => {
-      e.preventDefault();
-
-      const editId = document.getElementById('edit-id').value;
-
-      if (!editId) return;
-
-      const icon = refreshBtn.querySelector('svg');
-      icon.classList.add('animate-spin');
-
-      try {
-        // Fetch fresh data
-        const place = new google.maps.places.Place({ id: editId });
-        await place.fetchFields({
-          fields: ['displayName', 'formattedAddress', 'location', 'addressComponents', 'googleMapsLinks', 'googleMapsURI', 'types', 'priceLevel', 'regularOpeningHours', 'utcOffsetMinutes'],
-        });
-
-        const name = place.displayName;
-        const address = place.formattedAddress;
-        const mapUri = place.googleMapsLinks?.placeURI || place.googleMapsURI;
-        const directionsUri = place.googleMapsLinks?.directionsURI;
-
-        const city = getCity(place);
-
-        const priceLevel = getPriceLevel(place);
-
-        const openingHours = getOpeningHours(place);
-
-        const types = place.types || [];
-
-        // Send update to backend
-        const res = await fetch(`/api/restaurants/${editId}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name, address, city, mapUri, directionsUri, priceLevel, openingHours, types
-          })
-        });
-
-        if (res.ok) {
-          const updated = await res.json();
-          const idx = restaurantsCache.findIndex(r => r.id === editId);
-          if (idx !== -1) restaurantsCache[idx] = updated;
-          populateCityFilter();
-          populateCuisineFilter();
-          filterAndRender();
-          enterEditMode(updated);
-          showMessage('Refreshed Google Maps data successfully');
-        } else {
-          showMessage('Failed to refresh Google Maps data', true);
-        }
-
-      } catch (err) {
-        console.error('Refresh failed', err);
-        showMessage('Refresh failed: ' + err.message, true);
-      } finally {
-        icon.classList.remove('animate-spin');
-      }
-    });
-  }
-});
 
 function sortRestaurants(restaurants) {
   const currentSort = document.getElementById('current-sort')?.value || '';
@@ -1139,204 +990,6 @@ function closeModal() {
   resetDishForm();
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  const modal = document.getElementById('restaurant-modal');
-  const addBtn = document.getElementById('add-restaurant-btn');
-  const closeBtn = document.getElementById('close-modal-btn');
-  const typeButtonsContainer = document.getElementById('dining-options-buttons');
-  const ratingStarsContainer = document.getElementById('rating-stars');
-
-  // Type selection
-  // selectedDiningOptions is global
-  if (typeButtonsContainer) {
-    typeButtonsContainer.addEventListener('click', (e) => {
-      const btn = e.target.closest('.dining-options-button');
-      if (!btn) return;
-      selectedDiningOptions = btn.dataset.value;
-      updateTypeButtons();
-    });
-  }
-
-  function updateTypeButtons() {
-    typeButtonsContainer.querySelectorAll('.dining-options-button').forEach(btn => {
-      if (btn.dataset.value === selectedDiningOptions) {
-        btn.classList.add('bg-white', 'shadow-sm', 'ring-1', 'ring-inset', 'ring-gray-300');
-        btn.classList.remove('hover:bg-gray-50', 'bg-indigo-600', 'text-white');
-      } else {
-        btn.classList.remove('bg-white', 'shadow-sm', 'ring-1', 'ring-inset', 'ring-gray-300', 'bg-indigo-600', 'text-white');
-        btn.classList.add('hover:bg-gray-50');
-      }
-    });
-  }
-
-  // Rating selection
-  if (ratingStarsContainer) {
-    ratingStarsContainer.addEventListener('click', (e) => {
-      const star = e.target.closest('svg');
-      if (!star) return;
-      const rating = Array.from(ratingStarsContainer.children).indexOf(star) + 1;
-      ratingStarsContainer.dataset.rating = rating;
-      updateRatingStars();
-    });
-  }
-
-  function updateRatingStars() {
-    applyStarRating(ratingStarsContainer);
-  }
-
-  const form = document.getElementById('restaurant-form');
-  if (form) {
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-
-      // Get data from the global variable set by autocomplete
-      const newPlaceData = window.selectedPlaceData || {};
-      const name = newPlaceData.name;
-      const address = newPlaceData.address;
-      const city = newPlaceData.city;
-      const id = newPlaceData.id;
-      const mapUri = newPlaceData.mapUri;
-      const directionsUri = newPlaceData.directionsUri;
-      const priceLevel = newPlaceData.priceLevel;
-      const openingHours = newPlaceData.openingHours;
-      const types = newPlaceData.types;
-      const editId = document.getElementById('edit-id').value;
-      const notes = document.getElementById('restaurant-notes')?.value || '';
-      const diningOptions = selectedDiningOptions;
-      const rating = ratingStarsContainer.dataset.rating;
-      const dishes = currentDishes;
-      try {
-        let res;
-        if (editId) {
-          const payload = { diningOptions, notes, dishes };
-          if (rating !== '0') payload.rating = rating;
-          res = await fetch(`/api/restaurants/${editId}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-          });
-        } else {
-          const payload = { id, name, address, city, diningOptions, mapUri, directionsUri, priceLevel, notes, dishes, openingHours, types, wishlisted: formWishlisted };
-          if (!formWishlisted) payload.rating = rating;
-          res = await fetch('/api/restaurants', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-          });
-        }
-        if (!res.ok) {
-          const err = await res.json();
-          showMessage(err.error || 'Failed to save', true);
-        } else {
-          const saved = await res.json();
-          if (editId) {
-            const idx = restaurantsCache.findIndex(r => r.id === editId);
-            if (idx !== -1) restaurantsCache[idx] = saved;
-          } else {
-            restaurantsCache.unshift(saved);
-          }
-          closeModal();
-          populateCityFilter();
-          populateCuisineFilter();
-          filterAndRender();
-        }
-      } catch (err) {
-        showMessage('Network error', true);
-      }
-    });
-  } else {
-    console.warn('restaurant-form not found');
-  }
-  // wire up filters
-  const searchInput = document.getElementById('search-input');
-  if (searchInput) searchInput.addEventListener('input', filterAndRender);
-
-  // Re-render on resize so column count stays correct
-  let lastColCount = window.innerWidth >= 1024 ? 3 : window.innerWidth >= 640 ? 2 : 1;
-  window.addEventListener('resize', () => {
-    const newColCount = window.innerWidth >= 1024 ? 3 : window.innerWidth >= 640 ? 2 : 1;
-    if (newColCount !== lastColCount) {
-      lastColCount = newColCount;
-      filterAndRender();
-    }
-  });
-
-  // Modal handling
-  const fab = document.getElementById('add-restaurant-btn-fab');
-  const openModal = () => {
-    modal.classList.remove('hidden');
-    document.body.classList.add('overflow-hidden');
-    fab.classList.add('hidden');
-    document.getElementById('modal-mark-visited-section')?.classList.add('hidden');
-    document.getElementById('rating-section')?.classList.remove('hidden');
-    document.getElementById('wishlist-toggle-section')?.classList.remove('hidden');
-    formWishlisted = activeWishlistFilter;
-    updateFormWishlistUI();
-  };
-  addBtn.addEventListener('click', openModal);
-  fab.addEventListener('click', openModal);
-  closeBtn.addEventListener('click', closeModal);
-  // Close modal on outside click
-  window.addEventListener('click', (e) => {
-    if (e.target === modal) closeModal();
-  });
-
-  loadRestaurants();
-
-  // Dishes UI Logic
-  const addDishBtn = document.getElementById('add-dish-btn');
-  const addDishForm = document.getElementById('add-dish-form');
-  const cancelDishBtn = document.getElementById('cancel-dish-btn');
-  const saveDishBtn = document.getElementById('save-dish-btn');
-  const dishRatingUp = document.getElementById('dish-rating-up');
-  const dishRatingDown = document.getElementById('dish-rating-down');
-
-  if (addDishBtn) {
-    addDishBtn.addEventListener('click', () => {
-      resetDishForm();
-      addDishForm.classList.remove('hidden');
-      addDishBtn.classList.add('hidden');
-      document.getElementById('new-dish-name').focus();
-    });
-  }
-
-  if (cancelDishBtn) {
-    cancelDishBtn.addEventListener('click', () => {
-      resetDishForm();
-    });
-  }
-
-  if (saveDishBtn) {
-    saveDishBtn.addEventListener('click', () => {
-      const nameInput = document.getElementById('new-dish-name');
-      const notesInput = document.getElementById('new-dish-notes');
-
-      const name = nameInput.value.trim();
-      const notes = notesInput.value.trim();
-      const ratingRadio = document.querySelector(`input[name="new-dish-rating"]:checked`);
-      const rating = ratingRadio ? parseInt(ratingRadio.value) : 1;
-
-      if (!name) {
-        nameInput.focus();
-        return;
-      }
-
-      // Add new dish
-      currentDishes.push({ name, rating, notes });
-
-      renderDishesList();
-      resetDishForm();
-    });
-  }
-
-  if (dishRatingUp) {
-    dishRatingUp.addEventListener('click', () => updateDishRatingUI(1));
-  }
-  if (dishRatingDown) {
-    dishRatingDown.addEventListener('click', () => updateDishRatingUI(0));
-  }
-});
-
 function updateDishRatingUI(rating) {
   newDishRating = rating;
   const upBtn = document.getElementById('dish-rating-up');
@@ -1547,9 +1200,351 @@ function handleDelete(r) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  // ... previous listeners ...
+  const modal = document.getElementById('restaurant-modal');
+  const addBtn = document.getElementById('add-restaurant-btn');
+  const closeBtn = document.getElementById('close-modal-btn');
+  const typeButtonsContainer = document.getElementById('dining-options-buttons');
+  const ratingStarsContainer = document.getElementById('rating-stars');
 
-  // Existing Delete Modal Listeners
+  // Type selection
+  // selectedDiningOptions is global
+  if (typeButtonsContainer) {
+    typeButtonsContainer.addEventListener('click', (e) => {
+      const btn = e.target.closest('.dining-options-button');
+      if (!btn) return;
+      selectedDiningOptions = btn.dataset.value;
+      updateTypeButtons();
+    });
+  }
+
+  function updateTypeButtons() {
+    typeButtonsContainer.querySelectorAll('.dining-options-button').forEach(btn => {
+      if (btn.dataset.value === selectedDiningOptions) {
+        btn.classList.add('bg-white', 'shadow-sm', 'ring-1', 'ring-inset', 'ring-gray-300');
+        btn.classList.remove('hover:bg-gray-50', 'bg-indigo-600', 'text-white');
+      } else {
+        btn.classList.remove('bg-white', 'shadow-sm', 'ring-1', 'ring-inset', 'ring-gray-300', 'bg-indigo-600', 'text-white');
+        btn.classList.add('hover:bg-gray-50');
+      }
+    });
+  }
+
+  // Rating selection
+  if (ratingStarsContainer) {
+    ratingStarsContainer.addEventListener('click', (e) => {
+      const star = e.target.closest('svg');
+      if (!star) return;
+      const rating = Array.from(ratingStarsContainer.children).indexOf(star) + 1;
+      ratingStarsContainer.dataset.rating = rating;
+      updateRatingStars();
+    });
+  }
+
+  function updateRatingStars() {
+    applyStarRating(ratingStarsContainer);
+  }
+
+  const form = document.getElementById('restaurant-form');
+  if (form) {
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      // Get data from the global variable set by autocomplete
+      const newPlaceData = window.selectedPlaceData || {};
+      const name = newPlaceData.name;
+      const address = newPlaceData.address;
+      const city = newPlaceData.city;
+      const id = newPlaceData.id;
+      const mapUri = newPlaceData.mapUri;
+      const directionsUri = newPlaceData.directionsUri;
+      const priceLevel = newPlaceData.priceLevel;
+      const openingHours = newPlaceData.openingHours;
+      const types = newPlaceData.types;
+      const editId = document.getElementById('edit-id').value;
+      const notes = document.getElementById('restaurant-notes')?.value || '';
+      const diningOptions = selectedDiningOptions;
+      const rating = ratingStarsContainer.dataset.rating;
+      const dishes = currentDishes;
+      try {
+        let res;
+        if (editId) {
+          const payload = { diningOptions, notes, dishes };
+          if (rating !== '0') payload.rating = rating;
+          res = await fetch(`/api/restaurants/${editId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+        } else {
+          const payload = { id, name, address, city, diningOptions, mapUri, directionsUri, priceLevel, notes, dishes, openingHours, types, wishlisted: formWishlisted };
+          if (!formWishlisted) payload.rating = rating;
+          res = await fetch('/api/restaurants', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+        }
+        if (!res.ok) {
+          const err = await res.json();
+          showMessage(err.error || 'Failed to save', true);
+        } else {
+          const saved = await res.json();
+          if (editId) {
+            const idx = restaurantsCache.findIndex(r => r.id === editId);
+            if (idx !== -1) restaurantsCache[idx] = saved;
+          } else {
+            restaurantsCache.unshift(saved);
+          }
+          closeModal();
+          populateCityFilter();
+          populateCuisineFilter();
+          filterAndRender();
+        }
+      } catch (err) {
+        showMessage('Network error', true);
+      }
+    });
+  } else {
+    console.warn('restaurant-form not found');
+  }
+  // wire up filters
+  const searchInput = document.getElementById('search-input');
+  if (searchInput) searchInput.addEventListener('input', filterAndRender);
+
+  // Re-render on resize so column count stays correct
+  let lastColCount = window.innerWidth >= 1024 ? 3 : window.innerWidth >= 640 ? 2 : 1;
+  window.addEventListener('resize', () => {
+    const newColCount = window.innerWidth >= 1024 ? 3 : window.innerWidth >= 640 ? 2 : 1;
+    if (newColCount !== lastColCount) {
+      lastColCount = newColCount;
+      filterAndRender();
+    }
+  });
+
+  // Modal handling
+  const fab = document.getElementById('add-restaurant-btn-fab');
+  const openModal = () => {
+    modal.classList.remove('hidden');
+    document.body.classList.add('overflow-hidden');
+    fab.classList.add('hidden');
+    document.getElementById('modal-mark-visited-section')?.classList.add('hidden');
+    document.getElementById('rating-section')?.classList.remove('hidden');
+    document.getElementById('wishlist-toggle-section')?.classList.remove('hidden');
+    formWishlisted = activeWishlistFilter;
+    updateFormWishlistUI();
+  };
+  addBtn.addEventListener('click', openModal);
+  fab.addEventListener('click', openModal);
+  closeBtn.addEventListener('click', closeModal);
+  // Close modal on outside click
+  window.addEventListener('click', (e) => {
+    if (e.target === modal) closeModal();
+  });
+
+  loadRestaurants();
+
+  // Dishes UI Logic
+  const addDishBtn = document.getElementById('add-dish-btn');
+  const addDishForm = document.getElementById('add-dish-form');
+  const cancelDishBtn = document.getElementById('cancel-dish-btn');
+  const saveDishBtn = document.getElementById('save-dish-btn');
+  const dishRatingUp = document.getElementById('dish-rating-up');
+  const dishRatingDown = document.getElementById('dish-rating-down');
+
+  if (addDishBtn) {
+    addDishBtn.addEventListener('click', () => {
+      resetDishForm();
+      addDishForm.classList.remove('hidden');
+      addDishBtn.classList.add('hidden');
+      document.getElementById('new-dish-name').focus();
+    });
+  }
+
+  if (cancelDishBtn) {
+    cancelDishBtn.addEventListener('click', () => {
+      resetDishForm();
+    });
+  }
+
+  if (saveDishBtn) {
+    saveDishBtn.addEventListener('click', () => {
+      const nameInput = document.getElementById('new-dish-name');
+      const notesInput = document.getElementById('new-dish-notes');
+
+      const name = nameInput.value.trim();
+      const notes = notesInput.value.trim();
+      const ratingRadio = document.querySelector(`input[name="new-dish-rating"]:checked`);
+      const rating = ratingRadio ? parseInt(ratingRadio.value) : 1;
+
+      if (!name) {
+        nameInput.focus();
+        return;
+      }
+
+      // Add new dish
+      currentDishes.push({ name, rating, notes });
+
+      renderDishesList();
+      resetDishForm();
+    });
+  }
+
+  if (dishRatingUp) {
+    dishRatingUp.addEventListener('click', () => updateDishRatingUI(1));
+  }
+  if (dishRatingDown) {
+    dishRatingDown.addEventListener('click', () => updateDishRatingUI(0));
+  }
+
+  // Dropdown Toggles using Event Delegation
+  document.addEventListener('click', (e) => {
+    const trigger = e.target.closest('.dropdown-trigger');
+    if (trigger) {
+      const currentMenu = trigger.nextElementSibling;
+      // Close others
+      document.querySelectorAll('.dropdown-menu').forEach(menu => {
+        if (menu !== currentMenu) menu.classList.add('hidden');
+      });
+      currentMenu.classList.toggle('hidden');
+      return;
+    }
+
+    // Option Click
+    const optionBtn = e.target.closest('.dropdown-menu button');
+    if (optionBtn) {
+      const menu = optionBtn.closest('.dropdown-menu');
+      const container = menu.parentElement;
+      const trigger = container.querySelector('.dropdown-trigger');
+      const newLabel = optionBtn.dataset.label || optionBtn.textContent;
+      const labelSpan = trigger.querySelector('.sort-label, .filter-label');
+      if (labelSpan) labelSpan.innerHTML = newLabel;
+      const input = container.querySelector('input[type="hidden"]');
+      if (input) input.value = optionBtn.dataset.value;
+      const isActive = optionBtn.dataset.value !== '';
+      setTriggerActive(trigger, isActive);
+
+      menu.classList.add('hidden');
+      filterAndRender();
+      return;
+    }
+
+    // Click Outside
+    if (!e.target.closest('.filter-dropdown') && !e.target.closest('.sort-dropdown')) {
+      document.querySelectorAll('.dropdown-menu').forEach(menu => menu.classList.add('hidden'));
+    }
+  });
+
+  // Close dropdowns on Escape
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      document.querySelectorAll('.dropdown-menu').forEach(menu => menu.classList.add('hidden'));
+    }
+  });
+
+  // Clear filters button at the top
+  const topClearBtn = document.getElementById('top-clear-filters-btn');
+  if (topClearBtn) topClearBtn.addEventListener('click', clearFilters);
+
+  // Wishlist pills
+  const pillVisited = document.getElementById('pill-visited');
+  const pillWantToGo = document.getElementById('pill-want-to-go');
+
+  function updatePills() {
+    if (!pillVisited || !pillWantToGo) return;
+    if (activeWishlistFilter) {
+      pillVisited.className = 'px-4 py-1.5 rounded-full text-sm font-medium transition-all text-gray-500 hover:text-gray-700';
+      pillWantToGo.className = 'px-4 py-1.5 rounded-full text-sm font-medium transition-all bg-indigo-600 text-white';
+    } else {
+      pillVisited.className = 'px-4 py-1.5 rounded-full text-sm font-medium transition-all bg-indigo-600 text-white';
+      pillWantToGo.className = 'px-4 py-1.5 rounded-full text-sm font-medium transition-all text-gray-500 hover:text-gray-700';
+    }
+  }
+
+  if (pillVisited) {
+    pillVisited.addEventListener('click', () => {
+      activeWishlistFilter = false;
+      updatePills();
+      populateCityFilter();
+      populateCuisineFilter();
+      filterAndRender();
+    });
+  }
+  if (pillWantToGo) {
+    pillWantToGo.addEventListener('click', () => {
+      activeWishlistFilter = true;
+      updatePills();
+      populateCityFilter();
+      populateCuisineFilter();
+      filterAndRender();
+    });
+  }
+  updatePills();
+
+  // Refresh Restaurant Button
+  const refreshBtn = document.getElementById('refresh-restaurant-btn');
+  if (refreshBtn) {
+    refreshBtn.addEventListener('click', async (e) => {
+      e.preventDefault();
+
+      const editId = document.getElementById('edit-id').value;
+
+      if (!editId) return;
+
+      const icon = refreshBtn.querySelector('svg');
+      icon.classList.add('animate-spin');
+
+      try {
+        // Fetch fresh data
+        const place = new google.maps.places.Place({ id: editId });
+        await place.fetchFields({
+          fields: ['displayName', 'formattedAddress', 'location', 'addressComponents', 'googleMapsLinks', 'googleMapsURI', 'types', 'priceLevel', 'regularOpeningHours', 'utcOffsetMinutes'],
+        });
+
+        const name = place.displayName;
+        const address = place.formattedAddress;
+        const mapUri = place.googleMapsLinks?.placeURI || place.googleMapsURI;
+        const directionsUri = place.googleMapsLinks?.directionsURI;
+
+        const city = getCity(place);
+
+        const priceLevel = getPriceLevel(place);
+
+        const openingHours = getOpeningHours(place);
+
+        const types = place.types || [];
+
+        // Send update to backend
+        const res = await fetch(`/api/restaurants/${editId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name, address, city, mapUri, directionsUri, priceLevel, openingHours, types
+          })
+        });
+
+        if (res.ok) {
+          const updated = await res.json();
+          const idx = restaurantsCache.findIndex(r => r.id === editId);
+          if (idx !== -1) restaurantsCache[idx] = updated;
+          populateCityFilter();
+          populateCuisineFilter();
+          filterAndRender();
+          enterEditMode(updated);
+          showMessage('Refreshed Google Maps data successfully');
+        } else {
+          showMessage('Failed to refresh Google Maps data', true);
+        }
+
+      } catch (err) {
+        console.error('Refresh failed', err);
+        showMessage('Refresh failed: ' + err.message, true);
+      } finally {
+        icon.classList.remove('animate-spin');
+      }
+    });
+  }
+
+  // Delete Modal
   const deleteModal = document.getElementById('delete-modal');
   const confirmDeleteBtn = document.getElementById('confirm-delete-btn');
   const cancelDeleteBtn = document.getElementById('cancel-delete-btn');
@@ -1593,9 +1588,7 @@ document.addEventListener('DOMContentLoaded', () => {
       restaurantToDelete = null;
     }
   });
-});
 
-document.addEventListener('DOMContentLoaded', () => {
   // Mark as Visited Modal
   const markVisitedModal = document.getElementById('mark-visited-modal');
   const markVisitedStarsEl = document.getElementById('mark-visited-stars');
@@ -1670,3 +1663,4 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 });
+
