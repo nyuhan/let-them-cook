@@ -275,9 +275,9 @@
     <div class="flex items-center gap-3">
       <!-- Wishlist pills -->
       <div class="flex items-center gap-1">
-        <button id="pill-have-been" type="button"
+        <button id="pill-visited" type="button"
           class="px-4 py-1.5 rounded-full text-sm font-medium transition-all bg-indigo-600 text-white">
-          Have been
+          Visited
         </button>
         <button id="pill-want-to-go" type="button"
           class="px-4 py-1.5 rounded-full text-sm font-medium transition-all text-gray-500 hover:text-gray-700">
@@ -358,20 +358,32 @@
           <div id="opening-hours-list" class="text-xs text-gray-500 space-y-1"></div>
         </div>
       </div>
+      <!-- Wishlist Toggle (add mode only) -->
+      <div id="wishlist-toggle-section" class="hidden">
+        <label class="block text-sm font-medium text-gray-700 mb-1">Have you visited?</label>
+        <div id="form-wishlist-buttons" role="group" class="w-fit flex space-x-1 rounded-full p-1 bg-gray-200">
+          <button type="button" data-value="false"
+            class="wishlist-toggle-button flex-1 rounded-full px-4 py-2 text-sm font-medium text-gray-700 bg-white shadow-sm ring-1 ring-inset ring-gray-300 transition-all duration-150 whitespace-nowrap">
+            Visited</button>
+          <button type="button" data-value="true"
+            class="wishlist-toggle-button flex-1 rounded-full px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-all duration-150 whitespace-nowrap">
+            Want to go</button>
+        </div>
+      </div>
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-1">Dining Options</label>
-        <div id="dining-options-buttons" role="group" class="flex space-x-1 rounded-lg p-1 bg-gray-200">
+        <div id="dining-options-buttons" role="group" class="flex space-x-1 rounded-full p-1 bg-gray-200">
           <button type="button" data-value="dine-in"
-            class="dining-options-button flex-1 inline-flex items-center justify-center gap-1.5 rounded-md py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+            class="dining-options-button flex-1 inline-flex items-center justify-center gap-1.5 rounded-full py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-all duration-150">
             <svg class="w-3.5 h-3.5 flex-shrink-0" fill="currentColor" aria-hidden="true">
               <use href="#icon-dine-in" />
             </svg>
             Dine-in
           </button>
           <button type="button" data-value="both"
-            class="dining-options-button flex-1 rounded-md py-2 text-sm font-medium text-gray-700 bg-white shadow-sm ring-1 ring-inset ring-gray-300">Both</button>
+            class="dining-options-button flex-1 rounded-full py-2 text-sm font-medium text-gray-700 bg-white shadow-sm ring-1 ring-inset ring-gray-300 transition-all duration-150">Both</button>
           <button type="button" data-value="delivery"
-            class="dining-options-button flex-1 inline-flex items-center justify-center gap-1.5 rounded-md py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+            class="dining-options-button flex-1 inline-flex items-center justify-center gap-1.5 rounded-full py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-all duration-150">
             <svg class="w-3.5 h-3.5 flex-shrink-0" fill="currentColor" aria-hidden="true">
               <use href="#icon-delivery" />
             </svg>
@@ -379,7 +391,7 @@
           </button>
         </div>
       </div>
-      <div>
+      <div id="rating-section">
         <label class="block text-sm font-medium text-gray-700">Rating</label>
         <div id="rating-stars" class="mt-1 flex items-center cursor-pointer" data-rating="5">
           <svg class="w-6 h-6 text-yellow-400" fill="currentColor">
@@ -462,10 +474,19 @@
         </div>
       </div>
 
-      <div class="pt-4 flex items-center gap-3">
-        <button id="submit-btn" type="submit" disabled
-          class="flex-1 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 opacity-50 cursor-not-allowed">Add
-          restaurant</button>
+      <!-- Mark as visited button (edit mode, wishlisted only) -->
+      <div class="pt-4 flex flex-col gap-2">
+        <div id="modal-mark-visited-section" class="hidden">
+          <button id="modal-mark-visited-btn" type="button"
+            class="w-full inline-flex justify-center py-2 px-4 border border-indigo-300 shadow-sm text-sm font-medium rounded-md text-indigo-700 bg-indigo-50 hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+            Mark as visited
+          </button>
+        </div>
+        <div class="flex items-center gap-3">
+          <button id="submit-btn" type="submit" disabled
+            class="flex-1 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 opacity-50 cursor-not-allowed">Add
+            restaurant</button>
+        </div>
       </div>
       <input type="hidden" id="edit-id" />
       <div id="message" class="text-sm text-center pt-2 h-6"></div>
@@ -495,6 +516,45 @@
           Delete
         </button>
         <button id="cancel-delete-btn"
+          class="mt-3 px-4 py-2 bg-white text-gray-700 text-base font-medium rounded-md w-full shadow-sm border border-gray-300 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+          Cancel
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Mark as Visited Modal -->
+<div id="mark-visited-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-30">
+  <div class="relative top-40 mx-auto p-5 border w-full max-w-sm shadow-lg rounded-md bg-white">
+    <div class="mt-3 text-center">
+      <h3 class="text-lg leading-6 font-medium text-gray-900">Mark as visited</h3>
+      <p class="mt-1 text-sm text-gray-500">How would you rate it?</p>
+      <div class="mt-4 flex justify-center">
+        <div id="mark-visited-stars" class="flex items-center cursor-pointer" data-rating="5">
+          <svg class="w-8 h-8 text-yellow-400" fill="currentColor">
+            <use href="#icon-star" />
+          </svg>
+          <svg class="w-8 h-8 text-yellow-400" fill="currentColor">
+            <use href="#icon-star" />
+          </svg>
+          <svg class="w-8 h-8 text-yellow-400" fill="currentColor">
+            <use href="#icon-star" />
+          </svg>
+          <svg class="w-8 h-8 text-yellow-400" fill="currentColor">
+            <use href="#icon-star" />
+          </svg>
+          <svg class="w-8 h-8 text-yellow-400" fill="currentColor">
+            <use href="#icon-star" />
+          </svg>
+        </div>
+      </div>
+      <div class="px-4 py-3 mt-4">
+        <button id="confirm-mark-visited-btn"
+          class="px-4 py-2 bg-indigo-600 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+          Confirm
+        </button>
+        <button id="cancel-mark-visited-btn"
           class="mt-3 px-4 py-2 bg-white text-gray-700 text-base font-medium rounded-md w-full shadow-sm border border-gray-300 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500">
           Cancel
         </button>
