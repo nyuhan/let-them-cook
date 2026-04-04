@@ -991,19 +991,17 @@ function closeMarkVisitedModal() {
   restaurantToMarkVisited = null;
 }
 
+function applyStarRating(starsEl) {
+  const rating = parseInt(starsEl.dataset.rating, 10);
+  Array.from(starsEl.children).forEach((star, i) => {
+    star.classList.toggle('text-yellow-400', i < rating);
+    star.classList.toggle('text-gray-300', i >= rating);
+  });
+}
+
 function updateMarkVisitedStars() {
   const stars = document.getElementById('mark-visited-stars');
-  if (!stars) return;
-  const rating = parseInt(stars.dataset.rating, 10);
-  Array.from(stars.children).forEach((star, i) => {
-    if (i < rating) {
-      star.classList.add('text-yellow-400');
-      star.classList.remove('text-gray-300');
-    } else {
-      star.classList.remove('text-yellow-400');
-      star.classList.add('text-gray-300');
-    }
-  });
+  if (stars) applyStarRating(stars);
 }
 
 // Make edit helpers global so card buttons can call them
@@ -1042,17 +1040,8 @@ function enterEditMode(r) {
 
   const ratingStars = document.getElementById('rating-stars');
   if (ratingStars) {
-    const ratingValue = Number(r.rating) || 0;
-    ratingStars.dataset.rating = String(ratingValue);
-    Array.from(ratingStars.children).forEach((star, i) => {
-      if (i < ratingValue) {
-        star.classList.add('text-yellow-400');
-        star.classList.remove('text-gray-300');
-      } else {
-        star.classList.remove('text-yellow-400');
-        star.classList.add('text-gray-300');
-      }
-    });
+    ratingStars.dataset.rating = String(Number(r.rating) || 0);
+    applyStarRating(ratingStars);
   }
 
   const notesInput = document.getElementById('restaurant-notes');
@@ -1134,15 +1123,7 @@ function closeModal() {
   const ratingStars = document.getElementById('rating-stars');
   if (ratingStars) {
     ratingStars.dataset.rating = '5';
-    Array.from(ratingStars.children).forEach((star, i) => {
-      if (i < 5) {
-        star.classList.add('text-yellow-400');
-        star.classList.remove('text-gray-300');
-      } else {
-        star.classList.remove('text-yellow-400');
-        star.classList.add('text-gray-300');
-      }
-    });
+    applyStarRating(ratingStars);
   }
 
   const notesInput = document.getElementById('restaurant-notes');
@@ -1200,16 +1181,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function updateRatingStars() {
-    const rating = parseInt(ratingStarsContainer.dataset.rating, 10);
-    Array.from(ratingStarsContainer.children).forEach((star, i) => {
-      if (i < rating) {
-        star.classList.add('text-yellow-400');
-        star.classList.remove('text-gray-300');
-      } else {
-        star.classList.remove('text-yellow-400');
-        star.classList.add('text-gray-300');
-      }
-    });
+    applyStarRating(ratingStarsContainer);
   }
 
   const form = document.getElementById('restaurant-form');
