@@ -635,12 +635,15 @@ def update_restaurant(rest_id):
     if types is not None:
         new_types_json = json.dumps(types)
 
+    marking_as_visited = current_wishlisted and not new_wishlisted
+
     db.execute(
         """UPDATE restaurants SET
            name = ?, dining_options = ?, rating = ?, wishlisted = ?, notes = ?,
            address = ?, city = ?, map_uri = ?, directions_uri = ?,
-           price_level = ?, opening_hours = ?, types = ?
-           WHERE id = ?""",
+           price_level = ?, opening_hours = ?, types = ?"""
+        + (", created_at = CURRENT_TIMESTAMP" if marking_as_visited else "")
+        + " WHERE id = ?",
         (
             new_name,
             new_type,

@@ -543,7 +543,9 @@ class TestUpdateRestaurant:
         assert dishes[1]["notes"] is None
 
     def test_promote_wishlisted_to_visited(self, client, seed_restaurant):
-        seed_restaurant(id="r1", wishlisted=True, rating=None)
+        seed_restaurant(
+            id="r1", wishlisted=True, rating=None, created_at="2020-01-01 00:00:00"
+        )
         resp = client.put(
             "/api/restaurants/r1", json={"wishlisted": False, "rating": 4}
         )
@@ -556,6 +558,14 @@ class TestUpdateRestaurant:
         r_list = next(x for x in listing if x["id"] == "r1")
         assert r_list["wishlisted"] is False
         assert r_list["rating"] == 4
+        # created_at should be reset so the newly-visited restaurant sorts to the top
+        conn = sqlite3.connect(app_module.DATABASE)
+        row = conn.execute(
+            "SELECT created_at FROM restaurants WHERE id = 'r1'"
+        ).fetchone()
+        conn.close()
+        assert row[0] is not None
+        assert row[0] != "2020-01-01 00:00:00"
 
     def test_cannot_demote_visited_to_wishlisted(self, client, seed_restaurant):
         seed_restaurant(id="r1", rating=4)
