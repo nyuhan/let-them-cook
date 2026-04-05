@@ -566,6 +566,48 @@ class TestUpdateRestaurant:
         resp = client.put("/api/restaurants/r1", json={"rating": 4})
         assert resp.status_code == 400
 
+    def test_update_fields_on_wishlisted_restaurant(self, client, seed_restaurant):
+        seed_restaurant(
+            id="r1", wishlisted=True, rating=None, notes="old", diningOptions="dine-in"
+        )
+        resp = client.put(
+            "/api/restaurants/r1", json={"notes": "new", "diningOptions": "delivery"}
+        )
+        assert resp.status_code == 200
+        r = resp.get_json()
+        assert r["wishlisted"] is True
+        assert r["rating"] is None
+        assert r["notes"] == "new"
+        assert r["diningOptions"] == "delivery"
+
+    def test_mark_visited_rejects_invalid_rating(self, client, seed_restaurant):
+        seed_restaurant(id="r1", wishlisted=True, rating=None)
+        resp = client.put(
+            "/api/restaurants/r1", json={"wishlisted": False, "rating": 6}
+        )
+        assert resp.status_code == 400
+        # restaurant is unchanged
+        r = client.get("/api/restaurants/r1").get_json()
+        assert r["wishlisted"] is True
+        assert r["rating"] is None
+
+    def test_mark_visited_rejects_zero_rating(self, client, seed_restaurant):
+        seed_restaurant(id="r1", wishlisted=True, rating=None)
+        resp = client.put(
+            "/api/restaurants/r1", json={"wishlisted": False, "rating": 0}
+        )
+        assert resp.status_code == 400
+
+    def test_mark_visited_persists_rating(self, client, seed_restaurant):
+        seed_restaurant(id="r1", wishlisted=True, rating=None)
+        resp = client.put(
+            "/api/restaurants/r1", json={"wishlisted": False, "rating": 3}
+        )
+        assert resp.status_code == 200
+        r = client.get("/api/restaurants/r1").get_json()
+        assert r["wishlisted"] is False
+        assert r["rating"] == 3
+
 
 # ---------------------------------------------------------------------------
 # DELETE /api/restaurants/<id>
@@ -584,3 +626,10 @@ class TestDeleteRestaurant:
     def test_not_found(self, client):
         resp = client.delete("/api/restaurants/missing")
         assert resp.status_code == 404
+
+    def test_delete_wishlisted_restaurant(self, client, seed_restaurant):
+        seed_restaurant(id="r1", wishlisted=True, rating=None)
+        resp = client.delete("/api/restaurants/r1")
+        assert resp.status_code == 200
+        assert resp.get_json()["status"] == "deleted"
+        assert client.get("/api/restaurants/r1").status_code == 404
