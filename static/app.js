@@ -1,7 +1,10 @@
 let restaurantsCache = [];
-
+let activeWishlistFilter = false;
 let selectedDiningOptions = 'both';
 let allowedTypes = new Set();
+let formWishlisted = false;
+let restaurantToMarkVisited = null;
+let markVisitedFromEditModal = false;
 
 const allowedTypesReady = fetch('/static/types.json')
   .then(r => r.json())
@@ -294,16 +297,19 @@ function renderRestaurants(restaurants) {
   const fab = document.getElementById('add-restaurant-btn-fab');
   container.innerHTML = '';
   if (!Array.isArray(restaurants) || restaurants.length === 0) {
-    fab.classList.add('hidden');
-    if (restaurantsCache.length === 0) {
-      // Database is empty
+    const viewCount = restaurantsCache.filter(r => r.wishlisted === activeWishlistFilter).length;
+    if (viewCount === 0) {
+      fab.classList.add('hidden');
+      const subtitle = activeWishlistFilter
+        ? 'Is there a restaurant you would like to visit?'
+        : 'Get started by adding your first favorite dining spot.';
       container.innerHTML = `
             <div class="col-span-full bg-white p-12 rounded-lg shadow-sm border border-gray-100 text-center" style="column-span: all;">
                  <svg class="mx-auto h-12 w-12 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                 </svg>
-                <h3 class="mt-2 text-sm font-medium text-gray-900">No restaurants yet</h3>
-                <p class="mt-1 text-sm text-gray-500">Get started by adding your first favorite spot.</p>
+                <h3 class="mt-2 text-sm font-medium text-gray-900">Nothing here yet</h3>
+                <p class="mt-1 text-sm text-gray-500">${subtitle}</p>
                 <div class="mt-6">
                     <button id="empty-state-add-btn" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
                         Add Restaurant
@@ -370,7 +376,7 @@ function populateCityFilter() {
   const container = document.getElementById('city-filter-options');
   if (!container) return;
 
-  const cities = [...new Set(restaurantsCache.map(r => r.city).filter(Boolean))].sort();
+  const cities = [...new Set(restaurantsCache.filter(r => r.wishlisted === activeWishlistFilter).map(r => r.city).filter(Boolean))].sort();
 
   const firstBtn = container.firstElementChild;
   container.innerHTML = '';
@@ -390,7 +396,7 @@ function populateCuisineFilter() {
   const container = document.getElementById('cuisine-filter-options');
   if (!container) return;
 
-  const cuisines = [...new Set(restaurantsCache.flatMap(r => r.cuisines || []).filter(Boolean))].sort();
+  const cuisines = [...new Set(restaurantsCache.filter(r => r.wishlisted === activeWishlistFilter).flatMap(r => r.cuisines || []).filter(Boolean))].sort();
 
   const firstBtn = container.firstElementChild;
   container.innerHTML = '';
@@ -490,9 +496,42 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Clear filters button at the top
   const topClearBtn = document.getElementById('top-clear-filters-btn');
-  if (topClearBtn) {
-    topClearBtn.addEventListener('click', clearFilters);
+  if (topClearBtn) topClearBtn.addEventListener('click', clearFilters);
+
+  // Wishlist pills
+  const pillVisited = document.getElementById('pill-visited');
+  const pillWantToGo = document.getElementById('pill-want-to-go');
+
+  function updatePills() {
+    if (!pillVisited || !pillWantToGo) return;
+    if (activeWishlistFilter) {
+      pillVisited.className = 'px-4 py-1.5 rounded-full text-sm font-medium transition-all text-gray-500 hover:text-gray-700';
+      pillWantToGo.className = 'px-4 py-1.5 rounded-full text-sm font-medium transition-all bg-indigo-600 text-white';
+    } else {
+      pillVisited.className = 'px-4 py-1.5 rounded-full text-sm font-medium transition-all bg-indigo-600 text-white';
+      pillWantToGo.className = 'px-4 py-1.5 rounded-full text-sm font-medium transition-all text-gray-500 hover:text-gray-700';
+    }
   }
+
+  if (pillVisited) {
+    pillVisited.addEventListener('click', () => {
+      activeWishlistFilter = false;
+      updatePills();
+      populateCityFilter();
+      populateCuisineFilter();
+      filterAndRender();
+    });
+  }
+  if (pillWantToGo) {
+    pillWantToGo.addEventListener('click', () => {
+      activeWishlistFilter = true;
+      updatePills();
+      populateCityFilter();
+      populateCuisineFilter();
+      filterAndRender();
+    });
+  }
+  updatePills();
 
   // Refresh Restaurant Button
   const refreshBtn = document.getElementById('refresh-restaurant-btn');
@@ -589,6 +628,7 @@ function filterAndRender() {
   if (topClearBtn) topClearBtn.classList.toggle('hidden', !hasActiveFilters);
 
   const filtered = restaurantsCache.filter(r => {
+    if (r.wishlisted !== activeWishlistFilter) return false;
     if (searchInput && !(r.name || '').toLowerCase().includes(searchInput)) return false;
     if (diningOptions && r.diningOptions !== diningOptions && r.diningOptions !== 'both') return false;
     if (city && r.city !== city) return false;
@@ -604,8 +644,6 @@ function filterAndRender() {
 
     return true;
   });
-  const countEl = document.getElementById('results-count');
-  if (countEl) countEl.textContent = `${filtered.length} restaurant${filtered.length !== 1 ? 's' : ''}`;
   renderRestaurants(sortRestaurants(filtered));
 }
 
@@ -741,12 +779,25 @@ function renderCard(r) {
   const thirdLine = document.createElement('div');
   thirdLine.className = 'flex items-center justify-between mb-4';
 
-  // Rating
-  const ratingEl = document.createElement('div');
-  ratingEl.className = 'flex items-center';
-  const ratingNum = Number(r.rating) || 0;
-  ratingEl.innerHTML = renderStars(ratingNum) + `<span class="ml-2 text-sm font-medium text-gray-600">${ratingNum.toFixed(1)}</span>`;
-  thirdLine.appendChild(ratingEl);
+  if (!r.wishlisted) {
+    // Rating
+    const ratingEl = document.createElement('div');
+    ratingEl.className = 'flex items-center';
+    const ratingNum = Number(r.rating) || 0;
+    ratingEl.innerHTML = renderStars(ratingNum) + `<span class="ml-2 text-sm font-medium text-gray-600">${ratingNum.toFixed(1)}</span>`;
+    thirdLine.appendChild(ratingEl);
+  } else {
+    // Greyed-out rating — clicking opens mark-as-visited modal
+    const ratingEl = document.createElement('div');
+    ratingEl.className = 'flex items-center cursor-pointer group';
+    ratingEl.title = 'Mark as visited';
+    ratingEl.innerHTML = renderStars(0);
+    ratingEl.addEventListener('click', (e) => {
+      e.stopPropagation();
+      openMarkVisitedModal(r, false);
+    });
+    thirdLine.appendChild(ratingEl);
+  }
 
   // Price
   if (r.priceLevel) {
@@ -877,7 +928,6 @@ function renderCard(r) {
   const rightActions = document.createElement('div');
   rightActions.className = 'flex items-center space-x-1';
 
-
   const deleteBtn = document.createElement('button');
   deleteBtn.className = 'text-gray-400 hover:text-red-600 p-2 rounded-full hover:bg-red-50 transition-colors';
   deleteBtn.title = "Delete";
@@ -908,6 +958,52 @@ function escapeHtml(str) {
   return String(str).replace(/[&<>\"]/g, s => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;" }[s]));
 }
 
+function updateFormWishlistUI() {
+  const buttons = document.querySelectorAll('#form-wishlist-buttons .wishlist-toggle-button');
+  buttons.forEach(btn => {
+    if ((btn.dataset.value === 'true') === formWishlisted) {
+      btn.classList.add('bg-white', 'shadow-sm', 'ring-1', 'ring-inset', 'ring-gray-300');
+      btn.classList.remove('hover:bg-gray-50', 'bg-indigo-600', 'text-white');
+    } else {
+      btn.classList.remove('bg-white', 'shadow-sm', 'ring-1', 'ring-inset', 'ring-gray-300', 'bg-indigo-600', 'text-white');
+      btn.classList.add('hover:bg-gray-50');
+    }
+  });
+  const ratingSection = document.getElementById('rating-section');
+  if (ratingSection) ratingSection.classList.toggle('hidden', formWishlisted);
+}
+
+function openMarkVisitedModal(r, fromEditModal) {
+  restaurantToMarkVisited = r;
+  markVisitedFromEditModal = fromEditModal;
+  const modal = document.getElementById('mark-visited-modal');
+  if (modal) modal.classList.remove('hidden');
+  const stars = document.getElementById('mark-visited-stars');
+  if (stars) {
+    stars.dataset.rating = '5';
+    updateMarkVisitedStars();
+  }
+}
+
+function closeMarkVisitedModal() {
+  const modal = document.getElementById('mark-visited-modal');
+  if (modal) modal.classList.add('hidden');
+  restaurantToMarkVisited = null;
+}
+
+function applyStarRating(starsEl) {
+  const rating = parseInt(starsEl.dataset.rating, 10);
+  Array.from(starsEl.children).forEach((star, i) => {
+    star.classList.toggle('text-yellow-400', i < rating);
+    star.classList.toggle('text-gray-300', i >= rating);
+  });
+}
+
+function updateMarkVisitedStars() {
+  const stars = document.getElementById('mark-visited-stars');
+  if (stars) applyStarRating(stars);
+}
+
 // Make edit helpers global so card buttons can call them
 function enterEditMode(r) {
   const modal = document.getElementById('restaurant-modal');
@@ -935,26 +1031,17 @@ function enterEditMode(r) {
   typeButtons.forEach(btn => {
     if (btn.dataset.value === r.diningOptions) {
       btn.classList.add('bg-white', 'shadow-sm', 'ring-1', 'ring-inset', 'ring-gray-300');
-      btn.classList.remove('hover:bg-gray-50');
+      btn.classList.remove('hover:bg-gray-50', 'bg-indigo-600', 'text-white');
     } else {
-      btn.classList.remove('bg-white', 'shadow-sm', 'ring-1', 'ring-inset', 'ring-gray-300');
+      btn.classList.remove('bg-white', 'shadow-sm', 'ring-1', 'ring-inset', 'ring-gray-300', 'bg-indigo-600', 'text-white');
       btn.classList.add('hover:bg-gray-50');
     }
   });
 
   const ratingStars = document.getElementById('rating-stars');
   if (ratingStars) {
-    const ratingValue = Number(r.rating) || 0;
-    ratingStars.dataset.rating = String(ratingValue);
-    Array.from(ratingStars.children).forEach((star, i) => {
-      if (i < ratingValue) {
-        star.classList.add('text-yellow-400');
-        star.classList.remove('text-gray-300');
-      } else {
-        star.classList.remove('text-yellow-400');
-        star.classList.add('text-gray-300');
-      }
-    });
+    ratingStars.dataset.rating = String(Number(r.rating) || 0);
+    applyStarRating(ratingStars);
   }
 
   const notesInput = document.getElementById('restaurant-notes');
@@ -976,10 +1063,16 @@ function enterEditMode(r) {
     submitBtn.disabled = false;
     submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
   }
+
+  // Wishlisted state: hide toggle, show/hide rating and mark-visited button
+  document.getElementById('wishlist-toggle-section')?.classList.add('hidden');
+  document.getElementById('modal-mark-visited-section')?.classList.toggle('hidden', !r.wishlisted);
+  document.getElementById('rating-section')?.classList.toggle('hidden', r.wishlisted);
+
   document.body.classList.add('overflow-hidden');
 }
 
-function exitEditMode() {
+function closeModal() {
   const form = document.getElementById('restaurant-form');
   if (form) form.reset();
 
@@ -1002,7 +1095,9 @@ function exitEditMode() {
   if (modal) modal.classList.add('hidden');
   document.body.classList.remove('overflow-hidden');
   const fab = document.getElementById('add-restaurant-btn-fab');
-  fab.classList.remove('hidden');
+  if (restaurantsCache.filter(r => r.wishlisted === activeWishlistFilter).length > 0) {
+    fab.classList.remove('hidden');
+  }
   const title = document.getElementById('modal-title');
   if (title) title.textContent = 'Add Restaurant';
   document.getElementById('edit-id').value = '';
@@ -1028,15 +1123,7 @@ function exitEditMode() {
   const ratingStars = document.getElementById('rating-stars');
   if (ratingStars) {
     ratingStars.dataset.rating = '5';
-    Array.from(ratingStars.children).forEach((star, i) => {
-      if (i < 5) {
-        star.classList.add('text-yellow-400');
-        star.classList.remove('text-gray-300');
-      } else {
-        star.classList.remove('text-yellow-400');
-        star.classList.add('text-gray-300');
-      }
-    });
+    applyStarRating(ratingStars);
   }
 
   const notesInput = document.getElementById('restaurant-notes');
@@ -1074,9 +1161,9 @@ document.addEventListener('DOMContentLoaded', () => {
     typeButtonsContainer.querySelectorAll('.dining-options-button').forEach(btn => {
       if (btn.dataset.value === selectedDiningOptions) {
         btn.classList.add('bg-white', 'shadow-sm', 'ring-1', 'ring-inset', 'ring-gray-300');
-        btn.classList.remove('hover:bg-gray-50');
+        btn.classList.remove('hover:bg-gray-50', 'bg-indigo-600', 'text-white');
       } else {
-        btn.classList.remove('bg-white', 'shadow-sm', 'ring-1', 'ring-inset', 'ring-gray-300');
+        btn.classList.remove('bg-white', 'shadow-sm', 'ring-1', 'ring-inset', 'ring-gray-300', 'bg-indigo-600', 'text-white');
         btn.classList.add('hover:bg-gray-50');
       }
     });
@@ -1094,16 +1181,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function updateRatingStars() {
-    const rating = parseInt(ratingStarsContainer.dataset.rating, 10);
-    Array.from(ratingStarsContainer.children).forEach((star, i) => {
-      if (i < rating) {
-        star.classList.add('text-yellow-400');
-        star.classList.remove('text-gray-300');
-      } else {
-        star.classList.remove('text-yellow-400');
-        star.classList.add('text-gray-300');
-      }
-    });
+    applyStarRating(ratingStarsContainer);
   }
 
   const form = document.getElementById('restaurant-form');
@@ -1130,14 +1208,16 @@ document.addEventListener('DOMContentLoaded', () => {
       try {
         let res;
         if (editId) {
-          const payload = { diningOptions, rating, notes, dishes };
+          const payload = { diningOptions, notes, dishes };
+          if (rating !== '0') payload.rating = rating;
           res = await fetch(`/api/restaurants/${editId}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
           });
         } else {
-          const payload = { id, name, address, city, diningOptions, rating, mapUri, directionsUri, priceLevel, notes, dishes, openingHours, types };
+          const payload = { id, name, address, city, diningOptions, mapUri, directionsUri, priceLevel, notes, dishes, openingHours, types, wishlisted: formWishlisted };
+          if (!formWishlisted) payload.rating = rating;
           res = await fetch('/api/restaurants', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -1155,7 +1235,7 @@ document.addEventListener('DOMContentLoaded', () => {
           } else {
             restaurantsCache.unshift(saved);
           }
-          exitEditMode();
+          closeModal();
           populateCityFilter();
           populateCuisineFilter();
           filterAndRender();
@@ -1184,15 +1264,14 @@ document.addEventListener('DOMContentLoaded', () => {
   // Modal handling
   const fab = document.getElementById('add-restaurant-btn-fab');
   const openModal = () => {
-    exitEditMode(); // Reset form for adding
     modal.classList.remove('hidden');
     document.body.classList.add('overflow-hidden');
     fab.classList.add('hidden');
-  };
-  const closeModal = () => {
-    modal.classList.add('hidden');
-    document.body.classList.remove('overflow-hidden');
-    fab.classList.remove('hidden');
+    document.getElementById('modal-mark-visited-section')?.classList.add('hidden');
+    document.getElementById('rating-section')?.classList.remove('hidden');
+    document.getElementById('wishlist-toggle-section')?.classList.remove('hidden');
+    formWishlisted = activeWishlistFilter;
+    updateFormWishlistUI();
   };
   addBtn.addEventListener('click', openModal);
   fab.addEventListener('click', openModal);
@@ -1514,4 +1593,80 @@ document.addEventListener('DOMContentLoaded', () => {
       restaurantToDelete = null;
     }
   });
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+  // Mark as Visited Modal
+  const markVisitedModal = document.getElementById('mark-visited-modal');
+  const markVisitedStarsEl = document.getElementById('mark-visited-stars');
+  const confirmMarkVisitedBtn = document.getElementById('confirm-mark-visited-btn');
+  const cancelMarkVisitedBtn = document.getElementById('cancel-mark-visited-btn');
+  const modalMarkVisitedBtn = document.getElementById('modal-mark-visited-btn');
+
+  if (markVisitedStarsEl) {
+    markVisitedStarsEl.addEventListener('click', (e) => {
+      const star = e.target.closest('svg');
+      if (!star) return;
+      const rating = Array.from(markVisitedStarsEl.children).indexOf(star) + 1;
+      markVisitedStarsEl.dataset.rating = String(rating);
+      updateMarkVisitedStars();
+    });
+  }
+
+  if (modalMarkVisitedBtn) {
+    modalMarkVisitedBtn.addEventListener('click', () => {
+      const editId = document.getElementById('edit-id').value;
+      const r = restaurantsCache.find(r => r.id === editId);
+      if (r) openMarkVisitedModal(r, true);
+    });
+  }
+
+  if (confirmMarkVisitedBtn) {
+    confirmMarkVisitedBtn.addEventListener('click', async () => {
+      if (!restaurantToMarkVisited) return;
+      const rating = parseInt(document.getElementById('mark-visited-stars').dataset.rating, 10);
+      try {
+        const res = await fetch(`/api/restaurants/${restaurantToMarkVisited.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ wishlisted: false, rating })
+        });
+        if (res.ok) {
+          const updated = await res.json();
+          const idx = restaurantsCache.findIndex(r => r.id === restaurantToMarkVisited.id);
+          if (idx !== -1) restaurantsCache[idx] = updated;
+          closeMarkVisitedModal();
+          if (markVisitedFromEditModal) closeModal();
+          populateCityFilter();
+          populateCuisineFilter();
+          filterAndRender();
+        } else {
+          showMessage('Failed to mark as visited', true);
+        }
+      } catch (err) {
+        showMessage('Network error', true);
+      }
+    });
+  }
+
+  if (cancelMarkVisitedBtn) {
+    cancelMarkVisitedBtn.addEventListener('click', closeMarkVisitedModal);
+  }
+
+  if (markVisitedModal) {
+    window.addEventListener('click', (e) => {
+      if (e.target === markVisitedModal) closeMarkVisitedModal();
+    });
+  }
+
+  // Wishlist toggle in add form
+  const formWishlistButtons = document.getElementById('form-wishlist-buttons');
+  if (formWishlistButtons) {
+    formWishlistButtons.addEventListener('click', (e) => {
+      const btn = e.target.closest('.wishlist-toggle-button');
+      if (!btn) return;
+      formWishlisted = btn.dataset.value === 'true';
+      updateFormWishlistUI();
+    });
+  }
 });
