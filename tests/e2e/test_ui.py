@@ -1246,3 +1246,62 @@ class TestWishlistPills:
         # Switch back to "Visited" — rating section should reappear
         page.locator("#form-wishlist-buttons button[data-value='false']").click()
         assert page.locator("#rating-section").is_visible()
+
+    def test_rating_filter_hidden_on_want_to_go_pill(self, live_server, seed, page):
+        seed(id="vis_r1", name="Visited Place", rating=4)
+        seed(id="wl_r1", name="Want To Go Place", wishlisted=True, rating=None)
+
+        _goto(page, live_server)
+
+        # Default: "Visited" pill active — rating filter should be visible
+        assert page.locator("#rating-filter-container").is_visible()
+
+        # Select a rating filter
+        _select_dropdown_option(page, "Rating", "4")
+        page.wait_for_timeout(300)
+        assert page.locator("#top-clear-filters-btn").is_visible()
+
+        # Switch to "Want to go" — rating filter should be hidden
+        page.locator("#pill-want-to-go").click()
+        page.wait_for_timeout(300)
+        assert page.locator("#rating-filter-container").is_hidden()
+
+        # Switch back to "Visited" — rating filter reappears with selection intact
+        page.locator("#pill-visited").click()
+        page.wait_for_timeout(300)
+        assert page.locator("#rating-filter-container").is_visible()
+        rating_label = page.locator(
+            "#rating-filter-container .dropdown-trigger .filter-label"
+        )
+        assert "4" in rating_label.text_content()
+        assert page.locator("#top-clear-filters-btn").is_visible()
+
+    def test_highest_rating_sort_hidden_on_want_to_go_pill(
+        self, live_server, seed, page
+    ):
+        seed(id="vis_r1", name="Visited Place", rating=4)
+        seed(id="wl_r1", name="Want To Go Place", wishlisted=True, rating=None)
+
+        _goto(page, live_server)
+
+        # Default: "Visited" pill — Highest Rating sort option should be present
+        _open_dropdown(page, "Recently Added")
+        assert page.locator(".sort-dropdown [data-value='rating']").is_visible()
+
+        # Select "Highest Rating" sort
+        page.locator(".sort-dropdown [data-value='rating']").click()
+        page.wait_for_timeout(300)
+        sort_label = page.locator(".sort-dropdown .sort-label")
+        assert sort_label.text_content().strip() == "Highest Rating"
+
+        # Switch to "Want to go" — Highest Rating option should be hidden and sort reset
+        page.locator("#pill-want-to-go").click()
+        page.wait_for_timeout(300)
+        assert page.locator(".sort-dropdown [data-value='rating']").is_hidden()
+        assert sort_label.text_content().strip() == "Recently Added"
+
+        # Switch back to "Visited" — Highest Rating option reappears (open dropdown to confirm)
+        page.locator("#pill-visited").click()
+        page.wait_for_timeout(300)
+        _open_dropdown(page, "Recently Added")
+        assert page.locator(".sort-dropdown [data-value='rating']").is_visible()

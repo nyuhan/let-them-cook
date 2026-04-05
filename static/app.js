@@ -470,7 +470,7 @@ function filterAndRender() {
   const diningOptions = document.getElementById('filter-dining-options')?.value || '';
   const city = document.getElementById('filter-city')?.value || '';
   const cuisine = document.getElementById('filter-cuisine')?.value || '';
-  const minRating = parseInt(document.getElementById('filter-rating')?.value || '0', 10);
+  const minRating = !activeWishlistFilter ? parseInt(document.getElementById('filter-rating')?.value || '0', 10) : 0;
   const price = document.getElementById('filter-price')?.value || '';
   const status = document.getElementById('filter-status')?.value || '';
 
@@ -1460,9 +1460,16 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  const ratingFilterContainer = document.getElementById('rating-filter-container');
+  const ratingSortOption = document.querySelector('.sort-dropdown [data-value="rating"]');
+  const sortInput = document.getElementById('current-sort');
+  const sortTrigger = document.querySelector('.sort-dropdown .dropdown-trigger');
+
   if (pillVisited) {
     pillVisited.addEventListener('click', () => {
       activeWishlistFilter = false;
+      ratingFilterContainer?.classList.toggle('hidden', false);
+      ratingSortOption?.classList.remove('hidden');
       updatePills();
       populateCityFilter();
       populateCuisineFilter();
@@ -1472,6 +1479,14 @@ document.addEventListener('DOMContentLoaded', () => {
   if (pillWantToGo) {
     pillWantToGo.addEventListener('click', () => {
       activeWishlistFilter = true;
+      ratingFilterContainer?.classList.toggle('hidden', true);
+      ratingSortOption?.classList.add('hidden');
+      if (sortInput?.value === 'rating') {
+        sortInput.value = '';
+        const sortLabel = sortTrigger?.querySelector('.sort-label');
+        if (sortLabel) sortLabel.innerHTML = sortTrigger.dataset.default;
+        setTriggerActive(sortTrigger, false);
+      }
       updatePills();
       populateCityFilter();
       populateCuisineFilter();
