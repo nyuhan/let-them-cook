@@ -266,7 +266,7 @@ def login():
 
         if settings["totp_secret"]:
             totp = pyotp.TOTP(settings["totp_secret"])
-            totp_ok = totp.verify(totp_code)
+            totp_ok = totp.verify(totp_code, valid_window=1)
         else:
             totp_ok = True
 
@@ -342,7 +342,7 @@ def set_up_2fa():
             return redirect(url_for("set_up_2fa"))
 
         totp = pyotp.TOTP(provisional_secret)
-        if totp.verify(totp_code):
+        if totp.verify(totp_code, valid_window=1):
             db.execute(
                 "UPDATE settings SET totp_secret = ? WHERE id = 1",
                 (provisional_secret,),
@@ -368,7 +368,7 @@ def disable_2fa():
     db = get_db()
     settings = _get_settings(db)
     totp = pyotp.TOTP(settings["totp_secret"])
-    if not totp.verify(request.form.get("totp_code", "").strip()):
+    if not totp.verify(request.form.get("totp_code", "").strip(), valid_window=1):
         flash("Invalid authenticator code.", "totp_error")
         return redirect(url_for("settings"))
     db.execute("UPDATE settings SET totp_secret = NULL WHERE id = 1")
