@@ -1,5 +1,6 @@
 Flask
 Flask-Login
+Flask-WTF
 pyotp
 qrcode
 python-dotenv

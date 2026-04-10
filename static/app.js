@@ -6,6 +6,10 @@ let formWishlisted = false;
 let restaurantToMarkVisited = null;
 let markVisitedFromEditModal = false;
 
+function csrfToken() {
+  return document.querySelector('meta[name="csrf-token"]')?.content || '';
+}
+
 const allowedTypesReady = fetch('/static/types.json')
   .then(r => r.json())
   .then(mapping => { allowedTypes = new Set(Object.keys(mapping)); })
@@ -1272,7 +1276,7 @@ document.addEventListener('DOMContentLoaded', () => {
           if (rating !== '0') payload.rating = rating;
           res = await fetch(`/api/restaurants/${editId}`, {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken() },
             body: JSON.stringify(payload)
           });
         } else {
@@ -1280,7 +1284,7 @@ document.addEventListener('DOMContentLoaded', () => {
           if (!formWishlisted) payload.rating = rating;
           res = await fetch('/api/restaurants', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken() },
             body: JSON.stringify(payload)
           });
         }
@@ -1531,7 +1535,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Send update to backend
         const res = await fetch(`/api/restaurants/${editId}`, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken() },
           body: JSON.stringify({
             name, address, city, mapUri, directionsUri, priceLevel, openingHours, types
           })
@@ -1569,7 +1573,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!restaurantToDelete) return;
 
       try {
-        const res = await fetch(`/api/restaurants/${restaurantToDelete.id}`, { method: 'DELETE' });
+        const res = await fetch(`/api/restaurants/${restaurantToDelete.id}`, { method: 'DELETE', headers: { 'X-CSRFToken': csrfToken() } });
         if (res.ok) {
           restaurantsCache = restaurantsCache.filter(r => r.id !== restaurantToDelete.id);
 
@@ -1636,7 +1640,7 @@ document.addEventListener('DOMContentLoaded', () => {
       try {
         const res = await fetch(`/api/restaurants/${restaurantToMarkVisited.id}`, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken() },
           body: JSON.stringify({ wishlisted: false, rating })
         });
         if (res.ok) {

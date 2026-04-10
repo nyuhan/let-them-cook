@@ -17,6 +17,7 @@ from flask_login import (
     login_required,
     current_user,
 )
+from flask_wtf.csrf import CSRFProtect
 from werkzeug.security import check_password_hash, generate_password_hash
 import os
 import secrets
@@ -128,6 +129,7 @@ def get_db():
 
 
 app = Flask(__name__, static_folder="static", template_folder="templates")
+csrf = CSRFProtect(app)
 
 # --- Auth setup ---
 login_manager = LoginManager(app)

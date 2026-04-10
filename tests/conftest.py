@@ -11,7 +11,7 @@ def app(tmp_path):
     db_path = str(tmp_path / "test.db")
     app_module.DATABASE = db_path
     flask_app.secret_key = "test-secret-key"
-    flask_app.config.update({"TESTING": True})
+    flask_app.config.update({"TESTING": True, "WTF_CSRF_ENABLED": False})
 
     # Initialize DB and override password for tests
     conn = sqlite3.connect(db_path)

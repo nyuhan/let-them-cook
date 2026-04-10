@@ -25,6 +25,7 @@
     {% endwith %}
 
     <form method="POST" action="{{ url_for('settings') }}" class="space-y-4">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-1" for="current_password">Current Password</label>
         <input type="password" id="current_password" name="current_password" autocomplete="current-password" required
@@ -107,6 +108,7 @@
       </div>
       <h3 class="text-lg leading-6 font-medium text-gray-900 mt-2">Disable Two-Factor Authentication</h3>
       <form method="POST" action="{{ url_for('disable_2fa') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="mt-2 px-7 py-3">
           <p class="text-sm text-gray-500">Enter your authenticator code to confirm.</p>
           {% if totp_errors %}
