@@ -28,3 +28,6 @@ __pycache__/
 # OS
 .DS_Store
 Thumbs.db
+
+# Build artifacts
+static/tailwind.css

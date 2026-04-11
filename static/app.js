@@ -1472,7 +1472,10 @@ document.addEventListener('DOMContentLoaded', () => {
   if (pillVisited) {
     pillVisited.addEventListener('click', () => {
       activeWishlistFilter = false;
-      ratingFilterContainer?.classList.toggle('hidden', false);
+      // !hidden (Tailwind v4 important modifier) is used instead of hidden because
+      // the container also has inline-block, which would otherwise win in the CSS
+      // cascade over the layered .hidden utility.
+      ratingFilterContainer?.classList.remove('!hidden');
       ratingSortOption?.classList.remove('hidden');
       updatePills();
       populateCityFilter();
@@ -1483,7 +1486,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (pillWantToGo) {
     pillWantToGo.addEventListener('click', () => {
       activeWishlistFilter = true;
-      ratingFilterContainer?.classList.toggle('hidden', true);
+      ratingFilterContainer?.classList.add('!hidden');
       ratingSortOption?.classList.add('hidden');
       if (sortInput?.value === 'rating') {
         sortInput.value = '';

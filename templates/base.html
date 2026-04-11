@@ -11,7 +11,7 @@
     <link rel="icon" href="/static/favicon.ico">
     <link rel="manifest" href="/static/site.webmanifest">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="{{ versioned_url('tailwind.css') }}">
     {% block head %}{% endblock %}
 </head>
 

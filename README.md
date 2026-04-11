@@ -8,6 +8,7 @@ A simple Flask application to record and manage your favorite restaurants. Featu
 
 * Python 3.9+
 * A Google Maps API Key with **Places API** and **Maps JavaScript API** enabled.
+* The [Tailwind CSS standalone CLI](https://github.com/tailwindlabs/tailwindcss/releases/download/v4.2.2/tailwindcss-linux-x64) installed and available on your `PATH` as `tailwindcss`.
 
 ### Setup
 
@@ -24,6 +25,18 @@ A simple Flask application to record and manage your favorite restaurants. Featu
 
     ```bash
     echo 'GOOGLE_MAPS_API_KEY="YOUR_API_KEY"' > .env
+    ```
+
+1. **Build the CSS**:
+
+    ```bash
+    tailwindcss -i static/tailwind.input.css -o static/tailwind.css --minify
+    ```
+
+    To automatically rebuild on template changes during development:
+
+    ```bash
+    tailwindcss -i static/tailwind.input.css -o static/tailwind.css --watch
     ```
 
 1. **Run the application**:
