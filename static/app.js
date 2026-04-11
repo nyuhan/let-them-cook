@@ -15,8 +15,8 @@ const allowedTypesReady = fetch('/static/types.json')
   .then(mapping => { allowedTypes = new Set(Object.keys(mapping)); })
   .catch(() => { });
 
-const ICON_DINE_IN = `<svg class="w-3 h-3 flex-shrink-0" fill="currentColor" aria-hidden="true"><use href="#icon-dine-in"/></svg>`;
-const ICON_DELIVERY = `<svg class="w-3 h-3 flex-shrink-0" fill="currentColor" aria-hidden="true"><use href="#icon-delivery"/></svg>`;
+const ICON_DINE_IN = `<svg class="w-3 h-3 shrink-0" fill="currentColor" aria-hidden="true"><use href="#icon-dine-in"/></svg>`;
+const ICON_DELIVERY = `<svg class="w-3 h-3 shrink-0" fill="currentColor" aria-hidden="true"><use href="#icon-delivery"/></svg>`;
 let currentDishes = [];
 let newDishRating = 1; // 1 for up, 0 for down
 let editingDishIndex = -1;
@@ -564,7 +564,7 @@ function renderCard(r) {
   header.appendChild(titleLink);
 
   const metaDiv = document.createElement('div');
-  metaDiv.className = 'flex items-center space-x-2 flex-shrink-0';
+  metaDiv.className = 'flex items-center space-x-2 shrink-0';
 
   const makeBadge = (html, title) => {
     const b = document.createElement('span');
@@ -618,7 +618,7 @@ function renderCard(r) {
   const cityEl = document.createElement('div');
   cityEl.className = 'flex items-center text-gray-500 truncate mr-2';
   if (r.city) {
-    cityEl.innerHTML = `<svg class="w-4 h-4 text-gray-400 mr-1 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg><span class="truncate">${escapeHtml(r.city)}</span>`;
+    cityEl.innerHTML = `<svg class="w-4 h-4 text-gray-400 mr-1 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg><span class="truncate">${escapeHtml(r.city)}</span>`;
   }
   secondLine.appendChild(cityEl);
 
@@ -657,7 +657,7 @@ function renderCard(r) {
   // Price
   if (r.priceLevel) {
     const priceSpan = document.createElement('div');
-    priceSpan.className = 'font-semibold text-gray-500 font-mono tracking-widest flex-shrink-0';
+    priceSpan.className = 'font-semibold text-gray-500 font-mono tracking-widest shrink-0';
     priceSpan.textContent = '$'.repeat(r.priceLevel);
     thirdLine.appendChild(priceSpan);
   }
@@ -711,7 +711,7 @@ function renderCard(r) {
       headerDiv.className = 'flex items-center gap-2';
 
       const ratingIcon = document.createElement('span');
-      ratingIcon.className = 'flex-shrink-0 mt-0.5';
+      ratingIcon.className = 'shrink-0 mt-0.5';
       if (d.rating === 1) { // Up
         ratingIcon.innerHTML = `
                 <div class="p-1 rounded-md bg-green-100 text-green-700">
@@ -1079,7 +1079,7 @@ function renderDishesList() {
       headerDiv.className = 'flex items-center gap-2';
 
       const ratingIcon = document.createElement('span');
-      ratingIcon.className = 'flex-shrink-0 mt-0.5'; // Align slightly
+      ratingIcon.className = 'shrink-0 mt-0.5'; // Align slightly
       if (dish.rating === 1) {
         // Soft Green Badge
         ratingIcon.innerHTML = `
