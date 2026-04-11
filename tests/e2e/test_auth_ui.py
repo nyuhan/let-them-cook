@@ -1,10 +1,12 @@
-"""E2E auth tests: login, logout, 2FA setup/disable, and LOGIN_DISABLED mode."""
+"""E2E auth tests: login, logout, 2FA setup/disable, CSRF, and LOGIN_DISABLED mode."""
 
 import sqlite3
 import pyotp
 import pytest
+import requests
 
 import app as app_module
+from tests.e2e.conftest import _extract_input_csrf_token
 
 _PASSWORD = "letthemcook"
 
@@ -302,3 +304,78 @@ class TestLoginDisabled:
         assert resp.status == 404
         resp2 = unauthed_page.request.get(login_disabled_server + "/set-up-2fa")
         assert resp2.status == 404
+
+
+# ---------------------------------------------------------------------------
+# CSRF helpers
+# ---------------------------------------------------------------------------
+
+
+def _login_session(base_url):
+    """Return a requests.Session logged in via the CSRF-protected login form."""
+    s = requests.Session()
+    login_page = s.get(f"{base_url}/login")
+    token = _extract_input_csrf_token(login_page.text)
+    s.post(
+        f"{base_url}/login",
+        data={"password": _PASSWORD, "totp_code": "", "csrf_token": token},
+    )
+    return s
+
+
+# ---------------------------------------------------------------------------
+# TestCSRF
+# ---------------------------------------------------------------------------
+
+
+class TestCSRF:
+    def test_login_without_csrf_token_rejected(self, live_server):
+        """POST /login without a CSRF token returns 400."""
+        resp = requests.post(
+            f"{live_server}/login",
+            data={"password": _PASSWORD, "totp_code": ""},
+        )
+        assert resp.status_code == 400
+
+    def test_settings_post_without_csrf_token_rejected(self, live_server):
+        """POST /settings without a CSRF token returns 400."""
+        s = _login_session(live_server)
+        resp = s.post(
+            f"{live_server}/settings",
+            data={
+                "current_password": _PASSWORD,
+                "new_password": "newpassword1",
+                "confirm_password": "newpassword1",
+            },
+        )
+        assert resp.status_code == 400
+
+    def test_api_post_without_csrf_rejected(self, live_server):
+        """POST /api/restaurants without X-CSRFToken returns 400."""
+        s = _login_session(live_server)
+        resp = s.post(
+            f"{live_server}/api/restaurants",
+            json={
+                "id": "t",
+                "name": "T",
+                "diningOptions": "dine-in",
+                "rating": 3,
+                "address": "1 St",
+                "city": "C",
+            },
+        )
+        assert resp.status_code == 400
+
+    def test_api_put_without_csrf_rejected(self, live_server, seed):
+        """PUT /api/restaurants/<id> without X-CSRFToken returns 400."""
+        seed()
+        s = _login_session(live_server)
+        resp = s.put(f"{live_server}/api/restaurants/place_abc", json={"notes": "x"})
+        assert resp.status_code == 400
+
+    def test_api_delete_without_csrf_rejected(self, live_server, seed):
+        """DELETE /api/restaurants/<id> without X-CSRFToken returns 400."""
+        seed()
+        s = _login_session(live_server)
+        resp = s.delete(f"{live_server}/api/restaurants/place_abc")
+        assert resp.status_code == 400

@@ -1,3 +1,4 @@
+import re
 import threading
 import sqlite3
 import requests
@@ -65,7 +66,12 @@ def _auth_state():
         conn.close()
 
         with flask_app.test_client() as client:
-            client.post("/login", data={"password": _PASSWORD, "totp_code": ""})
+            login_page = client.get("/login")
+            token = _extract_input_csrf_token(login_page.data.decode())
+            client.post(
+                "/login",
+                data={"password": _PASSWORD, "totp_code": "", "csrf_token": token},
+            )
             cookie_value = client.get_cookie("session").value
 
     app_module.DATABASE = original_db
@@ -98,7 +104,12 @@ def context(browser, _auth_state):
 def seed(live_server):
     """Factory to POST a restaurant to the live server. Returns the data dict."""
     session = requests.Session()
-    session.post(f"{live_server}/login", data={"password": _PASSWORD, "totp_code": ""})
+    login_page = session.get(f"{live_server}/login")
+    token = _extract_input_csrf_token(login_page.text)
+    session.post(
+        f"{live_server}/login",
+        data={"password": _PASSWORD, "totp_code": "", "csrf_token": token},
+    )
 
     def _seed(**overrides):
         data = {
@@ -115,7 +126,11 @@ def seed(live_server):
             "types": [],
         }
         data.update(overrides)
-        resp = session.post(f"{live_server}/api/restaurants", json=data)
+        resp = session.post(
+            f"{live_server}/api/restaurants",
+            json=data,
+            headers={"X-CSRFToken": token},
+        )
         assert resp.status_code == 201, f"Seed failed: {resp.text}"
         return data
 
@@ -137,3 +152,15 @@ def unauthed_page(browser):
     p.set_default_timeout(10000)
     yield p
     ctx.close()
+
+
+# ---------------------------------------------------------------------------
+# CSRF helpers
+# ---------------------------------------------------------------------------
+
+
+def _extract_input_csrf_token(html):
+    """Pull the csrf_token value from a hidden input in HTML."""
+    m = re.search(r'<input[^>]*name="csrf_token"[^>]*value="([^"]+)"', html)
+    assert m, "csrf_token hidden input not found in HTML"
+    return m.group(1)

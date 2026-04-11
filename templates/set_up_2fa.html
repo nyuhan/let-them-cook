@@ -28,6 +28,7 @@
     </div>
 
     <form method="POST" action="{{ url_for('set_up_2fa') }}" class="space-y-4">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-1" for="totp_code">Verification Code</label>
         <input type="text" id="totp_code" name="totp_code" inputmode="numeric" pattern="[0-9]*" maxlength="6" required
