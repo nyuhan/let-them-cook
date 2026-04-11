@@ -6,7 +6,7 @@ import pytest
 import requests
 
 import app as app_module
-from tests.e2e.conftest import _extract_input_csrf_token, _extract_meta_csrf_token
+from tests.e2e.conftest import _extract_input_csrf_token
 
 _PASSWORD = "letthemcook"
 
