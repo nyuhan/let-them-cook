@@ -1,3 +1,4 @@
+import re
 import threading
 import sqlite3
 import requests
@@ -23,7 +24,7 @@ def live_server(tmp_path):
     app_module._init_db(conn)
     conn.close()
 
-    flask_app.config.update({"TESTING": False, "WTF_CSRF_ENABLED": False})
+    flask_app.config.update({"TESTING": False})
 
     server = make_server("127.0.0.1", 0, flask_app)
     port = server.server_address[1]
@@ -59,14 +60,18 @@ def _auth_state():
         db_path = f"{tmp}/auth.db"
         app_module.DATABASE = db_path
         flask_app.secret_key = _TEST_SECRET_KEY
-        flask_app.config["WTF_CSRF_ENABLED"] = False
 
         conn = sqlite3.connect(db_path)
         app_module._init_db(conn)
         conn.close()
 
         with flask_app.test_client() as client:
-            client.post("/login", data={"password": _PASSWORD, "totp_code": ""})
+            login_page = client.get("/login")
+            token = _extract_csrf_token(login_page.data.decode())
+            client.post(
+                "/login",
+                data={"password": _PASSWORD, "totp_code": "", "csrf_token": token},
+            )
             cookie_value = client.get_cookie("session").value
 
     app_module.DATABASE = original_db
@@ -99,7 +104,13 @@ def context(browser, _auth_state):
 def seed(live_server):
     """Factory to POST a restaurant to the live server. Returns the data dict."""
     session = requests.Session()
-    session.post(f"{live_server}/login", data={"password": _PASSWORD, "totp_code": ""})
+    login_page = session.get(f"{live_server}/login")
+    token = _extract_csrf_token(login_page.text)
+    session.post(
+        f"{live_server}/login",
+        data={"password": _PASSWORD, "totp_code": "", "csrf_token": token},
+    )
+    csrf_token = _extract_meta_csrf_token(session, live_server)
 
     def _seed(**overrides):
         data = {
@@ -116,7 +127,11 @@ def seed(live_server):
             "types": [],
         }
         data.update(overrides)
-        resp = session.post(f"{live_server}/api/restaurants", json=data)
+        resp = session.post(
+            f"{live_server}/api/restaurants",
+            json=data,
+            headers={"X-CSRFToken": csrf_token},
+        )
         assert resp.status_code == 201, f"Seed failed: {resp.text}"
         return data
 
@@ -138,3 +153,25 @@ def unauthed_page(browser):
     p.set_default_timeout(10000)
     yield p
     ctx.close()
+
+
+# ---------------------------------------------------------------------------
+# CSRF helpers
+# ---------------------------------------------------------------------------
+
+
+def _extract_csrf_token(html):
+    """Pull the csrf_token value from a hidden input in HTML."""
+    m = re.search(r'name="csrf_token"[^>]*value="([^"]+)"', html)
+    if not m:
+        m = re.search(r'value="([^"]+)"[^>]*name="csrf_token"', html)
+    assert m, "csrf_token hidden input not found in HTML"
+    return m.group(1)
+
+
+def _extract_meta_csrf_token(session, base_url):
+    """Fetch the index page and extract the CSRF token from the meta tag."""
+    resp = session.get(f"{base_url}/")
+    m = re.search(r'<meta name="csrf-token" content="([^"]+)"', resp.text)
+    assert m, "csrf-token meta tag not found"
+    return m.group(1)

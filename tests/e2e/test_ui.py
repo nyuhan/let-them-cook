@@ -37,6 +37,11 @@ def _goto(page, url):
     page.wait_for_load_state("networkidle")
 
 
+def _csrf_token(page):
+    """Extract the CSRF token from the page's meta tag."""
+    return page.locator('meta[name="csrf-token"]').get_attribute("content")
+
+
 def _click_card(page, name):
     """Click a restaurant card by name to trigger enterEditMode.
 
@@ -546,7 +551,10 @@ class TestFilterDropdowns:
         assert "American" in option_texts
 
         # Delete the Japanese restaurant via API
-        page.request.delete(f"{live_server}/api/restaurants/d1")
+        page.request.delete(
+            f"{live_server}/api/restaurants/d1",
+            headers={"X-CSRFToken": _csrf_token(page)},
+        )
 
         # Reload page — Japanese cuisine should no longer appear
         _goto(page, live_server)
@@ -706,7 +714,10 @@ class TestGoogleMaps:
         page.request.put(
             f"{live_server}/api/restaurants/{rest_id}",
             data=json.dumps({"name": "Stale Name", "address": "Old Address"}),
-            headers={"Content-Type": "application/json"},
+            headers={
+                "Content-Type": "application/json",
+                "X-CSRFToken": _csrf_token(page),
+            },
         )
 
         # Reload page to pick up the stale data
