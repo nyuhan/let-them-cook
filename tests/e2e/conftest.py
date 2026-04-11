@@ -67,7 +67,7 @@ def _auth_state():
 
         with flask_app.test_client() as client:
             login_page = client.get("/login")
-            token = _extract_csrf_token(login_page.data.decode())
+            token = _extract_input_csrf_token(login_page.data.decode())
             client.post(
                 "/login",
                 data={"password": _PASSWORD, "totp_code": "", "csrf_token": token},
@@ -105,12 +105,11 @@ def seed(live_server):
     """Factory to POST a restaurant to the live server. Returns the data dict."""
     session = requests.Session()
     login_page = session.get(f"{live_server}/login")
-    token = _extract_csrf_token(login_page.text)
+    token = _extract_input_csrf_token(login_page.text)
     session.post(
         f"{live_server}/login",
         data={"password": _PASSWORD, "totp_code": "", "csrf_token": token},
     )
-    csrf_token = _extract_meta_csrf_token(session, live_server)
 
     def _seed(**overrides):
         data = {
@@ -130,7 +129,7 @@ def seed(live_server):
         resp = session.post(
             f"{live_server}/api/restaurants",
             json=data,
-            headers={"X-CSRFToken": csrf_token},
+            headers={"X-CSRFToken": token},
         )
         assert resp.status_code == 201, f"Seed failed: {resp.text}"
         return data
@@ -160,18 +159,8 @@ def unauthed_page(browser):
 # ---------------------------------------------------------------------------
 
 
-def _extract_csrf_token(html):
+def _extract_input_csrf_token(html):
     """Pull the csrf_token value from a hidden input in HTML."""
-    m = re.search(r'name="csrf_token"[^>]*value="([^"]+)"', html)
-    if not m:
-        m = re.search(r'value="([^"]+)"[^>]*name="csrf_token"', html)
+    m = re.search(r'<input[^>]*name="csrf_token"[^>]*value="([^"]+)"', html)
     assert m, "csrf_token hidden input not found in HTML"
-    return m.group(1)
-
-
-def _extract_meta_csrf_token(session, base_url):
-    """Fetch the index page and extract the CSRF token from the meta tag."""
-    resp = session.get(f"{base_url}/")
-    m = re.search(r'<meta name="csrf-token" content="([^"]+)"', resp.text)
-    assert m, "csrf-token meta tag not found"
     return m.group(1)
