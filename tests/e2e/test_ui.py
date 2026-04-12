@@ -434,6 +434,9 @@ class TestFilterDropdowns:
         _goto(page, live_server)
         assert _card_locators(page).count() == 4
 
+        # Clear filters button should not be visible before any filter is applied
+        assert not page.locator("#top-clear-filters-btn").is_visible()
+
         # Type: dine-in  (should match dine-in + both)
         _select_dropdown_option(page, "Dining Options", "dine-in")
         page.wait_for_timeout(300)

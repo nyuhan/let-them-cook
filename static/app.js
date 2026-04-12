@@ -480,7 +480,7 @@ function filterAndRender() {
 
   const hasActiveFilters = searchInput || diningOptions || city || cuisine || minRating > 0 || price || status;
   const topClearBtn = document.getElementById('top-clear-filters-btn');
-  if (topClearBtn) topClearBtn.classList.toggle('hidden', !hasActiveFilters);
+  if (topClearBtn) topClearBtn.classList.toggle('!hidden', !hasActiveFilters);
 
   const filtered = restaurantsCache.filter(r => {
     if (r.wishlisted !== activeWishlistFilter) return false;
