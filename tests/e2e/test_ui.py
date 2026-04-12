@@ -1202,10 +1202,15 @@ class TestWishlistPills:
         # Card should disappear from "Want to go" view — empty state shown
         page.locator("text=Nothing here yet").wait_for(state="visible")
 
-        # Switch to "Visited" — card should now appear
+        # Switch to "Visited" — card should now appear with correct rating
         page.locator("#pill-visited").click()
         page.wait_for_timeout(300)
         assert "Want To Go Place" in _card_names(page)
+
+        # Open edit modal and verify rating was saved
+        _click_card(page, "Want To Go Place")
+        page.locator("#restaurant-modal").wait_for(state="visible")
+        assert page.locator("#rating-stars").get_attribute("data-rating") == "3"
 
     def test_mark_as_visited_from_edit_modal(self, live_server, seed, page):
         seed(id="wl_r1", name="Want To Go Place", wishlisted=True, rating=None)
@@ -1228,16 +1233,25 @@ class TestWishlistPills:
         mark_visited_modal = page.locator("#mark-visited-modal")
         mark_visited_modal.wait_for(state="visible")
 
+        # Pick 4 stars (0-indexed: click the 4th star)
+        page.locator("#mark-visited-stars svg").nth(3).click()
+        assert page.locator("#mark-visited-stars").get_attribute("data-rating") == "4"
+
         page.locator("#confirm-mark-visited-btn").click()
         mark_visited_modal.wait_for(state="hidden")
 
         # Edit modal should also close
         modal.wait_for(state="hidden")
 
-        # Restaurant now in "Visited" view
+        # Restaurant now in "Visited" view with rating 4
         page.locator("#pill-visited").click()
         page.wait_for_timeout(300)
         assert "Want To Go Place" in _card_names(page)
+
+        # Open edit modal and verify rating was saved
+        _click_card(page, "Want To Go Place")
+        page.locator("#restaurant-modal").wait_for(state="visible")
+        assert page.locator("#rating-stars").get_attribute("data-rating") == "4"
 
     def test_wishlist_toggle_shows_hides_rating_stars(self, live_server, seed, page):
         seed(id="vis_r1", name="Visited Place")
