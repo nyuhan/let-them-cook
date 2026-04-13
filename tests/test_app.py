@@ -175,6 +175,15 @@ class TestCreateRestaurant:
         )
         assert resp.status_code == 400
 
+    def test_duplicate_dish_name_rejected(self, client, seed_restaurant):
+        dishes = [
+            {"name": "Pizza", "rating": 1},
+            {"name": "Pizza", "rating": 0},
+        ]
+        _, resp = seed_restaurant(dishes=dishes)
+        assert resp.status_code == 400
+        assert "Duplicate dish: Pizza" in resp.get_json()["error"]
+
     def test_dish_with_invalid_rating_skipped(self, client, seed_restaurant):
         dishes = [
             {"name": "Good", "rating": 1},
@@ -541,6 +550,46 @@ class TestUpdateRestaurant:
         assert dishes[1]["name"] == "NewDish"
         assert dishes[1]["rating"] == 1
         assert dishes[1]["notes"] is None
+
+    def test_duplicate_dish_name_on_insert_rejected(self, client, seed_restaurant):
+        seed_restaurant(id="r1")
+        resp = client.put(
+            "/api/restaurants/r1",
+            json={
+                "dishes": [
+                    {"name": "Burger", "rating": 1},
+                    {"name": "Burger", "rating": 0},
+                ]
+            },
+        )
+        assert resp.status_code == 400
+        assert "Duplicate dish: Burger" in resp.get_json()["error"]
+
+    def test_duplicate_dish_name_on_update_rejected(self, client, seed_restaurant):
+        seed_restaurant(
+            id="r1",
+            dishes=[
+                {"name": "Burger", "rating": 1},
+                {"name": "Fries", "rating": 1},
+            ],
+        )
+        listing = client.get("/api/restaurants").get_json()
+        dishes = listing[0]["dishes"]
+        burger_id = next(d["id"] for d in dishes if d["name"] == "Burger")
+        fries_id = next(d["id"] for d in dishes if d["name"] == "Fries")
+
+        # Rename both dishes to the same name
+        resp = client.put(
+            "/api/restaurants/r1",
+            json={
+                "dishes": [
+                    {"id": burger_id, "name": "Samename", "rating": 1},
+                    {"id": fries_id, "name": "Samename", "rating": 1},
+                ]
+            },
+        )
+        assert resp.status_code == 400
+        assert "Duplicate dish: Samename" in resp.get_json()["error"]
 
     def test_promote_wishlisted_to_visited(self, client, seed_restaurant):
         seed_restaurant(

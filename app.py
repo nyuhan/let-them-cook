@@ -465,6 +465,14 @@ def restaurants():
         )
 
         if dishes and isinstance(dishes, list):
+            seen = set()
+            for dish in dishes:
+                d_name = dish.get("name")
+                if d_name:
+                    if d_name in seen:
+                        return jsonify({"error": f"Duplicate dish: {d_name}"}), 400
+                    seen.add(d_name)
+
             dishes_params = []
             for dish in dishes:
                 d_name = dish.get("name")
@@ -665,6 +673,14 @@ def update_restaurant(rest_id):
 
     dishes = data.get("dishes")
     if dishes is not None and isinstance(dishes, list):
+        seen = set()
+        for dish in dishes:
+            d_name = dish.get("name")
+            if d_name:
+                if d_name in seen:
+                    return jsonify({"error": f"Duplicate dish: {d_name}"}), 400
+                seen.add(d_name)
+
         cur = db.execute("SELECT rowid FROM dishes WHERE restaurant_id = ?", (rest_id,))
         existing_ids = set(row["rowid"] for row in cur.fetchall())
 

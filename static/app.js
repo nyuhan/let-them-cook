@@ -1305,7 +1305,7 @@ document.addEventListener('DOMContentLoaded', () => {
           filterAndRender();
         }
       } catch (err) {
-        showMessage('Network error', true);
+        showMessage('Something went wrong', true);
       }
     });
   } else {
@@ -1659,7 +1659,7 @@ document.addEventListener('DOMContentLoaded', () => {
           showMessage('Failed to mark as visited', true);
         }
       } catch (err) {
-        showMessage('Network error', true);
+        showMessage('Something went wrong', true);
       }
     });
   }
