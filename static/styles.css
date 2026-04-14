@@ -8,6 +8,13 @@ body {
 	max-width: 64rem
 }
 
+/* show dish action buttons on touch devices (no-hover) unconditionally */
+@media (hover: none) {
+	.dish-actions {
+		opacity: 1;
+	}
+}
+
 /* make star SVGs align better */
 .star {
 	vertical-align: middle

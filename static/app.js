@@ -1116,7 +1116,7 @@ function renderDishesList() {
       dishEl.appendChild(contentDiv);
 
       const actionsDiv = document.createElement('div');
-      actionsDiv.className = 'flex items-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity';
+      actionsDiv.className = 'dish-actions flex items-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity';
 
       const editBtn = document.createElement('button');
       editBtn.type = 'button';
