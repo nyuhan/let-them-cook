@@ -16,7 +16,7 @@ A self-hosted personal restaurant tracker.
 
 A Google Maps API Key with **Places API (New)** enabled is required. If you don't already have one, follow the official [setup guide](https://developers.google.com/maps/documentation/places/web-service/get-api-key).
 
-You will be asked to set up billing; however, it's practically free for personal use thanks to the generous free quota. Note that Google's pricing models may change over time. As with any API service, always manage your billing settings at your own discretion.
+You will be asked to set up billing; however, it's effectively free for personal use thanks to the generous free quota. Note that Google's pricing models may change over time. As with any API service, always manage your billing settings at your own discretion.
 
 It's strongly recommended to [apply API key restrictions](https://docs.cloud.google.com/docs/authentication/api-keys#api_key_restrictions) to prevent unauthorized use. Because the key is visible in the page source, anyone with access to the page could technically see it.
 
@@ -28,15 +28,15 @@ By default, the web UI is accessible at `<host-ip>:5000`. The default password i
 
 ```yaml
 services:
-    let-them-cook:
+  let-them-cook:
     image: nyuhan/let-them-cook:latest
     container_name: let-them-cook
     ports:
-        - "5000:5000"
+      - "5000:5000"
     environment:
-        GOOGLE_MAPS_API_KEY: '<YOUR_API_KEY>'
+      GOOGLE_MAPS_API_KEY: '<YOUR_API_KEY>'
     volumes:
-        - /path/to/data:/data
+      - /path/to/data:/data
     restart: unless-stopped
 ```
 
