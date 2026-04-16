@@ -9,7 +9,7 @@ A self-hosted personal restaurant tracker.
 * Save places you have visited and keep a separate wishlist for restaurants you want to try.
 * Keep useful context for each spot: location, map links, price range, opening hours, and cuisines, etc.
 * Track restaurants and dishes with ratings and personal notes.
-* Browse your list by city, cuisine and more to quickly find the right option for any plan.
+* Filter by city, cuisine, and more to quickly find the right option.
 * Mobile-friendly on desktop and phone, with installable PWA support.
 
 ## Prerequisites
