@@ -96,7 +96,7 @@ function initAutocomplete() {
     await place.fetchFields({
       fields: ['displayName', 'formattedAddress', 'location', 'addressComponents', 'googleMapsLinks', 'googleMapsURI', 'types', 'priceLevel', 'regularOpeningHours', 'utcOffsetMinutes'],
     });
-    console.log('Place', JSON.stringify(place.toJSON(), /* replacer */ null, /* space */ 2));
+    if (window.DEBUG) console.log(JSON.stringify(place.toJSON(), /* replacer */ null, /* space */ 2));
 
     if (place && place.id) {
       // Check if restaurant already exists
