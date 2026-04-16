@@ -1,6 +1,17 @@
 # Let Them Cook
 
-A simple Flask application to record and manage your favorite restaurants. Features include restaurant details, ratings, types (dine-in/delivery), and city filtering, powered by Google Places API and SQLite.
+A personal restaurant tracker that helps you remember where to eat next, what you already tried, and which dishes were actually worth ordering again.
+
+![Let Them Cook screenshot](screenshot.png)
+
+## Features
+
+* Save places you have visited and keep a separate wishlist for restaurants you want to try.
+* Keep useful context for each spot: location, map links, price range, opening hours, and personal notes.
+* Track individual dishes so you can remember what to order again (and what to skip).
+* Browse your list by city and cuisine to quickly find the right option for any plan.
+* Mobile-friendly on desktop and phone, with installable PWA support.
+* Protect your data with password login and optional two-factor authentication.
 
 ## Running Locally
 
