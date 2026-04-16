@@ -1,27 +1,72 @@
 # Let Them Cook
 
-A personal restaurant tracker that helps you remember where to eat next, what you already tried, and which dishes were actually worth ordering again.
+A self-hosted personal restaurant tracker.
 
 ![Let Them Cook screenshot](screenshot.png)
 
 ## Features
 
 * Save places you have visited and keep a separate wishlist for restaurants you want to try.
-* Keep useful context for each spot: location, map links, price range, opening hours, and personal notes.
-* Track individual dishes so you can remember what to order again (and what to skip).
-* Browse your list by city and cuisine to quickly find the right option for any plan.
+* Keep useful context for each spot: location, map links, price range, opening hours, and cuisines, etc.
+* Track restaurants and dishes with ratings and personal notes.
+* Browse your list by city, cuisine and more to quickly find the right option for any plan.
 * Mobile-friendly on desktop and phone, with installable PWA support.
-* Protect your data with password login and optional two-factor authentication.
 
-## Running Locally
+## Prerequisites
 
-### Prerequisites
+A Google Maps API Key with **Places API (New)** enabled is required. If you don't already have one, follow the official [setup guide](https://developers.google.com/maps/documentation/places/web-service/get-api-key).
+
+You will be asked to set up billing; however, it's practically free for personal use thanks to the generous free quota. Note that Google's pricing models may change over time. As with any API service, always manage your billing settings at your own discretion.
+
+It's strongly recommended to [apply API key restrictions](https://docs.cloud.google.com/docs/authentication/api-keys#api_key_restrictions) to prevent unauthorized use. Because the key is visible in the page source, anyone with access to the page could technically see it.
+
+## Running with Docker
+
+By default, the web UI is accessible at `<host-ip>:5000`. The default password is `letthemcook`. Be sure to change the password via the settings page if you plan to expose the app to the internet.
+
+### Docker Compose
+
+```yaml
+services:
+    let-them-cook:
+    image: nyuhan/let-them-cook:latest
+    container_name: let-them-cook
+    ports:
+        - "5000:5000"
+    environment:
+        GOOGLE_MAPS_API_KEY: '<YOUR_API_KEY>'
+    volumes:
+        - /path/to/data:/data
+    restart: unless-stopped
+```
+
+### Docker Run
+
+```bash
+docker run -d \
+  --name let-them-cook \
+  -p 5000:5000 \
+  -e GOOGLE_MAPS_API_KEY='<YOUR_API_KEY>' \
+  -v /path/to/data:/data \
+  --restart unless-stopped \
+  nyuhan/let-them-cook:latest
+```
+
+### Environemnt Variables
+
+| Name                | Description                                             |
+| ------------------- | ------------------------------------------------------- |
+| GOOGLE_MAPS_API_KEY | Required                                                |
+| DISABLE_LOGIN       | Optional. Disables the login feature. Use with caution. |
+
+## Development
+
+### Requirements
 
 * Python 3.9+
-* A Google Maps API Key with **Places API** and **Maps JavaScript API** enabled.
 * The [Tailwind CSS standalone CLI](https://github.com/tailwindlabs/tailwindcss/releases/download/v4.2.2/tailwindcss-linux-x64) installed and available on your `PATH` as `tailwindcss`.
 
-### Setup
+### Running locally
 
 1. **Create a virtual environment and install dependencies**:
 
@@ -35,7 +80,7 @@ A personal restaurant tracker that helps you remember where to eat next, what yo
     Create a `.env` file in the project root and add your Google Maps API key:
 
     ```bash
-    echo 'GOOGLE_MAPS_API_KEY="YOUR_API_KEY"' > .env
+    echo 'GOOGLE_MAPS_API_KEY=<YOUR_API_KEY>' > .env
     ```
 
 1. **Build the CSS**:
@@ -61,48 +106,7 @@ A personal restaurant tracker that helps you remember where to eat next, what yo
 
     *Note: Data will be stored in `instance/restaurants.db` by default.*
 
----
-
-## Running with Docker
-
-### Prerequisites
-
-* Docker installed on your machine.
-* A Google Maps API Key.
-
-### Build and Run
-
-1. **Build the Docker image**:
-
-    ```bash
-    docker build -t let-them-cook .
-    ```
-
-1. **Run the container**:
-    You **must** provide the API key as an environment variable and mount the data volume to `/data`.
-
-    ```bash
-    docker run -p 5000:5000 \
-      -e GOOGLE_MAPS_API_KEY="YOUR_API_KEY" \
-      -v YOUR_DATA_DIR:/data \
-      let-them-cook
-    ```
-
-1. **Access the app**:
-    Open [http://localhost:5000](http://localhost:5000) in your browser.
-
-## API Endpoints
-
-* `GET /api/restaurants` — Returns a list of all recorded restaurants.
-* `POST /api/restaurants` — Add a new restaurant.
-  * Body: `{ "name": "...", "type": "dine-in|delivery|both", "rating": 1-5, ... }`
-* `PUT /api/restaurants/<id>` — Update an existing restaurant.
-* `DELETE /api/restaurants/<id>` — Delete a restaurant.
-* `GET /api/cities` — Returns a list of distinct cities from the stored restaurants.
-
-## Testing
-
-### Prerequisites
+### Testing
 
 All test dependencies are installed inside the virtual environment:
 
@@ -112,7 +116,7 @@ pip install -r requirements.txt
 playwright install chromium
 ```
 
-### Run all tests (unit + E2E)
+#### Run all tests (unit + E2E)
 
 ```bash
 pytest
@@ -120,31 +124,31 @@ pytest
 
 This runs backend unit tests and offline E2E browser tests. Google Maps tests are excluded by default.
 
-### Run only backend unit tests
+#### Run only backend unit tests
 
 ```bash
 pytest tests/test_app.py -v
 ```
 
-### Run only E2E browser tests
+#### Run only E2E browser tests
 
 ```bash
 pytest tests/e2e/ -v
 ```
 
-### Run with visible browser (headed mode)
+#### Run with visible browser (headed mode)
 
 ```bash
 pytest tests/e2e/ -v --headed --slowmo=500
 ```
 
-### Run a specific test
+#### Run a specific test
 
 ```bash
 pytest tests/e2e/ -k "TestDishAdd" -v
 ```
 
-### Run Google Maps integration test
+#### Run Google Maps integration test
 
 Requires a valid `GOOGLE_MAPS_API_KEY` in `.env` and network access:
 
