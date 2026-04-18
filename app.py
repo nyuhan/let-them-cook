@@ -390,8 +390,12 @@ def disable_2fa():
 @login_required
 def index():
     key = os.environ.get("GOOGLE_MAPS_API_KEY")
+    restaurant_info = session.pop("share_restaurant_info", None)
     return render_template(
-        "index.html", google_api_key=key, login_disabled=LOGIN_DISABLED
+        "index.html",
+        google_api_key=key,
+        login_disabled=LOGIN_DISABLED,
+        restaurant_info=restaurant_info,
     )
 
 
@@ -400,14 +404,10 @@ def index():
 def share_target():
     text = request.args.get("text")
     url = request.args.get("url")
-    key = os.environ.get("GOOGLE_MAPS_API_KEY")
     restaurant_info = _resolve_restaurant_info(text, url) if (text or url) else None
-    return render_template(
-        "index.html",
-        google_api_key=key,
-        login_disabled=LOGIN_DISABLED,
-        restaurant_info=restaurant_info,
-    )
+    if restaurant_info:
+        session["share_restaurant_info"] = restaurant_info
+    return redirect(url_for("index"))
 
 
 def _resolve_restaurant_info(text_param, url_param):
