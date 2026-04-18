@@ -120,6 +120,7 @@ function initAutocomplete() {
   // Listen for input events to clear selection when user types or clears the input.
   placeAutocomplete.addEventListener('input', () => {
     clearSelection();
+    displayOpeningHours(null);
     clearMessage();
   });
 
@@ -129,6 +130,7 @@ function initAutocomplete() {
       // If value is empty, it means X was clicked
       if (!placeAutocomplete.value) {
         clearSelection();
+        displayOpeningHours(null);
         clearMessage();
       }
     }, 0);
