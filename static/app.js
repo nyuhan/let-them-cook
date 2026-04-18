@@ -800,6 +800,51 @@ function renderCard(r) {
   goBtn.innerHTML = `<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z"/></svg>`;
   goBtn.addEventListener('click', (e) => e.stopPropagation());
   leftActions.appendChild(goBtn);
+
+  if (r.mapUri && r.mapUri !== 'UNKNOWN') {
+    const shareBtn = document.createElement('button');
+    shareBtn.title = 'Share';
+    shareBtn.className = 'text-gray-400 hover:text-green-600 p-2 rounded-full hover:bg-green-50 transition-colors relative';
+    shareBtn.innerHTML = `<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z"/></svg>`;
+    shareBtn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const url = r.mapUri;
+      const checkmark = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>`;
+      const showCopied = () => {
+        const original = shareBtn.innerHTML;
+        shareBtn.innerHTML = checkmark;
+        shareBtn.classList.add('text-green-600');
+        setTimeout(() => { shareBtn.innerHTML = original; shareBtn.classList.remove('text-green-600'); }, 2000);
+      };
+      const copyFallback = () => {
+        // Works on HTTP / non-secure contexts
+        const ta = document.createElement('textarea');
+        ta.value = url;
+        ta.style.cssText = 'position:fixed;opacity:0;pointer-events:none';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); showCopied(); } catch (_) { }
+        document.body.removeChild(ta);
+      };
+      if (navigator.share) {
+        try {
+          await navigator.share({ title: r.name, url });
+          return;
+        } catch (err) {
+          if (err.name === 'AbortError') return;
+          // share failed (e.g. unsupported data) — fall through to copy
+        }
+      }
+      try {
+        await navigator.clipboard.writeText(url);
+        showCopied();
+      } catch (_) {
+        copyFallback();
+      }
+    });
+    leftActions.appendChild(shareBtn);
+  }
+
   footer.appendChild(leftActions);
 
   // Right: Edit/Delete
