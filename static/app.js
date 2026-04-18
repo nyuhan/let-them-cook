@@ -100,6 +100,10 @@ async function selectPlaceInForm(place) {
   };
 
   document.getElementById('place-id').value = place.id;
+
+  const placeAutocomplete = document.getElementById('place-autocomplete');
+  if (placeAutocomplete) placeAutocomplete.value = window.selectedPlaceData.name;
+
   displayAddress(window.selectedPlaceData.address);
   displayOpeningHours(window.selectedPlaceData.openingHours);
 
@@ -1738,10 +1742,6 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       await selectPlaceInForm(places[0]);
-
-      if (placeAutocomplete) {
-        placeAutocomplete.value = places[0].displayName || '';
-      }
     } catch (err) {
       console.error('[Share Target] Error:', err);
       showMessage('Could not find restaurant', true);
