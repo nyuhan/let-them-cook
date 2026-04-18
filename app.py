@@ -8,7 +8,6 @@ import secrets
 import sqlite3
 import urllib.parse
 import urllib.request
-import requests
 
 import pyotp
 import qrcode
@@ -430,14 +429,19 @@ def _resolve_restaurant_info(text_param, url_param):
     if not maps_url:
         return None
 
-    # Follow redirects to get the final google.com/maps URL
-    # maps.app.goo.gl does not support HEAD — use GET
+    # Follow redirects to get the final google.com/maps URL.
+    # maps.app.goo.gl rejects HEAD — use GET.
     try:
         # req = urllib.request.Request(maps_url, headers={"User-Agent": "Mozilla/5.0"})
         # with urllib.request.urlopen(req, timeout=5) as resp:
         #     final_url = resp.geturl()
-        response = requests.head(maps_url, allow_redirects=True)
-        final_url = response.url
+
+        req = urllib.request.Request(maps_url, method="HEAD")
+        # 2. Open the URL. urllib follows redirects by default.
+        with urllib.request.urlopen(req) as response:
+            # 3. geturl() returns the final URL after all redirects are finished
+            final_url = response.geturl()
+
         app.logger.info("[Share Target] Resolved %r to %r", maps_url, final_url)
     except Exception as e:
         app.logger.warning("[Share Target] Failed to resolve %r: %s", maps_url, e)
