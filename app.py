@@ -20,11 +20,14 @@ from flask_login import (
 from flask_wtf.csrf import CSRFProtect
 from werkzeug.security import check_password_hash, generate_password_hash
 import os
+import re
 import secrets
 import sqlite3
 import json
 import hashlib
 import io
+import urllib.request
+import urllib.parse
 import pyotp
 import qrcode
 import qrcode.image.svg
@@ -130,6 +133,9 @@ def get_db():
 
 app = Flask(__name__, static_folder="static", template_folder="templates")
 csrf = CSRFProtect(app)
+import logging
+
+app.logger.setLevel(logging.INFO)
 
 # --- Auth setup ---
 login_manager = LoginManager(app)
@@ -385,6 +391,69 @@ def index():
     return render_template(
         "index.html", google_api_key=key, login_disabled=LOGIN_DISABLED
     )
+
+
+@app.route("/share-target")
+@login_required
+def share_target():
+    title = request.args.get("title")
+    text = request.args.get("text")
+    url = request.args.get("url")
+    app.logger.info(
+        "[Share Target] title=%r text=%r url=%r",
+        title,
+        text,
+        url,
+    )
+    key = os.environ.get("GOOGLE_MAPS_API_KEY")
+    restaurant_info = _resolve_restaurant_info(text, url) if (text or url) else None
+    return render_template(
+        "index.html",
+        google_api_key=key,
+        login_disabled=LOGIN_DISABLED,
+        restaurant_info=restaurant_info,
+    )
+
+
+def _resolve_restaurant_info(text_param, url_param):
+    """Follow a Maps short link and return the parsed place name+address, or None."""
+    _ALLOWED_HOSTS = {"maps.app.goo.gl", "goo.gl", "google.com", "www.google.com"}
+
+    maps_url = None
+    candidates = ([url_param] if url_param else []) + re.findall(
+        r"https?://\S+", text_param or ""
+    )
+    for candidate in candidates:
+        try:
+            host = urllib.parse.urlparse(candidate).netloc.lower().split(":")[0]
+            if host in _ALLOWED_HOSTS:
+                maps_url = candidate
+                break
+        except Exception:
+            continue
+
+    if not maps_url:
+        return None
+
+    # Follow redirects to get the final google.com/maps URL
+    # maps.app.goo.gl does not support HEAD — use GET
+    try:
+        req = urllib.request.Request(maps_url, headers={"User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            final_url = resp.geturl()
+    except Exception as e:
+        app.logger.warning("[Share Target] Failed to resolve %r: %s", maps_url, e)
+        return None
+
+    # Parse /maps/place/NAME+ADDRESS/ from the final URL path
+    match = re.search(r"/maps/place/([^/?]+)", final_url)
+    if not match:
+        app.logger.warning("[Share Target] No place path in final URL: %r", final_url)
+        return None
+
+    place_query = urllib.parse.unquote_plus(match.group(1))
+    app.logger.info("[Share Target] Place query: %r", place_query)
+    return place_query
 
 
 @app.route("/api/cities")

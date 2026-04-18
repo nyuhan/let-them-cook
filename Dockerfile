@@ -23,4 +23,4 @@ ENV SQLITE_FILE_PATH=/data/restaurants.db
 EXPOSE 5000
 
 ENTRYPOINT ["./entrypoint.sh"]
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "app:app"]
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--access-logfile", "-", "app:app"]
