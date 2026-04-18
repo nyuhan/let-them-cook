@@ -1,6 +1,7 @@
 """E2E auth tests: login, logout, 2FA setup/disable, CSRF, and LOGIN_DISABLED mode."""
 
 import sqlite3
+
 import pyotp
 import pytest
 import requests

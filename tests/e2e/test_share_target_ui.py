@@ -6,8 +6,8 @@ and are excluded from the default test run (see pytest.ini).
 """
 
 import pytest
-from tests.e2e.utils import _card_locators
 
+from tests.e2e.utils import _card_locators
 
 # Params that Android sends to /share-target when a Maps link is shared.
 _SHARE_PARAMS = (

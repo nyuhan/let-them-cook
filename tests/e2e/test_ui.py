@@ -7,17 +7,18 @@ Tests marked google_maps require network + Google Maps API key in .env.
 
 import json
 import re
+
 import pytest
+
 from tests.e2e.utils import (
     _card_locators,
     _card_names,
-    _goto,
-    _csrf_token,
     _click_card,
+    _csrf_token,
+    _goto,
     _open_dropdown,
     _select_dropdown_option,
 )
-
 
 # ---------------------------------------------------------------------------
 # Empty State Renders
