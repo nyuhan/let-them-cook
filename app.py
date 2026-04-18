@@ -430,19 +430,11 @@ def _resolve_restaurant_info(text_param, url_param):
         return None
 
     # Follow redirects to get the final google.com/maps URL.
-    # maps.app.goo.gl rejects HEAD — use GET.
+    # HEAD is flaky — use GET.
     try:
-        # req = urllib.request.Request(maps_url, headers={"User-Agent": "Mozilla/5.0"})
-        # with urllib.request.urlopen(req, timeout=5) as resp:
-        #     final_url = resp.geturl()
-
-        req = urllib.request.Request(maps_url, method="HEAD")
-        # 2. Open the URL. urllib follows redirects by default.
-        with urllib.request.urlopen(req) as response:
-            # 3. geturl() returns the final URL after all redirects are finished
-            final_url = response.geturl()
-
-        app.logger.info("[Share Target] Resolved %r to %r", maps_url, final_url)
+        req = urllib.request.Request(maps_url, headers={"User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            final_url = resp.geturl()
     except Exception as e:
         app.logger.warning("[Share Target] Failed to resolve %r: %s", maps_url, e)
         return None
@@ -450,12 +442,14 @@ def _resolve_restaurant_info(text_param, url_param):
     # Parse /maps/place/NAME+ADDRESS/ from the final URL path
     match = re.search(r"/maps/place/([^/?]+)", final_url)
     if not match:
-        app.logger.warning("[Share Target] No place path in final URL: %r", final_url)
+        app.logger.warning(
+            "[Share Target] Could not parse restaurant info from URL: %r", final_url
+        )
         return None
 
-    place_query = urllib.parse.unquote_plus(match.group(1))
-    app.logger.info("[Share Target] Place query: %r", place_query)
-    return place_query
+    restaurant_info = urllib.parse.unquote_plus(match.group(1))
+    app.logger.info("[Share Target] Parsed restaurant info: %r", restaurant_info)
+    return restaurant_info
 
 
 @app.route("/api/cities")
