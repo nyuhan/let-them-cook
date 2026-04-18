@@ -6,6 +6,7 @@ import os
 import re
 import secrets
 import sqlite3
+import time
 import urllib.parse
 import urllib.request
 
@@ -429,22 +430,37 @@ def _resolve_restaurant_info(text_param, url_param):
     if not maps_url:
         return None
 
-    # Follow redirects to get the final google.com/maps URL.
-    # HEAD is flaky — use GET.
-    try:
-        req = urllib.request.Request(maps_url, headers={"User-Agent": "Mozilla/5.0"})
-        with urllib.request.urlopen(req, timeout=5) as resp:
-            final_url = resp.geturl()
-    except Exception as e:
-        app.logger.warning("[Share Target] Failed to resolve %r: %s", maps_url, e)
+    # Short URLs may take a moment to propagate after creation — retry with
+    # exponential backoff until the redirect resolves to a Maps place URL.
+    final_url = None
+    delay = 0.1
+    for attempt in range(5):
+        try:
+            req = urllib.request.Request(maps_url, method="HEAD")
+            with urllib.request.urlopen(req, timeout=5) as resp:
+                resolved = resp.geturl()
+            if "/maps/place/" in resolved:
+                final_url = resolved
+                break
+            app.logger.warning(
+                "[Share Target] Attempt %d: resolved to %r (no place path yet)",
+                attempt + 1,
+                resolved,
+            )
+        except Exception as e:
+            app.logger.warning(
+                "[Share Target] Attempt %d failed for %r: %s", attempt + 1, maps_url, e
+            )
+        if attempt < 4:
+            time.sleep(delay)
+            delay *= 2
+
+    if not final_url:
         return None
 
     # Parse /maps/place/NAME+ADDRESS/ from the final URL path
     match = re.search(r"/maps/place/([^/?]+)", final_url)
     if not match:
-        app.logger.warning(
-            "[Share Target] Could not parse restaurant info from URL: %r", final_url
-        )
         return None
 
     return urllib.parse.unquote_plus(match.group(1))
