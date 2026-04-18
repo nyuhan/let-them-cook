@@ -194,6 +194,7 @@ class TestEditRestaurant:
             diningOptions="delivery",
             rating=3,
             notes="Spicy food",
+            address="123 Main St",
             dishes=[{"name": "Taco", "rating": 1}, {"name": "Burrito", "rating": 0}],
         )
 
@@ -208,6 +209,11 @@ class TestEditRestaurant:
         assert page.locator("#modal-title").text_content().strip() == "Restaurant"
         assert page.locator("#edit-name-display").text_content().strip() == "Taco Spot"
         assert page.locator("#place-autocomplete").is_hidden()
+
+        # Address section should be visible and show the address
+        address_container = page.locator("#address-container")
+        assert address_container.is_visible()
+        assert "123 Main St" in address_container.text_content()
 
         # Delivery button should be active
         delivery_btn = page.locator(
@@ -654,6 +660,8 @@ class TestGoogleMaps:
             timeout=15000,
         )
         assert submit.is_enabled()
+        assert page.locator("#address-container").is_visible()
+        assert page.locator("#opening-hours-container").is_visible()
 
         # Submit
         submit.click()
@@ -696,6 +704,17 @@ class TestGoogleMaps:
         refreshed_name = page.locator("#edit-name-display").text_content().strip()
         assert refreshed_name != ""
         assert refreshed_name != "Stale Name"
+
+        # Address should be restored from Google Maps (no longer "Old Address")
+        address_container = page.locator("#address-container")
+        assert address_container.is_visible()
+        refreshed_address = address_container.text_content().strip()
+        assert refreshed_address != ""
+        assert "Old Address" not in refreshed_address
+
+        # Opening hours should be populated from Google Maps
+        opening_hours_container = page.locator("#opening-hours-container")
+        assert opening_hours_container.is_visible()
 
 
 # ---------------------------------------------------------------------------
@@ -1284,3 +1303,69 @@ class TestWishlistPills:
         page.wait_for_timeout(300)
         _open_dropdown(page, "Recently Added")
         assert page.locator(".sort-dropdown [data-value='rating']").is_visible()
+
+
+# ---------------------------------------------------------------------------
+# Autocomplete Clearing — input event and X-button click
+# ---------------------------------------------------------------------------
+
+
+class TestAutocompleteClearing:
+    def _open_modal_with_visible_sections(self, live_server, seed, page):
+        """Open the add modal and inject visible address + opening-hours state."""
+        seed()
+        _goto(page, live_server)
+        page.locator("#add-restaurant-btn").click()
+        page.locator("#restaurant-modal").wait_for(state="visible")
+        # Enable submit button and show both sections via JS
+        page.evaluate(
+            """() => {
+            displayAddress('99 Test Ave');
+            document.getElementById('opening-hours-container').classList.remove('hidden');
+            const btn = document.getElementById('submit-btn');
+            btn.disabled = false;
+            btn.classList.remove('opacity-50', 'cursor-not-allowed');
+        }"""
+        )
+        assert page.locator("#address-container").is_visible()
+        assert page.locator("#opening-hours-container").is_visible()
+        assert page.locator("#submit-btn").is_enabled()
+
+    def test_input_event_clears_sections_and_disables_submit(
+        self, live_server, seed, page
+    ):
+        self._open_modal_with_visible_sections(live_server, seed, page)
+
+        # Act: fire the input event
+        page.evaluate(
+            """() => {
+            const el = document.getElementById('place-autocomplete');
+            el.dispatchEvent(new Event('input', { bubbles: true }));
+        }"""
+        )
+
+        # Assert: all three reset
+        assert page.locator("#address-container").is_hidden()
+        assert page.locator("#opening-hours-container").is_hidden()
+        assert page.locator("#submit-btn").is_disabled()
+
+    def test_clear_click_clears_sections_and_disables_submit(
+        self, live_server, seed, page
+    ):
+        self._open_modal_with_visible_sections(live_server, seed, page)
+
+        # Act: simulate X-button click — empty the value then dispatch click
+        page.evaluate(
+            """() => {
+            const el = document.getElementById('place-autocomplete');
+            el.value = '';
+            el.dispatchEvent(new Event('click', { bubbles: true }));
+        }"""
+        )
+        # The handler uses setTimeout(..., 0) — wait for the microtask to flush
+        page.wait_for_timeout(50)
+
+        # Assert: all three reset
+        assert page.locator("#address-container").is_hidden()
+        assert page.locator("#opening-hours-container").is_hidden()
+        assert page.locator("#submit-btn").is_disabled()

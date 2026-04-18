@@ -100,6 +100,7 @@ async function selectPlaceInForm(place) {
   };
 
   document.getElementById('place-id').value = place.id;
+  displayAddress(window.selectedPlaceData.address);
   displayOpeningHours(window.selectedPlaceData.openingHours);
 
   const submitBtn = document.getElementById('submit-btn');
@@ -120,6 +121,7 @@ function initAutocomplete() {
   // Listen for input events to clear selection when user types or clears the input.
   placeAutocomplete.addEventListener('input', () => {
     clearSelection();
+    displayAddress(null);
     displayOpeningHours(null);
     clearMessage();
   });
@@ -130,6 +132,7 @@ function initAutocomplete() {
       // If value is empty, it means X was clicked
       if (!placeAutocomplete.value) {
         clearSelection();
+        displayAddress(null);
         displayOpeningHours(null);
         clearMessage();
       }
@@ -148,6 +151,21 @@ function initAutocomplete() {
       await selectPlaceInForm(place);
     }
   });
+}
+
+function displayAddress(address) {
+  const container = document.getElementById('address-container');
+  const display = document.getElementById('address-display');
+  if (!container || !display) return;
+
+  if (!address || address === 'UNKNOWN') {
+    container.classList.add('hidden');
+    display.innerHTML = '';
+    return;
+  }
+
+  display.innerHTML = `<span class="inline-flex items-center gap-1"><svg class="w-3.5 h-3.5 shrink-0 text-gray-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/></svg><span>${address}</span></span>`;
+  container.classList.remove('hidden');
 }
 
 function displayOpeningHours(openingHours) {
@@ -910,6 +928,7 @@ function enterEditMode(r) {
   currentDishes = (r.dishes || []).map(d => ({ ...d }));
   renderDishesList();
 
+  displayAddress(r.address);
   displayOpeningHours(r.openingHours);
 
   document.getElementById('edit-id').value = r.id;
@@ -987,6 +1006,7 @@ function closeModal() {
     notesInput.value = '';
   }
 
+  displayAddress(null);
   displayOpeningHours(null);
   clearMessage();
 
