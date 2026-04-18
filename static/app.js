@@ -988,6 +988,7 @@ function closeModal() {
   }
 
   displayOpeningHours(null);
+  clearMessage();
 
   // Reset dishes
   currentDishes = [];
