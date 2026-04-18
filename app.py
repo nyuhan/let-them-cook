@@ -447,9 +447,7 @@ def _resolve_restaurant_info(text_param, url_param):
         )
         return None
 
-    restaurant_info = urllib.parse.unquote_plus(match.group(1))
-
-    return restaurant_info
+    return urllib.parse.unquote_plus(match.group(1))
 
 
 @app.route("/api/cities")
