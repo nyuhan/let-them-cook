@@ -66,6 +66,50 @@ function clearSelection() {
   }
 }
 
+/**
+ * Validates a fetched Place and populates the add form.
+ * @param {google.maps.places.Place} place - Already-fetched Place object.
+ */
+async function selectPlaceInForm(place) {
+  try {
+    const res = await fetch(`/api/restaurants/${place.id}`);
+    if (res.ok) {
+      showMessage('Restaurant already exists', true);
+      clearSelection();
+      return;
+    }
+  } catch (_) { }
+
+  const types = place.types || [];
+  if (!types.some(t => allowedTypes.has(t))) {
+    showMessage('Selected place is not a restaurant', true);
+    clearSelection();
+    return;
+  }
+
+  window.selectedPlaceData = {
+    name: place.displayName || 'UNKNOWN',
+    address: place.formattedAddress || 'UNKNOWN',
+    city: getCity(place),
+    mapUri: place.googleMapsLinks?.placeURI || place.googleMapsURI || 'UNKNOWN',
+    directionsUri: place.googleMapsLinks?.directionsURI || 'UNKNOWN',
+    id: place.id,
+    types,
+    priceLevel: getPriceLevel(place),
+    openingHours: getOpeningHours(place),
+  };
+
+  document.getElementById('place-id').value = place.id;
+  displayOpeningHours(window.selectedPlaceData.openingHours);
+
+  const submitBtn = document.getElementById('submit-btn');
+  if (submitBtn) {
+    submitBtn.disabled = false;
+    submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+  }
+  return;
+}
+
 function initAutocomplete() {
   const placeAutocomplete = document.getElementById('place-autocomplete');
   if (!placeAutocomplete) {
@@ -98,53 +142,8 @@ function initAutocomplete() {
     });
     if (window.DEBUG) console.log(JSON.stringify(place.toJSON(), /* replacer */ null, /* space */ 2));
 
-    if (place && place.id) {
-      // Check if restaurant already exists
-      try {
-        const res = await fetch(`/api/restaurants/${place.id}`);
-        if (res.ok) {
-          showMessage('Restaurant already exists', true);
-          clearSelection();
-          return;
-        }
-      } catch (err) {
-        // Ignore network errors or 404
-      }
-
-      document.getElementById('place-id').value = place.id;
-
-      // Extract name
-      const name = place.displayName || 'UNKNOWN';
-      const address = place.formattedAddress || 'UNKNOWN';
-      const mapUri = place.googleMapsLinks?.placeURI || place.googleMapsURI || 'UNKNOWN';
-      const directionsUri = place.googleMapsLinks?.directionsURI || 'UNKNOWN';
-      const types = place.types || [];
-
-      if (!types.some(t => allowedTypes.has(t))) {
-        showMessage('Selected place is not a restaurant', true);
-        clearSelection();
-        return;
-      }
-
-      const city = getCity(place);
-
-      const priceLevel = getPriceLevel(place);
-
-      // Store in global variable for form submission
-      window.selectedPlaceData = {
-        name: name,
-        address: address,
-        city: city,
-        mapUri: mapUri,
-        directionsUri: directionsUri,
-        id: place.id,
-        types: types,
-        priceLevel: priceLevel,
-        openingHours: getOpeningHours(place),
-      };
-
-      document.getElementById('submit-btn').disabled = false;
-      document.getElementById('submit-btn').classList.remove('opacity-50', 'cursor-not-allowed');
+    if (place?.id) {
+      await selectPlaceInForm(place);
     }
   });
 }
@@ -1684,5 +1683,46 @@ document.addEventListener('DOMContentLoaded', () => {
       updateFormWishlistUI();
     });
   }
+
+  // Share target handling
+  (async () => {
+    const restaurantInfo = window.RESTAURANT_INFO;
+    if (!restaurantInfo) return;
+
+    openModal();
+    const placeAutocomplete = document.getElementById('place-autocomplete');
+
+    try {
+      // Wait for the Maps JS API to finish loading
+      await new Promise(resolve => {
+        (function check() {
+          if (window.google?.maps?.places?.Place?.searchByText) resolve();
+          else setTimeout(check, 100);
+        })();
+      });
+
+      await allowedTypesReady;
+
+      const { places } = await google.maps.places.Place.searchByText({
+        textQuery: restaurantInfo,
+        fields: ['displayName', 'formattedAddress', 'location', 'addressComponents', 'googleMapsLinks', 'googleMapsURI', 'types', 'priceLevel', 'regularOpeningHours', 'utcOffsetMinutes'],
+        maxResultCount: 1,
+      });
+
+      if (!places || places.length === 0) {
+        showMessage('Could not find restaurant', true);
+        return;
+      }
+
+      await selectPlaceInForm(places[0]);
+
+      if (placeAutocomplete) {
+        placeAutocomplete.value = places[0].displayName || '';
+      }
+    } catch (err) {
+      console.error('[Share Target] Error:', err);
+      showMessage('Could not find restaurant', true);
+    }
+  })();
 });
 

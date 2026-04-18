@@ -1,13 +1,14 @@
 import re
-import threading
 import sqlite3
-import requests
+import threading
 import time
+
 import pytest
+import requests
 from werkzeug.serving import make_server
 
-from app import app as flask_app
 import app as app_module
+from app import app as flask_app
 
 _PASSWORD = "letthemcook"
 _TEST_SECRET_KEY = "e2e-test-secret-key-fixed"

@@ -1,34 +1,40 @@
-from flask import (
-    Flask,
-    g,
-    jsonify,
-    request,
-    render_template,
-    redirect,
-    url_for,
-    session,
-    flash,
-)
-from flask_login import (
-    LoginManager,
-    UserMixin,
-    login_user,
-    logout_user,
-    login_required,
-    current_user,
-)
-from flask_wtf.csrf import CSRFProtect
-from werkzeug.security import check_password_hash, generate_password_hash
-import os
-import secrets
-import sqlite3
-import json
 import hashlib
 import io
+import json
+import logging
+import os
+import re
+import secrets
+import sqlite3
+import time
+import urllib.parse
+import urllib.request
+
 import pyotp
 import qrcode
 import qrcode.image.svg
 from dotenv import load_dotenv
+from flask import (
+    Flask,
+    flash,
+    g,
+    jsonify,
+    redirect,
+    render_template,
+    request,
+    session,
+    url_for,
+)
+from flask_login import (
+    LoginManager,
+    UserMixin,
+    current_user,
+    login_required,
+    login_user,
+    logout_user,
+)
+from flask_wtf.csrf import CSRFProtect
+from werkzeug.security import check_password_hash, generate_password_hash
 
 # Load environment variables from .env file
 load_dotenv()
@@ -130,6 +136,8 @@ def get_db():
 
 app = Flask(__name__, static_folder="static", template_folder="templates")
 csrf = CSRFProtect(app)
+
+app.logger.setLevel(logging.INFO)
 
 # --- Auth setup ---
 login_manager = LoginManager(app)
@@ -382,9 +390,80 @@ def disable_2fa():
 @login_required
 def index():
     key = os.environ.get("GOOGLE_MAPS_API_KEY")
+    restaurant_info = session.pop("share_restaurant_info", None)
     return render_template(
-        "index.html", google_api_key=key, login_disabled=LOGIN_DISABLED
+        "index.html",
+        google_api_key=key,
+        login_disabled=LOGIN_DISABLED,
+        restaurant_info=restaurant_info,
     )
+
+
+@app.route("/share-target")
+@login_required
+def share_target():
+    text = request.args.get("text")
+    url = request.args.get("url")
+    restaurant_info = _resolve_restaurant_info(text, url) if (text or url) else None
+    if restaurant_info:
+        session["share_restaurant_info"] = restaurant_info
+    return redirect(url_for("index"))
+
+
+def _resolve_restaurant_info(text_param, url_param):
+    """Follow a Maps short link and return the parsed place name+address, or None."""
+    _ALLOWED_HOSTS = {"maps.app.goo.gl", "goo.gl", "google.com", "www.google.com"}
+
+    maps_url = None
+    candidates = ([url_param] if url_param else []) + re.findall(
+        r"https?://\S+", text_param or ""
+    )
+    for candidate in candidates:
+        try:
+            host = urllib.parse.urlparse(candidate).netloc.lower().split(":")[0]
+            if host in _ALLOWED_HOSTS:
+                maps_url = candidate
+                break
+        except Exception:
+            continue
+
+    if not maps_url:
+        return None
+
+    # Short URLs may take a moment to propagate after creation — retry with
+    # exponential backoff until the redirect resolves to a Maps place URL.
+    final_url = None
+    delay = 0.1
+    for attempt in range(5):
+        try:
+            req = urllib.request.Request(maps_url, method="HEAD")
+            with urllib.request.urlopen(req, timeout=5) as resp:
+                resolved = resp.geturl()
+            if "/maps/place/" in resolved:
+                final_url = resolved
+                break
+            app.logger.warning(
+                "[Share Target] Attempt %d: resolved to %r (no place path yet)",
+                attempt + 1,
+                resolved,
+            )
+        except Exception as e:
+            app.logger.warning(
+                "[Share Target] Attempt %d failed for %r: %s", attempt + 1, maps_url, e
+            )
+        if attempt < 4:
+            time.sleep(delay)
+            delay *= 2
+
+    if not final_url:
+        return None
+
+    # Parse /maps/place/NAME+ADDRESS/ from the final URL path
+    match = re.search(r"/maps/place/([^/?]+)", final_url)
+    if not match:
+        return None
+
+    return urllib.parse.unquote_plus(match.group(1))
 
 
 @app.route("/api/cities")

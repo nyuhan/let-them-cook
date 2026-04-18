@@ -574,5 +574,6 @@
   src="https://maps.googleapis.com/maps/api/js?key={{ google_api_key }}&libraries=places&loading=async"></script>
 <script src="https://cdn.jsdelivr.net/npm/@googlemaps/js-api-loader@1.16.2/dist/index.min.js"></script>
 <script>window.DEBUG = {{ config.DEBUG | tojson }};</script>
+<script>window.RESTAURANT_INFO = {{ restaurant_info | default (none) | tojson }};</script>
 <script src="{{ versioned_url('app.js') }}"></script>
 {% endblock %}
