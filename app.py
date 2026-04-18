@@ -1,37 +1,40 @@
-from flask import (
-    Flask,
-    g,
-    jsonify,
-    request,
-    render_template,
-    redirect,
-    url_for,
-    session,
-    flash,
-)
-from flask_login import (
-    LoginManager,
-    UserMixin,
-    login_user,
-    logout_user,
-    login_required,
-    current_user,
-)
-from flask_wtf.csrf import CSRFProtect
-from werkzeug.security import check_password_hash, generate_password_hash
+import hashlib
+import io
+import json
+import logging
 import os
 import re
 import secrets
 import sqlite3
-import json
-import hashlib
-import io
-import urllib.request
 import urllib.parse
+import urllib.request
+import requests
+
 import pyotp
 import qrcode
 import qrcode.image.svg
 from dotenv import load_dotenv
+from flask import (
+    Flask,
+    flash,
+    g,
+    jsonify,
+    redirect,
+    render_template,
+    request,
+    session,
+    url_for,
+)
+from flask_login import (
+    LoginManager,
+    UserMixin,
+    current_user,
+    login_required,
+    login_user,
+    logout_user,
+)
+from flask_wtf.csrf import CSRFProtect
+from werkzeug.security import check_password_hash, generate_password_hash
 
 # Load environment variables from .env file
 load_dotenv()
@@ -133,7 +136,6 @@ def get_db():
 
 app = Flask(__name__, static_folder="static", template_folder="templates")
 csrf = CSRFProtect(app)
-import logging
 
 app.logger.setLevel(logging.INFO)
 
@@ -396,15 +398,8 @@ def index():
 @app.route("/share-target")
 @login_required
 def share_target():
-    title = request.args.get("title")
     text = request.args.get("text")
     url = request.args.get("url")
-    app.logger.info(
-        "[Share Target] title=%r text=%r url=%r",
-        title,
-        text,
-        url,
-    )
     key = os.environ.get("GOOGLE_MAPS_API_KEY")
     restaurant_info = _resolve_restaurant_info(text, url) if (text or url) else None
     return render_template(
@@ -438,9 +433,12 @@ def _resolve_restaurant_info(text_param, url_param):
     # Follow redirects to get the final google.com/maps URL
     # maps.app.goo.gl does not support HEAD — use GET
     try:
-        req = urllib.request.Request(maps_url, headers={"User-Agent": "Mozilla/5.0"})
-        with urllib.request.urlopen(req, timeout=5) as resp:
-            final_url = resp.geturl()
+        # req = urllib.request.Request(maps_url, headers={"User-Agent": "Mozilla/5.0"})
+        # with urllib.request.urlopen(req, timeout=5) as resp:
+        #     final_url = resp.geturl()
+        response = requests.head(maps_url, allow_redirects=True)
+        final_url = response.url
+        app.logger.info("[Share Target] Resolved %r to %r", maps_url, final_url)
     except Exception as e:
         app.logger.warning("[Share Target] Failed to resolve %r: %s", maps_url, e)
         return None
