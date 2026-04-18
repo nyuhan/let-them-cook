@@ -448,7 +448,6 @@ def _resolve_restaurant_info(text_param, url_param):
         return None
 
     restaurant_info = urllib.parse.unquote_plus(match.group(1))
-    app.logger.info("[Share Target] Parsed restaurant info: %r", restaurant_info)
 
     return restaurant_info
 
