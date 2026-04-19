@@ -69,6 +69,8 @@ def _init_db(conn):
             notes TEXT,
             opening_hours TEXT,
             types TEXT,
+            latitude REAL,
+            longitude REAL,
             created_at TEXT DEFAULT (CURRENT_TIMESTAMP)
         )"""
     )
@@ -83,6 +85,10 @@ def _init_db(conn):
         conn.execute("ALTER TABLE restaurants ADD COLUMN opening_hours TEXT")
     if "types" not in columns:
         conn.execute("ALTER TABLE restaurants ADD COLUMN types TEXT")
+    if "latitude" not in columns:
+        conn.execute("ALTER TABLE restaurants ADD COLUMN latitude REAL")
+    if "longitude" not in columns:
+        conn.execute("ALTER TABLE restaurants ADD COLUMN longitude REAL")
     if "type" in columns and "dining_options" not in columns:
         conn.execute("ALTER TABLE restaurants RENAME COLUMN type TO dining_options")
     if "wishlisted" not in columns:
@@ -496,6 +502,8 @@ def restaurants():
         dishes = data.get("dishes")
         opening_hours = data.get("openingHours")
         types = data.get("types")
+        latitude = data.get("latitude")
+        longitude = data.get("longitude")
 
         # Serialize opening_hours to JSON string if present
         opening_hours_json = None
@@ -525,7 +533,7 @@ def restaurants():
             return jsonify({"error": "invalid data"}), 400
 
         db.execute(
-            "INSERT INTO restaurants (id, name, dining_options, rating, wishlisted, address, city, map_uri, directions_uri, price_level, notes, opening_hours, types, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?, CURRENT_TIMESTAMP)",
+            "INSERT INTO restaurants (id, name, dining_options, rating, wishlisted, address, city, map_uri, directions_uri, price_level, notes, opening_hours, types, latitude, longitude, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?, CURRENT_TIMESTAMP)",
             (
                 id,
                 name,
@@ -540,6 +548,8 @@ def restaurants():
                 notes,
                 opening_hours_json,
                 types_json,
+                latitude,
+                longitude,
             ),
         )
 
@@ -575,7 +585,7 @@ def restaurants():
         return jsonify(_get_restaurant(db, id)), 201
 
     cur = db.execute(
-        "SELECT id, name, dining_options, rating, wishlisted, address, city, map_uri, directions_uri, price_level, notes, opening_hours, types, created_at FROM restaurants ORDER BY created_at DESC"
+        "SELECT id, name, dining_options, rating, wishlisted, address, city, map_uri, directions_uri, price_level, notes, opening_hours, types, latitude, longitude, created_at FROM restaurants ORDER BY created_at DESC"
     )
     restaurants = []
     for r in cur.fetchall():
@@ -607,7 +617,7 @@ def restaurants():
 
 def _get_restaurant(db, rest_id):
     cur = db.execute(
-        "SELECT id, name, dining_options, rating, wishlisted, address, city, map_uri, directions_uri, price_level, notes, opening_hours, types, created_at FROM restaurants WHERE id = ?",
+        "SELECT id, name, dining_options, rating, wishlisted, address, city, map_uri, directions_uri, price_level, notes, opening_hours, types, latitude, longitude, created_at FROM restaurants WHERE id = ?",
         (rest_id,),
     )
     row = cur.fetchone()

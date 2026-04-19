@@ -51,7 +51,9 @@ def seed_restaurant(client):
             "directionsUri": "https://maps.example.com/dir",
             "priceLevel": 2,
             "notes": "Great place",
-            "types": [],
+            "types": ["restaurant"],
+            "latitude": 48.8566,
+            "longitude": 2.3522,
         }
         data.update(overrides)
         resp = client.post("/api/restaurants", json=data)

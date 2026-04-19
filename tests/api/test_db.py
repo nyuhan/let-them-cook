@@ -28,6 +28,8 @@ class TestSchema:
             "notes",
             "opening_hours",
             "types",
+            "latitude",
+            "longitude",
         }
         with flask_app.app_context():
             db = app_module.get_db()

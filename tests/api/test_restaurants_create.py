@@ -20,12 +20,22 @@ class TestCreateRestaurant:
         body = resp.get_json()
         assert body["name"] == "Test Restaurant"
         assert body["id"] == data["id"]
+        assert body["address"] == "123 Main St"
+        assert body["city"] == "TestCity"
+        assert body["mapUri"] == "https://maps.example.com/place"
+        assert body["directionsUri"] == "https://maps.example.com/dir"
+        assert body["diningOptions"] == "dine-in"
+        assert body["priceLevel"] == 2
+        assert body["notes"] == "Great place"
+        assert body["types"] == ["restaurant"]
+        assert body["cuisines"] == []
+        assert body["openingHours"] is None
+        assert body["dishes"] == []
         assert body["wishlisted"] is False
         assert body["rating"] == 4
-        # Verify it's persisted
-        listing = client.get("/api/restaurants").get_json()
-        assert len(listing) == 1
-        assert listing[0]["name"] == "Test Restaurant"
+        assert body["latitude"] == 48.8566
+        assert body["longitude"] == 2.3522
+        assert "createdAt" in body
 
     def test_with_dishes(self, client, seed_restaurant):
         dishes = [
@@ -34,28 +44,24 @@ class TestCreateRestaurant:
         ]
         data, resp = seed_restaurant(dishes=dishes)
         assert resp.status_code == 201
-        listing = client.get("/api/restaurants").get_json()
-        assert len(listing[0]["dishes"]) == 2
+        assert len(resp.get_json()["dishes"]) == 2
 
     def test_with_opening_hours(self, client, seed_restaurant):
         hours = {"weekdayDescriptions": ["Monday: 9 AM – 5 PM"], "periods": []}
         data, resp = seed_restaurant(openingHours=hours)
         assert resp.status_code == 201
-        listing = client.get("/api/restaurants").get_json()
-        assert listing[0]["openingHours"] == hours
+        assert resp.get_json()["openingHours"] == hours
 
     def test_with_types(self, client, seed_restaurant):
         types = ["restaurant", "food", "italian_restaurant"]
         data, resp = seed_restaurant(types=types)
         assert resp.status_code == 201
-        listing = client.get("/api/restaurants").get_json()
-        assert listing[0]["types"] == types
+        assert resp.get_json()["types"] == types
 
     def test_types_default_empty(self, client, seed_restaurant):
         data, resp = seed_restaurant(types=None)
         assert resp.status_code == 201
-        listing = client.get("/api/restaurants").get_json()
-        assert listing[0]["types"] == []
+        assert resp.get_json()["types"] == []
 
     def test_invalid_rating_string(self, client):
         resp = client.post(
@@ -145,10 +151,10 @@ class TestCreateRestaurant:
         ]
         data, resp = seed_restaurant(dishes=dishes)
         assert resp.status_code == 201
-        listing = client.get("/api/restaurants").get_json()
+        body = resp.get_json()
         # Only "Good" should have been inserted
-        assert len(listing[0]["dishes"]) == 1
-        assert listing[0]["dishes"][0]["name"] == "Good"
+        assert len(body["dishes"]) == 1
+        assert body["dishes"][0]["name"] == "Good"
 
     def test_wishlisted_no_rating(self, client, seed_restaurant):
         _, resp = seed_restaurant(wishlisted=True, rating=None)

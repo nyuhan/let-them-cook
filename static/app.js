@@ -97,6 +97,8 @@ async function selectPlaceInForm(place) {
     types,
     priceLevel: getPriceLevel(place),
     openingHours: getOpeningHours(place),
+    latitude: place.location?.lat() ?? null,
+    longitude: place.location?.lng() ?? null,
   };
 
   document.getElementById('place-id').value = place.id;
@@ -1335,6 +1337,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const priceLevel = newPlaceData.priceLevel;
       const openingHours = newPlaceData.openingHours;
       const types = newPlaceData.types;
+      const latitude = newPlaceData.latitude ?? null;
+      const longitude = newPlaceData.longitude ?? null;
       const editId = document.getElementById('edit-id').value;
       const notes = document.getElementById('restaurant-notes')?.value || '';
       const diningOptions = selectedDiningOptions;
@@ -1351,7 +1355,7 @@ document.addEventListener('DOMContentLoaded', () => {
             body: JSON.stringify(payload)
           });
         } else {
-          const payload = { id, name, address, city, diningOptions, mapUri, directionsUri, priceLevel, notes, dishes, openingHours, types, wishlisted: formWishlisted };
+          const payload = { id, name, address, city, diningOptions, mapUri, directionsUri, priceLevel, notes, dishes, openingHours, types, latitude, longitude, wishlisted: formWishlisted };
           if (!formWishlisted) payload.rating = rating;
           res = await fetch('/api/restaurants', {
             method: 'POST',

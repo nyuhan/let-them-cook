@@ -19,17 +19,27 @@ class TestListRestaurants:
         assert resp.status_code == 200
         assert resp.get_json() == []
 
-    def test_camel_case_keys(self, client, seed_restaurant):
+    def test_success(self, client, seed_restaurant):
         seed_restaurant()
-        listing = client.get("/api/restaurants").get_json()
-        r = listing[0]
-        assert "mapUri" in r
-        assert "directionsUri" in r
-        assert "priceLevel" in r
+        r = client.get("/api/restaurants").get_json()[0]
+        assert r["id"] == "place_abc"
+        assert r["name"] == "Test Restaurant"
+        assert r["address"] == "123 Main St"
+        assert r["city"] == "TestCity"
+        assert r["mapUri"] == "https://maps.example.com/place"
+        assert r["directionsUri"] == "https://maps.example.com/dir"
+        assert r["diningOptions"] == "dine-in"
+        assert r["priceLevel"] == 2
+        assert r["notes"] == "Great place"
+        assert r["types"] == ["restaurant"]
+        assert r["cuisines"] == []
+        assert r["openingHours"] is None
+        assert r["dishes"] == []
+        assert r["wishlisted"] is False
+        assert r["rating"] == 4
+        assert r["latitude"] == 48.8566
+        assert r["longitude"] == 2.3522
         assert "createdAt" in r
-        assert "openingHours" in r
-        assert "types" in r
-        assert "wishlisted" in r
 
     def test_includes_dishes(self, client, seed_restaurant):
         seed_restaurant(dishes=[{"name": "Tacos", "rating": 1}])
@@ -72,14 +82,29 @@ class TestListRestaurants:
 
 
 class TestGetRestaurant:
-    def test_found(self, client, seed_restaurant):
+    def test_success(self, client, seed_restaurant):
         seed_restaurant(id="r1")
         resp = client.get("/api/restaurants/r1")
         assert resp.status_code == 200
         data = resp.get_json()
         assert data["id"] == "r1"
-        assert "mapUri" in data  # camelCase
+        assert data["name"] == "Test Restaurant"
+        assert data["address"] == "123 Main St"
+        assert data["city"] == "TestCity"
+        assert data["mapUri"] == "https://maps.example.com/place"
+        assert data["directionsUri"] == "https://maps.example.com/dir"
+        assert data["diningOptions"] == "dine-in"
+        assert data["priceLevel"] == 2
+        assert data["notes"] == "Great place"
+        assert data["types"] == ["restaurant"]
+        assert data["cuisines"] == []
+        assert data["openingHours"] is None
+        assert data["dishes"] == []
         assert data["wishlisted"] is False
+        assert data["rating"] == 4
+        assert data["latitude"] == 48.8566
+        assert data["longitude"] == 2.3522
+        assert "createdAt" in data
 
     def test_opening_hours_deserialized(self, client, seed_restaurant):
         hours = {"weekdayDescriptions": ["Mon: 9–5"], "periods": []}
@@ -102,4 +127,3 @@ class TestGetRestaurant:
         data = client.get("/api/restaurants/r1").get_json()
         assert data["wishlisted"] is True
         assert data["rating"] is None
-
