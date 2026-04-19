@@ -342,6 +342,7 @@ function renderMap() {
   if (!window.google?.maps?.Map) return;
 
   const container = document.getElementById('map-container');
+  if (!container) return;
   const cardPanel = document.getElementById('map-card-panel');
   if (!mapInstance) {
     mapInstance = new google.maps.Map(container, {

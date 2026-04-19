@@ -287,6 +287,7 @@
     </div>
     <div class="flex items-center gap-3">
       <!-- View toggle -->
+      {% if map_id %}
       <div class="flex items-center rounded-md border border-gray-300 overflow-hidden">
         <button id="view-list-btn" type="button" title="List view"
           class="px-2.5 py-1.5 bg-indigo-50 text-indigo-700 border-r border-gray-300 focus:outline-none">
@@ -302,6 +303,7 @@
           </svg>
         </button>
       </div>
+      {% endif %}
       <div class="sort-dropdown relative inline-block text-left">
         <input type="hidden" id="current-sort" value="">
         <button type="button"
@@ -341,11 +343,13 @@
     <!-- cards will be injected here -->
   </div>
 
+  {% if map_id %}
   <div id="map-view" class="hidden relative rounded-2xl overflow-hidden border border-gray-200 shadow-sm"
     style="height: 600px;">
     <div id="map-container" data-map-id="{{ map_id }}" style="height: 100%; width: 100%;"></div>
     <div id="map-card-panel" class="hidden absolute bottom-4 left-4 right-4 sm:left-auto sm:right-4 sm:w-80 z-10"></div>
   </div>
+  {% endif %}
 </main>
 
 <!-- Modal -->
@@ -597,7 +601,7 @@
 </div>
 
 <script async
-  src="https://maps.googleapis.com/maps/api/js?key={{ google_api_key }}&libraries=places,maps,marker&loading=async"></script>
+  src="https://maps.googleapis.com/maps/api/js?key={{ google_api_key }}&libraries=places{% if map_id %},maps,marker{% endif %}&loading=async"></script>
 <script src="https://cdn.jsdelivr.net/npm/@googlemaps/js-api-loader@1.16.2/dist/index.min.js"></script>
 <script>window.DEBUG = {{ config.DEBUG | tojson }};</script>
 <script>window.RESTAURANT_INFO = {{ restaurant_info | default (none) | tojson }};</script>
