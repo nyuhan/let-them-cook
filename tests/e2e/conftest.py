@@ -25,7 +25,7 @@ def live_server(tmp_path):
     app_module._init_db(conn)
     conn.close()
 
-    flask_app.config.update({"TESTING": False})
+    flask_app.config.update({"TESTING": False, "WTF_CSRF_ENABLED": True})
 
     server = make_server("127.0.0.1", 0, flask_app)
     port = server.server_address[1]
