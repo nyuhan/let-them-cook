@@ -25,7 +25,7 @@ _SHARE_PARAMS = (
 
 
 # ---------------------------------------------------------------------------
-# Add Restaurant via Google Maps + Refresh (live API)
+# Google Maps — Add, Refresh, and Share Target (live API)
 # ---------------------------------------------------------------------------
 
 
