@@ -41,6 +41,8 @@ class TestUpdateRestaurant:
                 "priceLevel": 3,
                 "openingHours": hours,
                 "types": types,
+                "latitude": 51.5074,
+                "longitude": -0.1278,
             },
         )
         assert resp.status_code == 200
@@ -54,6 +56,8 @@ class TestUpdateRestaurant:
         assert r["priceLevel"] == 3
         assert r["openingHours"] == hours
         assert r["types"] == types
+        assert r["latitude"] == 51.5074
+        assert r["longitude"] == -0.1278
 
     def test_types_update(self, client, seed_restaurant):
         seed_restaurant(id="r1", types=["restaurant"])

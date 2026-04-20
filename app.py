@@ -687,7 +687,7 @@ def update_restaurant(rest_id):
             return jsonify({"error": "rating must be integer"}), 400
 
     cur = db.execute(
-        "SELECT id, dining_options, rating, wishlisted, notes, name, address, city, map_uri, directions_uri, price_level, opening_hours, types FROM restaurants WHERE id = ?",
+        "SELECT id, dining_options, rating, wishlisted, notes, name, address, city, map_uri, directions_uri, price_level, opening_hours, types, latitude, longitude FROM restaurants WHERE id = ?",
         (rest_id,),
     )
     row = cur.fetchone()
@@ -734,13 +734,18 @@ def update_restaurant(rest_id):
     if types is not None:
         new_types_json = json.dumps(types)
 
+    new_latitude = data["latitude"] if "latitude" in data else current_data["latitude"]
+    new_longitude = (
+        data["longitude"] if "longitude" in data else current_data["longitude"]
+    )
+
     marking_as_visited = current_wishlisted and not new_wishlisted
 
     db.execute(
         """UPDATE restaurants SET
            name = ?, dining_options = ?, rating = ?, wishlisted = ?, notes = ?,
            address = ?, city = ?, map_uri = ?, directions_uri = ?,
-           price_level = ?, opening_hours = ?, types = ?"""
+           price_level = ?, opening_hours = ?, types = ?, latitude = ?, longitude = ?"""
         + (", created_at = CURRENT_TIMESTAMP" if marking_as_visited else "")
         + " WHERE id = ?",
         (
@@ -756,6 +761,8 @@ def update_restaurant(rest_id):
             new_price_level,
             new_opening_hours_json,
             new_types_json,
+            new_latitude,
+            new_longitude,
             rest_id,
         ),
     )

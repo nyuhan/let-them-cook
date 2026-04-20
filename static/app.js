@@ -1610,12 +1610,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const types = place.types || [];
 
+        const latitude = place.location?.lat() ?? null;
+        const longitude = place.location?.lng() ?? null;
+
         // Send update to backend
         const res = await fetch(`/api/restaurants/${editId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken() },
           body: JSON.stringify({
-            name, address, city, mapUri, directionsUri, priceLevel, openingHours, types
+            name, address, city, mapUri, directionsUri, priceLevel, openingHours, types, latitude, longitude
           })
         });
 
