@@ -396,6 +396,7 @@ function renderMap(restaurants) {
             () => { }
           );
         });
+        mapInstance.controls[google.maps.ControlPosition.RIGHT_BOTTOM].push(locateBtn);
       }
     }
   }
