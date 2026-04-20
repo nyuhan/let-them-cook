@@ -375,6 +375,7 @@ function renderMap(restaurants) {
       center: { lat: 20, lng: 0 },
       mapTypeControl: false,
       streetViewControl: false,
+      cameraControl: false,
       gestureHandling: 'greedy',
       mapId: container.dataset.mapId,
     });
