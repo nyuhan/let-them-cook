@@ -308,6 +308,7 @@ async function loadRestaurants() {
 
 let mapInstance = null;
 let mapMarkers = [];
+let userLocationMarker = null;
 let activeView = 'list'; // 'list' | 'map'
 
 function setView(view) {
@@ -327,7 +328,6 @@ function setView(view) {
     listBtn.classList.add(...inactiveClasses);
     mapBtn.classList.remove(...inactiveClasses);
     mapBtn.classList.add(...activeClasses);
-    renderMap();
   } else {
     mapEl.classList.add('hidden');
     listEl.classList.remove('hidden');
@@ -336,13 +336,38 @@ function setView(view) {
     listBtn.classList.remove(...inactiveClasses);
     listBtn.classList.add(...activeClasses);
   }
+  filterAndRender();
 }
 
-function renderMap() {
+function updateUserLocation(pos) {
+  const userLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+  if (userLocationMarker) {
+    userLocationMarker.position = userLocation;
+  } else {
+    const dot = document.createElement('div');
+    dot.style.cssText = 'width:14px;height:14px;background:#4285f4;border:2px solid #fff;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,.4)';
+    userLocationMarker = new google.maps.marker.AdvancedMarkerElement({
+      position: userLocation,
+      map: mapInstance,
+      title: 'Your location',
+      content: dot,
+    });
+  }
+}
+
+function locateMe(pos) {
+  updateUserLocation(pos);
+
+  mapInstance.setCenter({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+  mapInstance.setZoom(12);
+}
+
+function renderMap(restaurants) {
   if (!window.google?.maps?.Map) return;
 
   const container = document.getElementById('map-container');
   if (!container) return;
+
   const cardPanel = document.getElementById('map-card-panel');
   if (!mapInstance) {
     mapInstance = new google.maps.Map(container, {
@@ -359,22 +384,18 @@ function renderMap() {
     });
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
-        pos => {
-          const userLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-          mapInstance.setCenter(userLocation);
-          mapInstance.setZoom(12);
-
-          const dot = document.createElement('div');
-          dot.style.cssText = 'width:14px;height:14px;background:#4285f4;border:2px solid #fff;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,.4)';
-          new google.maps.marker.AdvancedMarkerElement({
-            position: userLocation,
-            map: mapInstance,
-            title: 'Your location',
-            content: dot,
-          });
-        },
-        () => { /* permission denied or unavailable — keep default view */ }
+        pos => updateUserLocation(pos),
       );
+
+      const locateBtn = document.getElementById('locate-me-btn');
+      if (locateBtn) {
+        locateBtn.addEventListener('click', () => {
+          navigator.geolocation.getCurrentPosition(
+            pos => locateMe(pos),
+            () => { }
+          );
+        });
+      }
     }
   }
 
@@ -382,9 +403,7 @@ function renderMap() {
   mapMarkers.forEach(m => (m.map = null));
   mapMarkers = [];
 
-  const visible = restaurantsCache.filter(
-    r => r.wishlisted === activeWishlistFilter && r.latitude != null && r.longitude != null
-  );
+  const visible = restaurants.filter(r => r.latitude != null && r.longitude != null);
 
   if (visible.length === 0) return;
 
@@ -644,8 +663,8 @@ function filterAndRender() {
 
     return true;
   });
-  renderRestaurants(sortRestaurants(filtered));
-  if (activeView === 'map') renderMap();
+  if (activeView === 'map') renderMap(sortRestaurants(filtered));
+  else renderRestaurants(sortRestaurants(filtered));
 }
 
 function getOpeningStatus(openingHours) {
