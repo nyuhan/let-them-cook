@@ -376,10 +376,30 @@ function renderMap(restaurants) {
       center: { lat: 20, lng: 0 },
       mapTypeControl: false,
       streetViewControl: false,
+      fullscreenControl: false,
       cameraControl: false,
       gestureHandling: 'greedy',
       mapId: container.dataset.mapId,
     });
+
+    const fullscreenBtn = document.getElementById('map-fullscreen-btn');
+    if (fullscreenBtn) {
+      const iconExpand = document.getElementById('map-fullscreen-icon-expand');
+      const iconShrink = document.getElementById('map-fullscreen-icon-shrink');
+      fullscreenBtn.addEventListener('click', () => {
+        if (!document.fullscreenElement) {
+          container.requestFullscreen();
+        } else {
+          document.exitFullscreen();
+        }
+      });
+      document.addEventListener('fullscreenchange', () => {
+        const isFs = !!document.fullscreenElement;
+        iconExpand.classList.toggle('hidden', isFs);
+        iconShrink.classList.toggle('hidden', !isFs);
+      });
+      mapInstance.controls[google.maps.ControlPosition.RIGHT_TOP].push(fullscreenBtn);
+    }
     mapInstance.addListener('click', () => {
       cardPanel.innerHTML = '';
       cardPanel.classList.add('hidden');
@@ -408,7 +428,7 @@ function renderMap(restaurants) {
             );
           }
         });
-        mapInstance.controls[google.maps.ControlPosition.RIGHT_BOTTOM].push(locateBtn);
+        mapInstance.controls[google.maps.ControlPosition.RIGHT_TOP].push(locateBtn);
       }
     }
   }
