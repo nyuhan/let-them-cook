@@ -309,6 +309,7 @@ async function loadRestaurants() {
 let mapInstance = null;
 let mapMarkers = [];
 let userLocationMarker = null;
+let lastKnownPosition = null;
 let activeView = 'list'; // 'list' | 'map'
 
 function setView(view) {
@@ -384,17 +385,28 @@ function renderMap(restaurants) {
       cardPanel.classList.add('hidden');
     });
     if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        pos => updateUserLocation(pos),
+      const geoOptions = { enableHighAccuracy: false, maximumAge: 30000, timeout: 10000 };
+      navigator.geolocation.watchPosition(
+        pos => {
+          lastKnownPosition = pos;
+          updateUserLocation(pos);
+        },
+        () => { },
+        geoOptions
       );
 
       const locateBtn = document.getElementById('locate-me-btn');
       if (locateBtn) {
         locateBtn.addEventListener('click', () => {
-          navigator.geolocation.getCurrentPosition(
-            pos => locateMe(pos),
-            () => { }
-          );
+          if (lastKnownPosition) {
+            locateMe(lastKnownPosition);
+          } else {
+            navigator.geolocation.getCurrentPosition(
+              pos => { lastKnownPosition = pos; locateMe(pos); },
+              () => { },
+              geoOptions
+            );
+          }
         });
         mapInstance.controls[google.maps.ControlPosition.RIGHT_BOTTOM].push(locateBtn);
       }
