@@ -349,8 +349,9 @@
     style="height: 600px;">
     <div id="map-container" data-map-id="{{ map_id }}" style="height: 100%; width: 100%;"></div>
     <div id="map-card-panel" class="hidden absolute bottom-4 left-4 right-4 sm:left-auto sm:right-4 sm:w-80 z-10"></div>
+    <!-- TODO: locate-me button — hidden until positioning/UX is finalised -->
     <button id="locate-me-btn" title="My location"
-      class="absolute top-3 right-3 z-10 w-9 h-9 flex items-center justify-center bg-white rounded-md shadow-md hover:bg-gray-50 focus:outline-none">
+      class="hidden absolute top-3 left-3 z-10 w-9 h-9 flex items-center justify-center bg-white rounded-md shadow-md hover:bg-gray-50 focus:outline-none">
       <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
           d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3A8.994 8.994 0 0013 3.06V1h-2v2.06A8.994 8.994 0 003.06 11H1v2h2.06A8.994 8.994 0 0011 20.94V23h2v-2.06A8.994 8.994 0 0020.94 13H23v-2h-2.06z" />
