@@ -443,7 +443,7 @@ function renderMap(restaurants) {
     marker.addListener('click', () => {
       activeMapCardId = r.id;
       cardPanel.innerHTML = '';
-      cardPanel.appendChild(renderCard(r));
+      cardPanel.appendChild(renderCard(r, /* compact= */ true));
       cardPanel.classList.remove('hidden');
     });
 
@@ -462,7 +462,7 @@ function renderMap(restaurants) {
     const active = visible.find(r => r.id === activeMapCardId);
     if (active) {
       cardPanel.innerHTML = '';
-      cardPanel.appendChild(renderCard(active));
+      cardPanel.appendChild(renderCard(active, /* compact= */ true));
     } else {
       cardPanel.innerHTML = '';
       cardPanel.classList.add('hidden');
@@ -744,7 +744,7 @@ function getOpeningStatus(openingHours) {
   return { isOpen };
 }
 
-function renderCard(r) {
+function renderCard(r, compact = false) {
   const card = document.createElement('div');
   card.className = 'bg-white rounded-lg shadow-sm border border-gray-200 p-4 transition-shadow hover:shadow-md flex flex-col justify-between cursor-pointer';
   card.addEventListener('click', () => enterEditMode(r));
@@ -872,7 +872,7 @@ function renderCard(r) {
     });
     body.appendChild(typesRow);
   }
-  if (r.notes) {
+  if (!compact && r.notes) {
     const notesEl = document.createElement('div');
     notesEl.className = 'mb-4 text-sm text-gray-600 bg-gray-50 p-2 rounded border border-gray-100 italic';
     const lines = r.notes.split('\n').slice(0, 3);
@@ -886,7 +886,7 @@ function renderCard(r) {
   }
 
   // Dishes
-  if (r.dishes && r.dishes.length > 0) {
+  if (!compact && r.dishes && r.dishes.length > 0) {
     const dishesEl = document.createElement('div');
     dishesEl.className = 'mb-4 pt-3 border-t border-gray-100 space-y-2';
 
