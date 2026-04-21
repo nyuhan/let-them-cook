@@ -310,6 +310,7 @@ let mapInstance = null;
 let mapMarkers = [];
 let userLocationMarker = null;
 let lastKnownPosition = null;
+let activeMapCardId = null;
 let activeView = 'list'; // 'list' | 'map'
 
 function setView(view) {
@@ -440,6 +441,7 @@ function renderMap(restaurants) {
     });
 
     marker.addListener('click', () => {
+      activeMapCardId = r.id;
       cardPanel.innerHTML = '';
       cardPanel.appendChild(renderCard(r));
       cardPanel.classList.remove('hidden');
@@ -454,6 +456,18 @@ function renderMap(restaurants) {
     mapInstance.setZoom(14);
   } else {
     mapInstance.fitBounds(bounds);
+  }
+
+  if (activeMapCardId && cardPanel && !cardPanel.classList.contains('hidden')) {
+    const active = visible.find(r => r.id === activeMapCardId);
+    if (active) {
+      cardPanel.innerHTML = '';
+      cardPanel.appendChild(renderCard(active));
+    } else {
+      cardPanel.innerHTML = '';
+      cardPanel.classList.add('hidden');
+      activeMapCardId = null;
+    }
   }
 }
 
