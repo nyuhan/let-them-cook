@@ -302,6 +302,191 @@ async function loadRestaurants() {
   filterAndRender();
 }
 
+// ---------------------------------------------------------------------------
+// Map view
+// ---------------------------------------------------------------------------
+
+let mapInstance = null;
+let mapMarkers = [];
+let userLocationMarker = null;
+let lastKnownPosition = null;
+let activeMapCardId = null;
+let activeView = 'list'; // 'list' | 'map'
+
+function setView(view) {
+  activeView = view;
+  const listEl = document.getElementById('list');
+  const mapEl = document.getElementById('map-view');
+  const listBtn = document.getElementById('view-list-btn');
+  const mapBtn = document.getElementById('view-map-btn');
+
+  const activeClasses = ['bg-indigo-50', 'text-indigo-700'];
+  const inactiveClasses = ['bg-white', 'text-gray-500', 'hover:text-gray-700'];
+
+  if (view === 'map') {
+    listEl.classList.add('hidden');
+    mapEl.classList.remove('hidden');
+    listBtn.classList.remove(...activeClasses);
+    listBtn.classList.add(...inactiveClasses);
+    mapBtn.classList.remove(...inactiveClasses);
+    mapBtn.classList.add(...activeClasses);
+  } else {
+    mapEl.classList.add('hidden');
+    listEl.classList.remove('hidden');
+    mapBtn.classList.remove(...activeClasses);
+    mapBtn.classList.add(...inactiveClasses);
+    listBtn.classList.remove(...inactiveClasses);
+    listBtn.classList.add(...activeClasses);
+  }
+  filterAndRender();
+}
+
+function updateUserLocation(pos) {
+  const userLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+  if (userLocationMarker) {
+    userLocationMarker.position = userLocation;
+  } else {
+    const dot = document.createElement('div');
+    dot.style.cssText = 'width:14px;height:14px;background:#4285f4;border:2px solid #fff;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,.4)';
+    userLocationMarker = new google.maps.marker.AdvancedMarkerElement({
+      position: userLocation,
+      map: mapInstance,
+      title: 'Your location',
+      content: dot,
+    });
+  }
+}
+
+function locateMe(pos) {
+  updateUserLocation(pos);
+
+  mapInstance.setCenter({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+  mapInstance.setZoom(12);
+}
+
+function renderMap(restaurants) {
+  if (!window.google?.maps?.Map) return;
+
+  const container = document.getElementById('map-container');
+  if (!container) return;
+
+  const cardPanel = document.getElementById('map-card-panel');
+  if (!mapInstance) {
+    mapInstance = new google.maps.Map(container, {
+      zoom: 2,
+      center: { lat: 20, lng: 0 },
+      mapTypeControl: false,
+      streetViewControl: false,
+      fullscreenControl: false,
+      cameraControl: false,
+      gestureHandling: 'greedy',
+      mapId: container.dataset.mapId,
+    });
+
+    mapInstance.addListener('click', () => {
+      cardPanel.innerHTML = '';
+      cardPanel.classList.add('hidden');
+    });
+    if (navigator.geolocation) {
+      const geoOptions = { enableHighAccuracy: false, maximumAge: 30000, timeout: 10000 };
+      navigator.geolocation.watchPosition(
+        pos => {
+          lastKnownPosition = pos;
+          updateUserLocation(pos);
+        },
+        () => { },
+        geoOptions
+      );
+
+      const locateBtn = document.getElementById('locate-me-btn');
+      if (locateBtn) {
+        locateBtn.addEventListener('click', () => {
+          if (lastKnownPosition) {
+            locateMe(lastKnownPosition);
+          } else {
+            navigator.geolocation.getCurrentPosition(
+              pos => { lastKnownPosition = pos; locateMe(pos); },
+              () => { },
+              geoOptions
+            );
+          }
+        });
+        mapInstance.controls[google.maps.ControlPosition.RIGHT_TOP].push(locateBtn);
+      }
+    }
+  }
+
+  // Clear existing markers
+  mapMarkers.forEach(m => (m.map = null));
+  mapMarkers = [];
+
+  const existingOverlay = container.querySelector('.map-empty-overlay');
+  if (existingOverlay) existingOverlay.remove();
+
+  const visible = restaurants.filter(r => r.latitude != null && r.longitude != null);
+
+  if (visible.length === 0) {
+    const allEmpty = restaurantsCache.filter(r => r.wishlisted === activeWishlistFilter).length === 0;
+    const overlay = document.createElement('div');
+    overlay.className = 'map-empty-overlay absolute inset-0 flex items-center justify-center bg-white/70 z-10 pointer-events-none';
+    overlay.innerHTML = `<div class="text-center">
+      <svg class="mx-auto h-10 w-10 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+      </svg>
+      <p class="mt-2 text-sm font-medium text-gray-500">${allEmpty ? 'No restaurants added yet' : 'No matches found'}</p>
+    </div>`;
+    container.appendChild(overlay);
+    return;
+  }
+
+  const bounds = new google.maps.LatLngBounds();
+
+  visible.forEach(r => {
+    const position = { lat: r.latitude, lng: r.longitude };
+    const pill = document.createElement('div');
+    pill.style.cssText = 'background:#4f46e5;color:#fff;padding:4px 10px;border-radius:9999px;font-size:12px;font-weight:600;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,.3);cursor:pointer';
+    pill.textContent = r.name;
+
+    const marker = new google.maps.marker.AdvancedMarkerElement({
+      position,
+      map: mapInstance,
+      title: r.name,
+      content: pill,
+      collisionBehavior: google.maps.CollisionBehavior.OPTIONAL_AND_HIDES_LOWER_PRIORITY,
+    });
+
+    marker.addListener('click', () => {
+      activeMapCardId = r.id;
+      cardPanel.innerHTML = '';
+      cardPanel.appendChild(renderCard(r, /* compact= */ true));
+      cardPanel.classList.remove('hidden');
+    });
+
+    mapMarkers.push(marker);
+    bounds.extend(position);
+  });
+
+  if (visible.length === 1) {
+    mapInstance.setCenter(bounds.getCenter());
+    mapInstance.setZoom(14);
+  } else {
+    mapInstance.fitBounds(bounds);
+  }
+
+  if (activeMapCardId && cardPanel && !cardPanel.classList.contains('hidden')) {
+    const active = visible.find(r => r.id === activeMapCardId);
+    if (active) {
+      cardPanel.innerHTML = '';
+      cardPanel.appendChild(renderCard(active, /* compact= */ true));
+    } else {
+      cardPanel.innerHTML = '';
+      cardPanel.classList.add('hidden');
+      activeMapCardId = null;
+    }
+  }
+}
+
 function getNotesLineCount(notes) {
   if (!notes) return 0;
   return Math.min(notes.split('\n').length, 3);
@@ -524,7 +709,8 @@ function filterAndRender() {
 
     return true;
   });
-  renderRestaurants(sortRestaurants(filtered));
+  if (activeView === 'map') renderMap(sortRestaurants(filtered));
+  else renderRestaurants(sortRestaurants(filtered));
 }
 
 function getOpeningStatus(openingHours) {
@@ -574,7 +760,7 @@ function getOpeningStatus(openingHours) {
   return { isOpen };
 }
 
-function renderCard(r) {
+function renderCard(r, compact = false) {
   const card = document.createElement('div');
   card.className = 'bg-white rounded-lg shadow-sm border border-gray-200 p-4 transition-shadow hover:shadow-md flex flex-col justify-between cursor-pointer';
   card.addEventListener('click', () => enterEditMode(r));
@@ -702,7 +888,7 @@ function renderCard(r) {
     });
     body.appendChild(typesRow);
   }
-  if (r.notes) {
+  if (!compact && r.notes) {
     const notesEl = document.createElement('div');
     notesEl.className = 'mb-4 text-sm text-gray-600 bg-gray-50 p-2 rounded border border-gray-100 italic';
     const lines = r.notes.split('\n').slice(0, 3);
@@ -716,7 +902,7 @@ function renderCard(r) {
   }
 
   // Dishes
-  if (r.dishes && r.dishes.length > 0) {
+  if (!compact && r.dishes && r.dishes.length > 0) {
     const dishesEl = document.createElement('div');
     dishesEl.className = 'mb-4 pt-3 border-t border-gray-100 space-y-2';
 
@@ -1523,6 +1709,12 @@ document.addEventListener('DOMContentLoaded', () => {
   // Clear filters button at the top
   const topClearBtn = document.getElementById('top-clear-filters-btn');
   if (topClearBtn) topClearBtn.addEventListener('click', clearFilters);
+
+  // View toggle
+  const viewListBtn = document.getElementById('view-list-btn');
+  const viewMapBtn = document.getElementById('view-map-btn');
+  if (viewListBtn) viewListBtn.addEventListener('click', () => setView('list'));
+  if (viewMapBtn) viewMapBtn.addEventListener('click', () => setView('map'));
 
   // Wishlist pills
   const pillVisited = document.getElementById('pill-visited');
