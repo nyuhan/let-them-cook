@@ -10,6 +10,7 @@ _TEST_PASSWORD = "letthemcook"
 def app(tmp_path):
     db_path = str(tmp_path / "test.db")
     app_module.DATABASE = db_path
+    app_module.LOGIN_DISABLED = False
     flask_app.secret_key = "test-secret-key"
     flask_app.config.update({"TESTING": True, "WTF_CSRF_ENABLED": False})
 
