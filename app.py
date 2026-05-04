@@ -396,10 +396,12 @@ def disable_2fa():
 @login_required
 def index():
     key = os.environ.get("GOOGLE_MAPS_API_KEY")
+    map_id = os.environ.get("MAP_ID")
     restaurant_info = session.pop("share_restaurant_info", None)
     return render_template(
         "index.html",
         google_api_key=key,
+        map_id=map_id,
         login_disabled=LOGIN_DISABLED,
         restaurant_info=restaurant_info,
     )
@@ -851,4 +853,4 @@ with sqlite3.connect(DATABASE) as _conn:
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    app.run(host="0.0.0.0", port=8000, debug=True)

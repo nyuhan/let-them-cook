@@ -17,6 +17,7 @@ _TEST_SECRET_KEY = "e2e-test-secret-key-fixed"
 @pytest.fixture()
 def live_server(tmp_path):
     """Start a real Flask server on a random port with a fresh temp DB."""
+    app_module.LOGIN_DISABLED = False
     db_path = str(tmp_path / "e2e_test.db")
     app_module.DATABASE = db_path
     flask_app.secret_key = _TEST_SECRET_KEY
@@ -56,6 +57,7 @@ def _auth_state():
     """
     import tempfile
 
+    app_module.LOGIN_DISABLED = False
     original_db = app_module.DATABASE
     with tempfile.TemporaryDirectory() as tmp:
         db_path = f"{tmp}/auth.db"
