@@ -102,7 +102,7 @@ docker run -d \
     ```
 
 1. **Access the app**:
-    Open [http://localhost:5000](http://localhost:5000) in your browser.
+    Open [http://localhost:8000](http://localhost:8000) in your browser.
 
     *Note: Data will be stored in `instance/restaurants.db` by default.*
 
