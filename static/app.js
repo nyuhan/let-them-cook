@@ -149,7 +149,7 @@ function initAutocomplete() {
     await allowedTypesReady;
     const place = event.placePrediction.toPlace();
     await place.fetchFields({
-      fields: ['displayName', 'formattedAddress', 'location', 'addressComponents', 'googleMapsLinks', 'googleMapsURI', 'types', 'primaryType', 'priceLevel', 'regularOpeningHours', 'utcOffsetMinutes'],
+      fields: ['displayName', 'formattedAddress', 'location', 'addressComponents', 'googleMapsLinks', 'googleMapsURI', 'types', 'priceLevel', 'regularOpeningHours', 'utcOffsetMinutes'],
     });
     if (window.DEBUG) console.log(JSON.stringify(place.toJSON(), /* replacer */ null, /* space */ 2));
 
