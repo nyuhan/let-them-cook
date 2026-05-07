@@ -2,6 +2,7 @@ Flask
 Flask-Login
 Flask-WTF
 gunicorn
+PyJWT
 pyotp
 qrcode
 python-dotenv

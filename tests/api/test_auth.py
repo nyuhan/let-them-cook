@@ -335,3 +335,92 @@ class TestDisable2fa:
         row = conn.execute("SELECT totp_secret FROM settings WHERE id = 1").fetchone()
         conn.close()
         assert row[0] == secret
+
+
+# ---------------------------------------------------------------------------
+# POST /api/login
+# ---------------------------------------------------------------------------
+
+
+class TestApiLogin:
+    def test_correct_password_returns_token(self, unauthed_client):
+        resp = unauthed_client.post(
+            "/api/login", json={"password": _TEST_PASSWORD}
+        )
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert "token" in data
+        assert isinstance(data["token"], str)
+
+    def test_wrong_password_returns_401(self, unauthed_client):
+        resp = unauthed_client.post(
+            "/api/login", json={"password": "wrongpassword"}
+        )
+        assert resp.status_code == 401
+        assert resp.get_json()["error"] == "invalid credentials"
+
+    def test_totp_correct_password_and_code(self, unauthed_client):
+        secret = pyotp.random_base32()
+        _set_totp_secret(secret)
+        code = pyotp.TOTP(secret).now()
+        resp = unauthed_client.post(
+            "/api/login", json={"password": _TEST_PASSWORD, "totp_code": code}
+        )
+        assert resp.status_code == 200
+        assert "token" in resp.get_json()
+
+    def test_totp_correct_password_wrong_code_returns_401(self, unauthed_client):
+        secret = pyotp.random_base32()
+        _set_totp_secret(secret)
+        resp = unauthed_client.post(
+            "/api/login", json={"password": _TEST_PASSWORD, "totp_code": "000000"}
+        )
+        assert resp.status_code == 401
+
+
+# ---------------------------------------------------------------------------
+# Bearer token authentication
+# ---------------------------------------------------------------------------
+
+
+class TestBearerTokenAuth:
+    def _get_token(self, unauthed_client):
+        resp = unauthed_client.post(
+            "/api/login", json={"password": _TEST_PASSWORD}
+        )
+        return resp.get_json()["token"]
+
+    def test_bearer_token_allows_api_access(self, unauthed_client):
+        token = self._get_token(unauthed_client)
+        resp = unauthed_client.get(
+            "/api/restaurants",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert resp.status_code == 200
+
+    def test_invalid_token_returns_401(self, unauthed_client):
+        resp = unauthed_client.get(
+            "/api/restaurants",
+            headers={"Authorization": "Bearer invalidtoken"},
+        )
+        assert resp.status_code == 401
+
+    def test_missing_token_returns_401(self, unauthed_client):
+        resp = unauthed_client.get("/api/restaurants")
+        assert resp.status_code == 401
+
+    def test_bearer_token_allows_post(self, unauthed_client):
+        token = self._get_token(unauthed_client)
+        resp = unauthed_client.post(
+            "/api/restaurants",
+            json={
+                "id": "tok_place",
+                "name": "Token Restaurant",
+                "diningOptions": "dine-in",
+                "rating": 3,
+                "address": "1 Token St",
+                "city": "TokenCity",
+            },
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert resp.status_code == 201

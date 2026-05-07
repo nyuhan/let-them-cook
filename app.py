@@ -1,3 +1,4 @@
+import datetime
 import hashlib
 import io
 import json
@@ -9,6 +10,8 @@ import sqlite3
 import time
 import urllib.parse
 import urllib.request
+
+import jwt
 
 import pyotp
 import qrcode
@@ -167,6 +170,21 @@ def load_user(user_id):
     return None
 
 
+@login_manager.request_loader
+def load_user_from_request(req):
+    auth_header = req.headers.get("Authorization", "")
+    if not auth_header.startswith("Bearer "):
+        return None
+    token = auth_header[len("Bearer "):].strip()
+    try:
+        payload = jwt.decode(token, app.secret_key, algorithms=["HS256"])
+        if payload.get("sub") != "admin":
+            return None
+        return _USER
+    except jwt.PyJWTError:
+        return None
+
+
 @login_manager.unauthorized_handler
 def unauthorized():
     if request.path.startswith("/api/"):
@@ -302,6 +320,40 @@ def login():
 def logout():
     logout_user()
     return redirect(url_for("login"))
+
+
+_JWT_EXPIRY_DAYS = 90
+
+
+@app.route("/api/login", methods=["POST"])
+@csrf.exempt
+def api_login():
+    data = request.get_json() or {}
+    password = data.get("password", "")
+    totp_code = str(data.get("totp_code", "")).strip()
+
+    db = get_db()
+    settings = _get_settings(db)
+
+    password_ok = bool(settings["password_hash"]) and check_password_hash(
+        settings["password_hash"], password
+    )
+
+    if settings["totp_secret"]:
+        totp_ok = pyotp.TOTP(settings["totp_secret"]).verify(totp_code, valid_window=1)
+    else:
+        totp_ok = True
+
+    if not (password_ok and totp_ok):
+        return jsonify({"error": "invalid credentials"}), 401
+
+    payload = {
+        "sub": "admin",
+        "exp": datetime.datetime.now(datetime.timezone.utc)
+        + datetime.timedelta(days=_JWT_EXPIRY_DAYS),
+    }
+    token = jwt.encode(payload, app.secret_key, algorithm="HS256")
+    return jsonify({"token": token})
 
 
 @app.route("/settings", methods=["GET", "POST"])
