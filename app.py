@@ -486,6 +486,7 @@ def get_cities():
 
 
 @app.route("/api/restaurants", methods=["GET", "POST"])
+@csrf.exempt
 @login_required
 def restaurants():
     db = get_db()
@@ -653,6 +654,7 @@ def get_restaurant(rest_id):
 
 
 @app.route("/api/restaurants/<rest_id>", methods=["PUT"])
+@csrf.exempt
 @login_required
 def update_restaurant(rest_id):
     db = get_db()
@@ -834,6 +836,7 @@ def update_restaurant(rest_id):
 
 
 @app.route("/api/restaurants/<rest_id>", methods=["DELETE"])
+@csrf.exempt
 @login_required
 def delete_restaurant(rest_id):
     db = get_db()
