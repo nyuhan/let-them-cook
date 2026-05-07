@@ -351,8 +351,8 @@ class TestCSRF:
         )
         assert resp.status_code == 400
 
-    def test_api_post_without_csrf_rejected(self, live_server):
-        """POST /api/restaurants without X-CSRFToken returns 400."""
+    def test_api_post_without_csrf_allowed(self, live_server):
+        """POST /api/restaurants without X-CSRFToken is allowed (CSRF-exempt for mobile clients)."""
         s = _login_session(live_server)
         resp = s.post(
             f"{live_server}/api/restaurants",
@@ -365,18 +365,18 @@ class TestCSRF:
                 "city": "C",
             },
         )
-        assert resp.status_code == 400
+        assert resp.status_code == 201
 
-    def test_api_put_without_csrf_rejected(self, live_server, seed):
-        """PUT /api/restaurants/<id> without X-CSRFToken returns 400."""
+    def test_api_put_without_csrf_allowed(self, live_server, seed):
+        """PUT /api/restaurants/<id> without X-CSRFToken is allowed (CSRF-exempt for mobile clients)."""
         seed()
         s = _login_session(live_server)
         resp = s.put(f"{live_server}/api/restaurants/place_abc", json={"notes": "x"})
-        assert resp.status_code == 400
+        assert resp.status_code == 200
 
-    def test_api_delete_without_csrf_rejected(self, live_server, seed):
-        """DELETE /api/restaurants/<id> without X-CSRFToken returns 400."""
+    def test_api_delete_without_csrf_allowed(self, live_server, seed):
+        """DELETE /api/restaurants/<id> without X-CSRFToken is allowed (CSRF-exempt for mobile clients)."""
         seed()
         s = _login_session(live_server)
         resp = s.delete(f"{live_server}/api/restaurants/place_abc")
-        assert resp.status_code == 400
+        assert resp.status_code == 200
