@@ -1425,9 +1425,7 @@ function saveEdit(index) {
     return;
   }
 
-  const dish = { ...currentDishes[index], name, rating };
-  if (notes) dish.notes = notes;
-  else delete dish.notes;
+  const dish = { ...currentDishes[index], name, rating, notes: notes || null };
   currentDishes[index] = dish;
   editingDishIndex = -1;
   renderDishesList();
@@ -1650,9 +1648,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       // Add new dish
-      const newDish = { name, rating };
-      if (notes) newDish.notes = notes;
-      currentDishes.push(newDish);
+      currentDishes.push({ name, rating, notes: notes || null });
 
       renderDishesList();
       resetDishForm();

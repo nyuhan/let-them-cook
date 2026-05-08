@@ -125,7 +125,7 @@ class TestUpdateRestaurant:
         assert r["dishes"] == [
             {"name": "Alpha", "rating": 1, "notes": "first"},
             {"name": "Bravo", "rating": 0, "notes": "second"},
-            {"name": "Charlie", "rating": 1},
+            {"name": "Charlie", "rating": 1, "notes": None},
         ]
 
     def test_dishes_cleared_with_empty_list(self, client, seed_restaurant):
@@ -141,7 +141,24 @@ class TestUpdateRestaurant:
         seed_restaurant(id="r1", dishes=[{"name": "Burger", "rating": 1}])
         resp = client.put("/api/restaurants/r1", json={"rating": 5})
         assert resp.status_code == 200
-        assert resp.get_json()["dishes"] == [{"name": "Burger", "rating": 1}]
+        assert resp.get_json()["dishes"] == [{"name": "Burger", "rating": 1, "notes": None}]
+
+    def test_dish_notes_normalised_to_null(self, client, seed_restaurant):
+        """Empty string, explicit null, and omitted notes all produce null."""
+        seed_restaurant(id="r1")
+        resp = client.put(
+            "/api/restaurants/r1",
+            json={
+                "dishes": [
+                    {"name": "A", "rating": 1, "notes": ""},
+                    {"name": "B", "rating": 1, "notes": None},
+                    {"name": "C", "rating": 1},
+                ]
+            },
+        )
+        assert resp.status_code == 200
+        dishes = resp.get_json()["dishes"]
+        assert all(d["notes"] is None for d in dishes)
 
     def test_duplicate_dish_name_rejected(self, client, seed_restaurant):
         seed_restaurant(id="r1")

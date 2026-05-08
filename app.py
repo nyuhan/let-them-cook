@@ -120,7 +120,7 @@ def _init_db(conn):
             for row in rows:
                 rid = row[0]
                 dishes_by_restaurant.setdefault(rid, []).append(
-                    {"name": row[1], "rating": row[2], "notes": row[3]}
+                    {"name": row[1], "rating": row[2], "notes": row[3] or None}
                 )
             for rid, dish_list in dishes_by_restaurant.items():
                 conn.execute(
@@ -617,16 +617,13 @@ def restaurants():
             for dish in dishes:
                 d_name = dish.get("name")
                 d_rating = dish.get("rating")
-                d_notes = dish.get("notes")
+                d_notes = dish.get("notes") or None
                 try:
                     d_rating = int(d_rating)
                 except (ValueError, TypeError):
                     continue
                 if d_name and d_rating in (0, 1):
-                    dish = {"name": d_name, "rating": d_rating}
-                    if d_notes:
-                        dish["notes"] = d_notes
-                    validated_dishes.append(dish)
+                    validated_dishes.append({"name": d_name, "rating": d_rating, "notes": d_notes})
 
         dishes_json = json.dumps(validated_dishes)
 
@@ -792,17 +789,14 @@ def update_restaurant(rest_id):
             if not d_name:
                 continue
             d_rating = dish.get("rating")
-            d_notes = dish.get("notes")
+            d_notes = dish.get("notes") or None
             try:
                 d_rating = int(d_rating)
             except (ValueError, TypeError):
                 continue
             if d_rating not in (0, 1):
                 continue
-            dish = {"name": d_name, "rating": d_rating}
-            if d_notes:
-                dish["notes"] = d_notes
-            validated_dishes.append(dish)
+            validated_dishes.append({"name": d_name, "rating": d_rating, "notes": d_notes})
         dishes_json = json.dumps(validated_dishes)
 
     update_set = (
