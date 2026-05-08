@@ -143,6 +143,27 @@ class TestUpdateRestaurant:
         assert resp.status_code == 200
         assert resp.get_json()["dishes"] == [{"name": "Burger", "rating": 1, "notes": None}]
 
+    def test_restaurant_notes_normalised_to_null(self, client, seed_restaurant):
+        """Empty string and explicit null notes both clear notes to null."""
+        seed_restaurant(id="r1", notes="has notes")
+
+        resp = client.put("/api/restaurants/r1", json={"notes": ""})
+        assert resp.status_code == 200
+        assert resp.get_json()["notes"] is None
+
+        # Restore, then send explicit null
+        client.put("/api/restaurants/r1", json={"notes": "has notes"})
+        resp = client.put("/api/restaurants/r1", json={"notes": None})
+        assert resp.status_code == 200
+        assert resp.get_json()["notes"] is None
+
+    def test_restaurant_notes_preserved_when_not_in_payload(self, client, seed_restaurant):
+        """Omitting the notes key from the payload preserves the existing value."""
+        seed_restaurant(id="r1", notes="keep me")
+        resp = client.put("/api/restaurants/r1", json={"rating": 5})
+        assert resp.status_code == 200
+        assert resp.get_json()["notes"] == "keep me"
+
     def test_dish_notes_normalised_to_null(self, client, seed_restaurant):
         """Empty string, explicit null, and omitted notes all produce null."""
         seed_restaurant(id="r1")

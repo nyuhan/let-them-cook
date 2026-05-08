@@ -46,6 +46,16 @@ class TestCreateRestaurant:
         assert resp.status_code == 201
         assert len(resp.get_json()["dishes"]) == 2
 
+    def test_restaurant_notes_normalised_to_null(self, client, seed_restaurant):
+        """Empty string and explicit null notes both produce null on the restaurant."""
+        _, resp = seed_restaurant(notes="")
+        assert resp.status_code == 201
+        assert resp.get_json()["notes"] is None
+
+        _, resp = seed_restaurant(id="r2", notes=None)
+        assert resp.status_code == 201
+        assert resp.get_json()["notes"] is None
+
     def test_dish_notes_normalised_to_null(self, client, seed_restaurant):
         """Empty string, explicit null, and omitted notes all produce null."""
         dishes = [

@@ -129,6 +129,9 @@ def _init_db(conn):
                 )
             conn.execute("DROP TABLE dishes")
 
+    # Normalise legacy empty-string notes to NULL
+    conn.execute("UPDATE restaurants SET notes = NULL WHERE notes = ''")
+
     conn.execute(
         """CREATE TABLE IF NOT EXISTS settings (
             id INTEGER PRIMARY KEY CHECK (id = 1),
@@ -570,7 +573,7 @@ def restaurants():
         map_uri = data.get("mapUri")
         directions_uri = data.get("directionsUri")
         price_level = data.get("priceLevel")
-        notes = data.get("notes")
+        notes = data.get("notes") or None
         dishes = data.get("dishes")
         opening_hours = data.get("openingHours")
         types = data.get("types")
@@ -699,7 +702,7 @@ def update_restaurant(rest_id):
 
     dining_options = data.get("diningOptions")
     rating = data.get("rating")
-    notes = data.get("notes")
+    notes = data.get("notes") or None if "notes" in data else ...
     wishlisted = data.get("wishlisted")  # None means not provided
 
     if dining_options is not None and dining_options not in (
@@ -746,7 +749,7 @@ def update_restaurant(rest_id):
     new_type = (
         dining_options if dining_options is not None else current_data["dining_options"]
     )
-    new_notes = notes if notes is not None else current_data["notes"]
+    new_notes = notes if notes is not ... else current_data["notes"]
     new_address = address if address is not None else current_data["address"]
     new_city = city if city is not None else current_data["city"]
     new_map_uri = map_uri if map_uri is not None else current_data["map_uri"]

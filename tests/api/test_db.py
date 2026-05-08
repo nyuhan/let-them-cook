@@ -1,3 +1,4 @@
+import sqlite3
 import app as app_module
 from app import app as flask_app
 
@@ -56,3 +57,23 @@ class TestSchema:
             # Both should work fine
             cur = db2.execute("SELECT count(*) FROM restaurants")
             assert cur.fetchone()[0] == 0
+
+    def test_empty_string_notes_migrated_to_null(self, app):
+        """_init_db normalises pre-existing empty-string notes to NULL."""
+        conn = sqlite3.connect(app_module.DATABASE)
+        conn.execute(
+            "INSERT INTO restaurants (id, name, address, city, dining_options, rating, wishlisted, notes)"
+            " VALUES ('r1','X','A','C','dine-in',3,0,'')"
+        )
+        conn.commit()
+        conn.close()
+
+        # Re-running _init_db (as happens on every startup) should fix it
+        conn2 = sqlite3.connect(app_module.DATABASE)
+        app_module._init_db(conn2)
+        conn2.close()
+
+        conn3 = sqlite3.connect(app_module.DATABASE)
+        row = conn3.execute("SELECT notes FROM restaurants WHERE id='r1'").fetchone()
+        conn3.close()
+        assert row[0] is None
