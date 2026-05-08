@@ -33,14 +33,4 @@ class TestDeleteRestaurant:
         assert resp.get_json()["status"] == "deleted"
         assert client.get("/api/restaurants/r1").status_code == 404
 
-    def test_dishes_cascade_deleted(self, client, seed_restaurant):
-        dishes = [{"name": "Pizza", "rating": 1}, {"name": "Pasta", "rating": 0}]
-        seed_restaurant(id="r1", dishes=dishes)
-        client.delete("/api/restaurants/r1")
-        conn = sqlite3.connect(app_module.DATABASE)
-        rows = conn.execute(
-            "SELECT * FROM dishes WHERE restaurant_id = 'r1'"
-        ).fetchall()
-        conn.close()
-        assert rows == []
 

@@ -1425,7 +1425,10 @@ function saveEdit(index) {
     return;
   }
 
-  currentDishes[index] = { ...currentDishes[index], name, rating, notes };
+  const dish = { ...currentDishes[index], name, rating };
+  if (notes) dish.notes = notes;
+  else delete dish.notes;
+  currentDishes[index] = dish;
   editingDishIndex = -1;
   renderDishesList();
 }
@@ -1647,7 +1650,9 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       // Add new dish
-      currentDishes.push({ name, rating, notes });
+      const newDish = { name, rating };
+      if (notes) newDish.notes = notes;
+      currentDishes.push(newDish);
 
       renderDishesList();
       resetDishForm();

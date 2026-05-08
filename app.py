@@ -12,7 +12,6 @@ import urllib.parse
 import urllib.request
 
 import jwt
-
 import pyotp
 import qrcode
 import qrcode.image.svg
@@ -74,7 +73,8 @@ def _init_db(conn):
             types TEXT,
             latitude REAL,
             longitude REAL,
-            created_at TEXT DEFAULT (CURRENT_TIMESTAMP)
+            created_at TEXT DEFAULT (CURRENT_TIMESTAMP),
+            dishes TEXT NOT NULL DEFAULT '[]'
         )"""
     )
 
@@ -106,17 +106,28 @@ def _init_db(conn):
             "ALTER TABLE restaurants ADD COLUMN wishlisted BOOLEAN NOT NULL DEFAULT 0"
         )
 
-    conn.execute(
-        """CREATE TABLE IF NOT EXISTS dishes (
-            restaurant_id TEXT NOT NULL,
-            name TEXT NOT NULL,
-            rating INTEGER CHECK(rating IN (0, 1)) NOT NULL,
-            notes TEXT,
-            created_at TEXT DEFAULT (CURRENT_TIMESTAMP),
-            PRIMARY KEY (restaurant_id, name),
-            FOREIGN KEY(restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE
-        )"""
-    )
+    if "dishes" not in columns:
+        conn.execute("ALTER TABLE restaurants ADD COLUMN dishes TEXT NOT NULL DEFAULT '[]'")
+        # Migrate existing rows from the dishes table if it still exists
+        has_dishes_table = conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='dishes'"
+        ).fetchone()
+        if has_dishes_table:
+            rows = conn.execute(
+                "SELECT restaurant_id, name, rating, notes FROM dishes ORDER BY rowid"
+            ).fetchall()
+            dishes_by_restaurant = {}
+            for row in rows:
+                rid = row[0]
+                dishes_by_restaurant.setdefault(rid, []).append(
+                    {"name": row[1], "rating": row[2], "notes": row[3]}
+                )
+            for rid, dish_list in dishes_by_restaurant.items():
+                conn.execute(
+                    "UPDATE restaurants SET dishes = ? WHERE id = ?",
+                    (json.dumps(dish_list), rid),
+                )
+            conn.execute("DROP TABLE dishes")
 
     conn.execute(
         """CREATE TABLE IF NOT EXISTS settings (
@@ -175,7 +186,7 @@ def load_user_from_request(req):
     auth_header = req.headers.get("Authorization", "")
     if not auth_header.startswith("Bearer "):
         return None
-    token = auth_header[len("Bearer "):].strip()
+    token = auth_header[len("Bearer ") :].strip()
     try:
         payload = jwt.decode(token, app.secret_key, algorithms=["HS256"])
         if payload.get("sub") != "admin":
@@ -253,6 +264,12 @@ def parse_restaurant_row(row):
 
     if "wishlisted" in d:
         d["wishlisted"] = bool(d["wishlisted"])
+
+    if "dishes" in d:
+        try:
+            d["dishes"] = json.loads(d["dishes"] or "[]")
+        except (json.JSONDecodeError, TypeError):
+            d["dishes"] = []
 
     return d
 
@@ -587,8 +604,34 @@ def restaurants():
         if not name or dining_options not in ("dine-in", "delivery", "both"):
             return jsonify({"error": "invalid data"}), 400
 
+        validated_dishes = []
+        if dishes and isinstance(dishes, list):
+            seen = set()
+            for dish in dishes:
+                d_name = dish.get("name")
+                if d_name:
+                    if d_name in seen:
+                        return jsonify({"error": f"Duplicate dish: {d_name}"}), 400
+                    seen.add(d_name)
+
+            for dish in dishes:
+                d_name = dish.get("name")
+                d_rating = dish.get("rating")
+                d_notes = dish.get("notes")
+                try:
+                    d_rating = int(d_rating)
+                except (ValueError, TypeError):
+                    continue
+                if d_name and d_rating in (0, 1):
+                    dish = {"name": d_name, "rating": d_rating}
+                    if d_notes:
+                        dish["notes"] = d_notes
+                    validated_dishes.append(dish)
+
+        dishes_json = json.dumps(validated_dishes)
+
         db.execute(
-            "INSERT INTO restaurants (id, name, dining_options, rating, wishlisted, address, city, map_uri, directions_uri, price_level, notes, opening_hours, types, latitude, longitude, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?, CURRENT_TIMESTAMP)",
+            "INSERT INTO restaurants (id, name, dining_options, rating, wishlisted, address, city, map_uri, directions_uri, price_level, notes, opening_hours, types, latitude, longitude, dishes, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?, CURRENT_TIMESTAMP)",
             (
                 id,
                 name,
@@ -605,94 +648,29 @@ def restaurants():
                 types_json,
                 latitude,
                 longitude,
+                dishes_json,
             ),
         )
-
-        if dishes and isinstance(dishes, list):
-            seen = set()
-            for dish in dishes:
-                d_name = dish.get("name")
-                if d_name:
-                    if d_name in seen:
-                        return jsonify({"error": f"Duplicate dish: {d_name}"}), 400
-                    seen.add(d_name)
-
-            dishes_params = []
-            for dish in dishes:
-                d_name = dish.get("name")
-                d_rating = dish.get("rating")
-                d_notes = dish.get("notes")
-                try:
-                    d_rating = int(d_rating)
-                except (ValueError, TypeError):
-                    continue
-
-                if d_name and d_rating in (0, 1):
-                    dishes_params.append((id, d_name, d_rating, d_notes))
-
-            if dishes_params:
-                db.executemany(
-                    "INSERT INTO dishes (restaurant_id, name, rating, notes) VALUES (?, ?, ?, ?)",
-                    dishes_params,
-                )
 
         db.commit()
         return jsonify(_get_restaurant(db, id)), 201
 
     cur = db.execute(
-        "SELECT id, name, dining_options, rating, wishlisted, address, city, map_uri, directions_uri, price_level, notes, opening_hours, types, latitude, longitude, created_at FROM restaurants ORDER BY created_at DESC"
+        "SELECT id, name, dining_options, rating, wishlisted, address, city, map_uri, directions_uri, price_level, notes, opening_hours, types, latitude, longitude, created_at, dishes FROM restaurants ORDER BY created_at DESC"
     )
-    restaurants = []
-    for r in cur.fetchall():
-        restaurants.append(snake_to_camel(parse_restaurant_row(r)))
-
-    cur = db.execute(
-        "SELECT rowid, restaurant_id, name, rating, notes FROM dishes ORDER BY rowid"
-    )
-    dishes_rows = cur.fetchall()
-
-    dishes_map = {}
-    for d in dishes_rows:
-        rid = d["restaurant_id"]
-        dish_dict = {
-            "id": d["rowid"],
-            "name": d["name"],
-            "rating": d["rating"],
-            "notes": d["notes"],
-        }
-        if rid not in dishes_map:
-            dishes_map[rid] = []
-        dishes_map[rid].append(dish_dict)
-
-    for r in restaurants:
-        r["dishes"] = dishes_map.get(r["id"], [])
-
+    restaurants = [snake_to_camel(parse_restaurant_row(r)) for r in cur.fetchall()]
     return jsonify(restaurants)
 
 
 def _get_restaurant(db, rest_id):
     cur = db.execute(
-        "SELECT id, name, dining_options, rating, wishlisted, address, city, map_uri, directions_uri, price_level, notes, opening_hours, types, latitude, longitude, created_at FROM restaurants WHERE id = ?",
+        "SELECT id, name, dining_options, rating, wishlisted, address, city, map_uri, directions_uri, price_level, notes, opening_hours, types, latitude, longitude, created_at, dishes FROM restaurants WHERE id = ?",
         (rest_id,),
     )
     row = cur.fetchone()
     if row is None:
         return None
-    cur2 = db.execute(
-        "SELECT rowid, name, rating, notes FROM dishes WHERE restaurant_id = ? ORDER BY rowid",
-        (rest_id,),
-    )
-    restaurant = snake_to_camel(parse_restaurant_row(row))
-    restaurant["dishes"] = [
-        {
-            "id": d["rowid"],
-            "name": d["name"],
-            "rating": d["rating"],
-            "notes": d["notes"],
-        }
-        for d in cur2.fetchall()
-    ]
-    return restaurant
+    return snake_to_camel(parse_restaurant_row(row))
 
 
 @app.route("/api/restaurants/<rest_id>", methods=["GET"])
@@ -797,33 +775,8 @@ def update_restaurant(rest_id):
 
     marking_as_visited = current_wishlisted and not new_wishlisted
 
-    db.execute(
-        """UPDATE restaurants SET
-           name = ?, dining_options = ?, rating = ?, wishlisted = ?, notes = ?,
-           address = ?, city = ?, map_uri = ?, directions_uri = ?,
-           price_level = ?, opening_hours = ?, types = ?, latitude = ?, longitude = ?"""
-        + (", created_at = CURRENT_TIMESTAMP" if marking_as_visited else "")
-        + " WHERE id = ?",
-        (
-            new_name,
-            new_type,
-            new_rating,
-            new_wishlisted,
-            new_notes,
-            new_address,
-            new_city,
-            new_map_uri,
-            new_directions_uri,
-            new_price_level,
-            new_opening_hours_json,
-            new_types_json,
-            new_latitude,
-            new_longitude,
-            rest_id,
-        ),
-    )
-
     dishes = data.get("dishes")
+    dishes_json = None
     if dishes is not None and isinstance(dishes, list):
         seen = set()
         for dish in dishes:
@@ -833,55 +786,44 @@ def update_restaurant(rest_id):
                     return jsonify({"error": f"Duplicate dish: {d_name}"}), 400
                 seen.add(d_name)
 
-        cur = db.execute("SELECT rowid FROM dishes WHERE restaurant_id = ?", (rest_id,))
-        existing_ids = set(row["rowid"] for row in cur.fetchall())
-
-        to_insert = []
-        to_update = []
-        incoming_ids = set()
-
+        validated_dishes = []
         for dish in dishes:
             d_name = dish.get("name")
             if not d_name:
                 continue
-
             d_rating = dish.get("rating")
             d_notes = dish.get("notes")
             try:
                 d_rating = int(d_rating)
             except (ValueError, TypeError):
                 continue
-
             if d_rating not in (0, 1):
                 continue
+            dish = {"name": d_name, "rating": d_rating}
+            if d_notes:
+                dish["notes"] = d_notes
+            validated_dishes.append(dish)
+        dishes_json = json.dumps(validated_dishes)
 
-            d_id = dish.get("id")
-            if d_id:
-                try:
-                    d_id = int(d_id)
-                except:
-                    d_id = None
+    update_set = (
+        "name = ?, dining_options = ?, rating = ?, wishlisted = ?, notes = ?, "
+        "address = ?, city = ?, map_uri = ?, directions_uri = ?, "
+        "price_level = ?, opening_hours = ?, types = ?, latitude = ?, longitude = ?"
+    )
+    params = [
+        new_name, new_type, new_rating, new_wishlisted, new_notes,
+        new_address, new_city, new_map_uri, new_directions_uri,
+        new_price_level, new_opening_hours_json, new_types_json,
+        new_latitude, new_longitude,
+    ]
+    if marking_as_visited:
+        update_set += ", created_at = CURRENT_TIMESTAMP"
+    if dishes_json is not None:
+        update_set += ", dishes = ?"
+        params.append(dishes_json)
+    params.append(rest_id)
 
-            if d_id and d_id in existing_ids:
-                incoming_ids.add(d_id)
-                to_update.append((d_name, d_rating, d_notes, d_id))
-            else:
-                to_insert.append((rest_id, d_name, d_rating, d_notes))
-
-        to_delete = [(rowid,) for rowid in existing_ids if rowid not in incoming_ids]
-
-        if to_delete:
-            db.executemany("DELETE FROM dishes WHERE rowid = ?", to_delete)
-        if to_update:
-            db.executemany(
-                "UPDATE dishes SET name = ?, rating = ?, notes = ? WHERE rowid = ?",
-                to_update,
-            )
-        if to_insert:
-            db.executemany(
-                "INSERT INTO dishes (restaurant_id, name, rating, notes) VALUES (?, ?, ?, ?)",
-                to_insert,
-            )
+    db.execute(f"UPDATE restaurants SET {update_set} WHERE id = ?", params)
 
     db.commit()
     return jsonify(_get_restaurant(db, rest_id)), 200
