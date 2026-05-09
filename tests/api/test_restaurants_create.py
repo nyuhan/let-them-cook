@@ -141,6 +141,12 @@ class TestCreateRestaurant:
         )
         assert resp.status_code == 400
 
+    def test_dining_options_nullable(self, client, seed_restaurant):
+        """diningOptions may be omitted; it is stored as null."""
+        _, resp = seed_restaurant(diningOptions=None)
+        assert resp.status_code == 201
+        assert resp.get_json()["diningOptions"] is None
+
     def test_missing_name(self, client):
         resp = client.post(
             "/api/restaurants",

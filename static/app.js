@@ -792,10 +792,10 @@ function renderCard(r, compact = false) {
     badges = [makeBadge(ICON_DELIVERY, 'Delivery')];
   } else if (r.diningOptions === 'both') {
     badges = [makeBadge(ICON_DINE_IN, 'Dine-in'), makeBadge(ICON_DELIVERY, 'Delivery')];
-  } else {
+  } else if (r.diningOptions) {
     const b = document.createElement('span');
     b.className = 'inline-flex items-center px-2 py-0.5 rounded text-xs font-medium capitalize bg-indigo-100 text-indigo-800';
-    b.textContent = (r.diningOptions || 'unknown').replace('-', ' ');
+    b.textContent = r.diningOptions.replace('-', ' ');
     badges = [b];
   }
 

@@ -1,0 +1,606 @@
+openapi: 3.0.3
+info:
+  title: Let Them Cook API
+  description: |
+    REST API for managing restaurants and dishes.
+
+    All endpoints require an authenticated session (cookie-based). Unauthenticated
+    requests to `/api/*` routes receive a `401` JSON response.
+  version: 1.0.0
+
+servers:
+  - url: /
+    description: Same origin
+
+security:
+  - cookieAuth: []
+  - bearerAuth: []
+
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: session
+      description: Session cookie set after a successful POST /login
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtained from POST /api/login
+
+  schemas:
+    Dish:
+      type: object
+      properties:
+        name:
+          type: string
+          example: Tonkotsu Ramen
+        rating:
+          type: integer
+          enum: [0, 1]
+          description: "0 = disliked, 1 = liked"
+          example: 1
+        notes:
+          type: string
+          nullable: true
+          example: Extra soft-boiled egg is a must
+
+    DishInput:
+      type: object
+      required:
+        - name
+        - rating
+      properties:
+        name:
+          type: string
+          example: Tonkotsu Ramen
+        rating:
+          type: integer
+          enum: [0, 1]
+          example: 1
+        notes:
+          type: string
+          nullable: true
+          example: Extra soft-boiled egg is a must
+
+    Restaurant:
+      type: object
+      properties:
+        id:
+          type: string
+          example: ChIJN1t_tDeuEmsRUsoyG83frY4
+        name:
+          type: string
+          example: Ichiran Ramen
+        address:
+          type: string
+          example: 1 Ramen St, Tokyo
+        city:
+          type: string
+          example: Tokyo
+        mapUri:
+          type: string
+          nullable: true
+          example: https://maps.google.com/?cid=123456
+        directionsUri:
+          type: string
+          nullable: true
+          example: https://maps.google.com/maps?daddr=...
+        diningOptions:
+          type: string
+          enum: ["dine-in", "delivery", "both"]
+          example: dine-in
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+          nullable: true
+          description: |
+            Star rating 1–5. `null` when `wishlisted` is `true` (restaurant not yet
+            visited).
+          example: 4
+        wishlisted:
+          type: boolean
+          description: |
+            `true` = on the wishlist (not yet visited); `false` = visited.
+            Exactly one of `wishlisted: true` **or** a non-null `rating` must be set.
+          example: false
+        priceLevel:
+          type: integer
+          nullable: true
+          description: Price level on a 1–4 scale (from Google Places)
+          example: 2
+        notes:
+          type: string
+          nullable: true
+          example: Great solo booth dining experience
+        openingHours:
+          type: object
+          nullable: true
+          description: Opening hours object from Google Places (shape varies)
+          example:
+            weekdayDescriptions:
+              - "Monday: 11:00 AM – 11:00 PM"
+              - "Tuesday: 11:00 AM – 11:00 PM"
+            periods: []
+        types:
+          type: array
+          items:
+            type: string
+          description: Raw Google Places type identifiers
+          example: ["restaurant", "food", "point_of_interest"]
+        cuisines:
+          type: array
+          items:
+            type: string
+          description: Derived human-readable cuisine categories (mapped from `types`)
+          example: ["Japanese"]
+        latitude:
+          type: number
+          format: double
+          nullable: true
+          example: 35.6595
+        longitude:
+          type: number
+          format: double
+          nullable: true
+          example: 139.7006
+        createdAt:
+          type: string
+          description: ISO 8601 UTC timestamp of when the restaurant was added (or last marked as visited)
+          example: "2025-11-03 14:22:01"
+        dishes:
+          type: array
+          items:
+            $ref: '#/components/schemas/Dish'
+
+    RestaurantCreateInput:
+      type: object
+      required:
+        - name
+      description: |
+        Exactly one of `wishlisted: true` **or** a non-null `rating` (1–5) must be
+        provided.
+      properties:
+        id:
+          type: string
+          description: |
+            Client-supplied unique identifier (e.g. a Google Places `place_id`).
+            Must be globally unique.
+          example: ChIJN1t_tDeuEmsRUsoyG83frY4
+        name:
+          type: string
+          example: Ichiran Ramen
+        diningOptions:
+          type: string
+          enum: ["dine-in", "delivery", "both"]
+          example: dine-in
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+          nullable: true
+          description: Required when `wishlisted` is `false` or omitted
+          example: 4
+        wishlisted:
+          type: boolean
+          default: false
+          description: Set `true` to add to wishlist without a rating
+          example: false
+        address:
+          type: string
+          example: 1 Ramen St, Tokyo
+        city:
+          type: string
+          example: Tokyo
+        mapUri:
+          type: string
+          nullable: true
+          example: https://maps.google.com/?cid=123456
+        directionsUri:
+          type: string
+          nullable: true
+        priceLevel:
+          type: integer
+          nullable: true
+          example: 2
+        notes:
+          type: string
+          nullable: true
+        openingHours:
+          type: object
+          nullable: true
+        types:
+          type: array
+          nullable: true
+          items:
+            type: string
+        latitude:
+          type: number
+          format: double
+          nullable: true
+        longitude:
+          type: number
+          format: double
+          nullable: true
+        dishes:
+          type: array
+          nullable: true
+          items:
+            $ref: '#/components/schemas/DishInput'
+
+    RestaurantUpdateInput:
+      type: object
+      description: |
+        All fields are optional. Only provided fields are changed.
+
+        If `dishes` is included it **replaces** the entire dish list for the
+        restaurant.
+
+        Business rules:
+        - A visited restaurant (`wishlisted: false`) cannot be changed back to
+          `wishlisted: true`.
+        - Changing `wishlisted` from `true` to `false` (marking as visited)
+          resets `createdAt` to the current timestamp and requires a `rating`.
+      properties:
+        name:
+          type: string
+        address:
+          type: string
+        city:
+          type: string
+        mapUri:
+          type: string
+          nullable: true
+        directionsUri:
+          type: string
+          nullable: true
+        priceLevel:
+          type: integer
+          nullable: true
+        openingHours:
+          type: object
+          nullable: true
+        types:
+          type: array
+          nullable: true
+          items:
+            type: string
+        diningOptions:
+          type: string
+          enum: ["dine-in", "delivery", "both"]
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+          nullable: true
+        wishlisted:
+          type: boolean
+        notes:
+          type: string
+          nullable: true
+        latitude:
+          type: number
+          format: double
+          nullable: true
+        longitude:
+          type: number
+          format: double
+          nullable: true
+        dishes:
+          type: array
+          nullable: true
+          items:
+            $ref: '#/components/schemas/DishInput'
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          example: not found
+
+    DeletedResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: deleted
+
+paths:
+  /api/login:
+    post:
+      summary: Obtain a JWT token
+      description: |
+        Authenticates with password (and optional TOTP code) and returns a signed
+        JWT valid for 90 days. Pass the token as `Authorization: Bearer <token>`
+        on subsequent requests.
+      operationId: apiLogin
+      security: []
+      tags:
+        - Auth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - password
+              properties:
+                password:
+                  type: string
+                  example: letthemcook
+                totp_code:
+                  type: string
+                  description: Current TOTP code (required only when 2FA is enabled)
+                  example: "123456"
+      responses:
+        '200':
+          description: Authentication successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                    description: Signed JWT
+              example:
+                token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: invalid credentials
+
+  /api/cities:
+    get:
+      summary: List cities
+      description: Returns a sorted list of distinct city names across all restaurants.
+      operationId: getCities
+      tags:
+        - Cities
+      responses:
+        '200':
+          description: Array of city name strings
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+              example: ["Amsterdam", "Barcelona", "London"]
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: unauthorized
+
+  /api/restaurants:
+    get:
+      summary: List restaurants
+      description: |
+        Returns all restaurants with their associated dishes, ordered by
+        `createdAt` descending.
+      operationId: listRestaurants
+      tags:
+        - Restaurants
+      responses:
+        '200':
+          description: Array of restaurant objects
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Restaurant'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    post:
+      summary: Create a restaurant
+      operationId: createRestaurant
+      tags:
+        - Restaurants
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RestaurantCreateInput'
+            examples:
+              visited:
+                summary: Visited restaurant with dishes
+                value:
+                  id: ChIJN1t_tDeuEmsRUsoyG83frY4
+                  name: Ichiran Ramen
+                  diningOptions: dine-in
+                  rating: 4
+                  wishlisted: false
+                  address: 1 Ramen St, Tokyo
+                  city: Tokyo
+                  priceLevel: 2
+                  dishes:
+                    - name: Tonkotsu Ramen
+                      rating: 1
+                      notes: Extra soft-boiled egg
+              wishlist:
+                summary: Wishlist entry (not yet visited)
+                value:
+                  id: ChIJabc123
+                  name: Sushi Dai
+                  diningOptions: dine-in
+                  wishlisted: true
+                  address: Tsukiji, Tokyo
+                  city: Tokyo
+      responses:
+        '201':
+          description: Restaurant created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Restaurant'
+        '400':
+          description: |
+            Bad request. Possible `error` values:
+            - `"invalid data"` – `name` is missing or `diningOptions` is not a valid enum value
+            - `"rating must be an integer 1-5"` – `rating` is not a valid integer
+            - `"rating must be between 1 and 5"` – `rating` is out of range
+            - `"exactly one of wishlisted (true) and rating must be set"` – constraint violation
+            - `"Duplicate dish: <name>"` – the `dishes` array contains duplicate names
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/restaurants/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Restaurant ID (e.g. a Google Places `place_id`)
+        example: ChIJN1t_tDeuEmsRUsoyG83frY4
+
+    get:
+      summary: Get a restaurant
+      operationId: getRestaurant
+      tags:
+        - Restaurants
+      responses:
+        '200':
+          description: Restaurant object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Restaurant'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Restaurant not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: not found
+
+    put:
+      summary: Update a restaurant
+      description: |
+        Partial update — only provided fields are changed.
+
+        When `dishes` is supplied it completely replaces the existing dish list
+        (see schema description for merge semantics).
+      operationId: updateRestaurant
+      tags:
+        - Restaurants
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RestaurantUpdateInput'
+            examples:
+              update_rating:
+                summary: Change rating only
+                value:
+                  rating: 5
+              mark_visited:
+                summary: Mark a wishlist entry as visited
+                value:
+                  wishlisted: false
+                  rating: 4
+                  diningOptions: dine-in
+              update_dishes:
+                summary: Replace the dish list
+                value:
+                  dishes:
+                    - name: Tonkotsu Ramen
+                      rating: 1
+                    - name: Gyoza
+                      rating: 1
+                      notes: Crispy bottom
+      responses:
+        '200':
+          description: Updated restaurant object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Restaurant'
+        '400':
+          description: |
+            Bad request. Possible `error` values:
+            - `"invalid dining_options"` – not a valid enum value
+            - `"rating must be 1-5"` – out of range
+            - `"rating must be integer"` – non-integer value
+            - `"exactly one of wishlisted (true) and rating must be set"` – constraint violation
+            - `"cannot mark a visited restaurant as wishlisted"` – illegal state transition
+            - `"Duplicate dish: <name>"` – duplicate names in `dishes`
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Restaurant not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      summary: Delete a restaurant
+      description: Permanently deletes the restaurant and all its associated dishes (cascade).
+      operationId: deleteRestaurant
+      tags:
+        - Restaurants
+      responses:
+        '200':
+          description: Restaurant deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeletedResponse'
+              example:
+                status: deleted
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Restaurant not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'

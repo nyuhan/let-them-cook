@@ -64,7 +64,7 @@ def _init_db(conn):
             city TEXT NOT NULL,
             map_uri TEXT,
             directions_uri TEXT,
-            dining_options TEXT CHECK(dining_options IN ('dine-in','delivery','both')) NOT NULL,
+            dining_options TEXT CHECK(dining_options IS NULL OR dining_options IN ('dine-in','delivery','both')),
             rating INTEGER CHECK(rating IS NULL OR (rating BETWEEN 1 AND 5)),
             wishlisted BOOLEAN NOT NULL DEFAULT 0,
             price_level INTEGER,
@@ -128,6 +128,16 @@ def _init_db(conn):
                     (json.dumps(dish_list), rid),
                 )
             conn.execute("DROP TABLE dishes")
+
+    # Make dining_options nullable if it still has a NOT NULL constraint
+    cur2 = conn.execute("PRAGMA table_info(restaurants)")
+    for col in cur2.fetchall():
+        if col[1] == "dining_options" and col[3] == 1:  # notnull=1
+            conn.execute("ALTER TABLE restaurants ADD COLUMN dining_options_new TEXT CHECK(dining_options_new IS NULL OR dining_options_new IN ('dine-in','delivery','both'))")
+            conn.execute("UPDATE restaurants SET dining_options_new = dining_options")
+            conn.execute("ALTER TABLE restaurants DROP COLUMN dining_options")
+            conn.execute("ALTER TABLE restaurants RENAME COLUMN dining_options_new TO dining_options")
+            break
 
     # Normalise legacy empty-string notes to NULL
     conn.execute("UPDATE restaurants SET notes = NULL WHERE notes = ''")
@@ -604,7 +614,7 @@ def restaurants():
             if not (1 <= rating <= 5):
                 return jsonify({"error": "rating must be between 1 and 5"}), 400
 
-        if not name or dining_options not in ("dine-in", "delivery", "both"):
+        if not name or (dining_options is not None and dining_options not in ("dine-in", "delivery", "both")):
             return jsonify({"error": "invalid data"}), 400
 
         validated_dishes = []
@@ -700,17 +710,17 @@ def update_restaurant(rest_id):
     opening_hours = data.get("openingHours")
     types = data.get("types")
 
-    dining_options = data.get("diningOptions")
+    dining_options = data.get("diningOptions") if "diningOptions" in data else ...
     rating = data.get("rating")
     notes = data.get("notes") or None if "notes" in data else ...
     wishlisted = data.get("wishlisted")  # None means not provided
 
-    if dining_options is not None and dining_options not in (
+    if dining_options is not ... and dining_options is not None and dining_options not in (
         "dine-in",
         "delivery",
         "both",
     ):
-        return jsonify({"error": "invalid dining_options"}), 400
+        return jsonify({"error": f"invalid dining_options: {dining_options}"}), 400
 
     if rating is not None:
         try:
@@ -746,9 +756,7 @@ def update_restaurant(rest_id):
         return jsonify({"error": "cannot mark a visited restaurant as wishlisted"}), 400
 
     new_name = name if name is not None else current_data["name"]
-    new_type = (
-        dining_options if dining_options is not None else current_data["dining_options"]
-    )
+    new_type = dining_options if dining_options is not ... else current_data["dining_options"]
     new_notes = notes if notes is not ... else current_data["notes"]
     new_address = address if address is not None else current_data["address"]
     new_city = city if city is not None else current_data["city"]

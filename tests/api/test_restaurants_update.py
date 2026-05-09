@@ -96,6 +96,20 @@ class TestUpdateRestaurant:
         resp = client.put("/api/restaurants/r1", json={"diningOptions": "takeaway"})
         assert resp.status_code == 400
 
+    def test_dining_options_cleared_to_null(self, client, seed_restaurant):
+        """Sending diningOptions: null clears it to null."""
+        seed_restaurant(id="r1")
+        resp = client.put("/api/restaurants/r1", json={"diningOptions": None})
+        assert resp.status_code == 200
+        assert resp.get_json()["diningOptions"] is None
+
+    def test_dining_options_preserved_when_not_in_payload(self, client, seed_restaurant):
+        """Omitting diningOptions from the payload preserves the existing value."""
+        seed_restaurant(id="r1", diningOptions="delivery")
+        resp = client.put("/api/restaurants/r1", json={"rating": 5})
+        assert resp.status_code == 200
+        assert resp.get_json()["diningOptions"] == "delivery"
+
     def test_dishes_set(self, client, seed_restaurant):
         seed_restaurant(id="r1")
 
