@@ -21,6 +21,13 @@
     <path
       d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4zM6 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm13.5-9l1.96 2.5H17V9.5h2.5zm-1.5 9c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z" />
   </symbol>
+  <symbol id="icon-takeout" viewBox="0 0 24 24">
+    <path
+      d="M3 22L7.05 5.75L7 5.05q-.025-.425-.3-.737T6 4t-.712.288T5 5v2H3V5q0-1.25.875-2.125T6 2h11.05q1.2 0 2.063.813t.937 2.012L21 22zm2.6-2h2.325l-.475-7.6zm4.35 0h8.95l-.85-15.05q-.025-.4-.313-.675T17.05 4H8.825q.1.25.125.488T9 5zM13 18h1.5v-4q.65-.15 1.075-.687T16 12.075V8h-1v3.775h-.75V8h-1v3.775h-.75V8h-1v4.075q0 .7.425 1.238T13 14zm-3.05 2h8.95z" />
+  </symbol>
+  <symbol id="icon-check" viewBox="0 0 20 20">
+    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+  </symbol>
   <symbol id="icon-star" viewBox="0 0 20 20">
     <path
       d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.262 3.89a1 1 0 00.95.69h4.1c.969 0 1.371 1.24.588 1.81l-3.32 2.41a1 1 0 00-.364 1.118l1.262 3.89c.3.921-.755 1.688-1.54 1.118l-3.32-2.41a1 1 0 00-1.176 0l-3.32 2.41c-.785.57-1.84-.197-1.54-1.118l1.262-3.89a1 1 0 00-.364-1.118L2.15 9.317c-.783-.57-.38-1.81.588-1.81h4.1a1 1 0 00.95-.69l1.262-3.89z" />
@@ -194,6 +201,8 @@
                   data-value="dine-in" data-label="Dine-in">Dine-in</button>
                 <button class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                   data-value="delivery" data-label="Delivery">Delivery</button>
+                <button class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                  data-value="takeout" data-label="Takeout">Takeout</button>
               </div>
             </div>
             <input type="hidden" id="filter-dining-options" value="">
@@ -417,18 +426,23 @@
       </div>
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-1">Dining Options</label>
-        <div id="dining-options-buttons" role="group" class="flex space-x-1 rounded-full p-1 bg-gray-200">
+        <div id="dining-options-buttons" role="group" class="flex gap-2">
           <button type="button" data-value="dine-in"
-            class="dining-options-button flex-1 inline-flex items-center justify-center gap-1.5 rounded-full py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-all duration-150">
+            class="dining-options-button inline-flex items-center justify-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 transition-all duration-150">
             <svg class="w-3.5 h-3.5 shrink-0" fill="currentColor" aria-hidden="true">
               <use href="#icon-dine-in" />
             </svg>
             Dine-in
           </button>
-          <button type="button" data-value="both"
-            class="dining-options-button flex-1 rounded-full py-2 text-sm font-medium text-gray-700 bg-white shadow-sm ring-1 ring-inset ring-gray-300 transition-all duration-150">Both</button>
+          <button type="button" data-value="takeout"
+            class="dining-options-button inline-flex items-center justify-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 transition-all duration-150">
+            <svg class="w-3.5 h-3.5 shrink-0" fill="currentColor" aria-hidden="true">
+              <use href="#icon-takeout" />
+            </svg>
+            Takeout
+          </button>
           <button type="button" data-value="delivery"
-            class="dining-options-button flex-1 inline-flex items-center justify-center gap-1.5 rounded-full py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-all duration-150">
+            class="dining-options-button inline-flex items-center justify-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 transition-all duration-150">
             <svg class="w-3.5 h-3.5 shrink-0" fill="currentColor" aria-hidden="true">
               <use href="#icon-delivery" />
             </svg>

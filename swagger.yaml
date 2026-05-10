@@ -88,18 +88,13 @@ components:
           nullable: true
           example: https://maps.google.com/maps?daddr=...
         diningOptions:
-          type: string
-          enum: ["dine-in", "delivery", "both"]
-          example: dine-in
+          type: array
+          items:
+            type: string
+            enum: ["dine-in", "delivery", "takeout"]
+          example: ["dine-in", "delivery"]
         rating:
-          type: integer
-          minimum: 1
-          maximum: 5
-          nullable: true
-          description: |
             Star rating 1–5. `null` when `wishlisted` is `true` (restaurant not yet
-            visited).
-          example: 4
         wishlisted:
           type: boolean
           description: |
@@ -173,9 +168,11 @@ components:
           type: string
           example: Ichiran Ramen
         diningOptions:
-          type: string
-          enum: ["dine-in", "delivery", "both"]
-          example: dine-in
+          type: array
+          items:
+            type: string
+            enum: ["dine-in", "delivery", "takeout"]
+          example: ["dine-in"]
         rating:
           type: integer
           minimum: 1
@@ -268,8 +265,10 @@ components:
           items:
             type: string
         diningOptions:
-          type: string
-          enum: ["dine-in", "delivery", "both"]
+          type: array
+          items:
+            type: string
+            enum: ["dine-in", "delivery", "takeout"]
         rating:
           type: integer
           minimum: 1
@@ -426,10 +425,7 @@ paths:
                 value:
                   id: ChIJN1t_tDeuEmsRUsoyG83frY4
                   name: Ichiran Ramen
-                  diningOptions: dine-in
-                  rating: 4
-                  wishlisted: false
-                  address: 1 Ramen St, Tokyo
+                  diningOptions: ["dine-in"]
                   city: Tokyo
                   priceLevel: 2
                   dishes:
@@ -441,9 +437,7 @@ paths:
                 value:
                   id: ChIJabc123
                   name: Sushi Dai
-                  diningOptions: dine-in
-                  wishlisted: true
-                  address: Tsukiji, Tokyo
+                  diningOptions: ["dine-in"]
                   city: Tokyo
       responses:
         '201':
@@ -534,8 +528,7 @@ paths:
                 value:
                   wishlisted: false
                   rating: 4
-                  diningOptions: dine-in
-              update_dishes:
+                  diningOptions: ["dine-in"]
                 summary: Replace the dish list
                 value:
                   dishes:

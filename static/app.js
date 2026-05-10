@@ -1,6 +1,6 @@
 let restaurantsCache = [];
 let activeWishlistFilter = false;
-let selectedDiningOptions = 'both';
+let selectedDiningOptions = [];
 let allowedTypes = new Set();
 let formWishlisted = false;
 let restaurantToMarkVisited = null;
@@ -17,6 +17,7 @@ const allowedTypesReady = fetch('/static/types.json')
 
 const ICON_DINE_IN = `<svg class="w-3 h-3 shrink-0" fill="currentColor" aria-hidden="true"><use href="#icon-dine-in"/></svg>`;
 const ICON_DELIVERY = `<svg class="w-3 h-3 shrink-0" fill="currentColor" aria-hidden="true"><use href="#icon-delivery"/></svg>`;
+const ICON_TAKEOUT = `<svg class="w-3 h-3 shrink-0" fill="currentColor" aria-hidden="true"><use href="#icon-takeout"/></svg>`;
 let currentDishes = [];
 let newDishRating = 1; // 1 for up, 0 for down
 let editingDishIndex = -1;
@@ -695,7 +696,7 @@ function filterAndRender() {
   const filtered = restaurantsCache.filter(r => {
     if (r.wishlisted !== activeWishlistFilter) return false;
     if (searchInput && !(r.name || '').toLowerCase().includes(searchInput)) return false;
-    if (diningOptions && r.diningOptions !== diningOptions && r.diningOptions !== 'both') return false;
+    if (diningOptions && !r.diningOptions.includes(diningOptions)) return false;
     if (city && r.city !== city) return false;
     if (cuisine && !(r.cuisines || []).includes(cuisine)) return false;
     if (minRating && (parseInt(r.rating, 10) || 0) < minRating) return false;
@@ -785,18 +786,19 @@ function renderCard(r, compact = false) {
     return b;
   };
 
+  const DINING_BADGES = {
+    'dine-in': () => makeBadge(ICON_DINE_IN, 'Dine-in'),
+    'delivery': () => makeBadge(ICON_DELIVERY, 'Delivery'),
+    'takeout': () => makeBadge(ICON_TAKEOUT, 'Takeout'),
+  };
+  const DINING_ORDER = ['dine-in', 'takeout', 'delivery'];
+
   let badges = [];
-  if (r.diningOptions === 'dine-in') {
-    badges = [makeBadge(ICON_DINE_IN, 'Dine-in')];
-  } else if (r.diningOptions === 'delivery') {
-    badges = [makeBadge(ICON_DELIVERY, 'Delivery')];
-  } else if (r.diningOptions === 'both') {
-    badges = [makeBadge(ICON_DINE_IN, 'Dine-in'), makeBadge(ICON_DELIVERY, 'Delivery')];
-  } else if (r.diningOptions) {
-    const b = document.createElement('span');
-    b.className = 'inline-flex items-center px-2 py-0.5 rounded text-xs font-medium capitalize bg-indigo-100 text-indigo-800';
-    b.textContent = r.diningOptions.replace('-', ' ');
-    badges = [b];
+  if (Array.isArray(r.diningOptions)) {
+    badges = DINING_ORDER.filter(opt => r.diningOptions.includes(opt)).map(opt => {
+      const factory = DINING_BADGES[opt];
+      return factory ? factory() : null;
+    }).filter(Boolean);
   }
 
   const status = getOpeningStatus(r.openingHours);
@@ -1137,17 +1139,8 @@ function enterEditMode(r) {
   }
 
   // update type buttons
-  selectedDiningOptions = r.diningOptions; // Sync global state
-  const typeButtons = document.querySelectorAll('#dining-options-buttons .dining-options-button');
-  typeButtons.forEach(btn => {
-    if (btn.dataset.value === r.diningOptions) {
-      btn.classList.add('bg-white', 'shadow-sm', 'ring-1', 'ring-inset', 'ring-gray-300');
-      btn.classList.remove('hover:bg-gray-50', 'bg-indigo-600', 'text-white');
-    } else {
-      btn.classList.remove('bg-white', 'shadow-sm', 'ring-1', 'ring-inset', 'ring-gray-300', 'bg-indigo-600', 'text-white');
-      btn.classList.add('hover:bg-gray-50');
-    }
-  });
+  selectedDiningOptions = Array.isArray(r.diningOptions) ? [...r.diningOptions] : [];
+  updateTypeButtons();
 
   const ratingStars = document.getElementById('rating-stars');
   if (ratingStars) {
@@ -1221,17 +1214,8 @@ function closeModal() {
   }
 
   // reset type and rating
-  selectedDiningOptions = 'both';
-  const typeButtons = document.querySelectorAll('#dining-options-buttons .dining-options-button');
-  typeButtons.forEach(btn => {
-    if (btn.dataset.value === 'both') {
-      btn.classList.add('bg-white', 'shadow-sm', 'ring-1', 'ring-inset', 'ring-gray-300');
-      btn.classList.remove('hover:bg-gray-50');
-    } else {
-      btn.classList.remove('bg-white', 'shadow-sm', 'ring-1', 'ring-inset', 'ring-gray-300');
-      btn.classList.add('hover:bg-gray-50');
-    }
-  });
+  selectedDiningOptions = [];
+  updateTypeButtons();
   const ratingStars = document.getElementById('rating-stars');
   if (ratingStars) {
     ratingStars.dataset.rating = '5';
@@ -1453,6 +1437,30 @@ function clearMessage() {
   el.textContent = '';
 }
 
+function updateTypeButtons() {
+  const container = document.getElementById('dining-options-buttons');
+  if (!container) return;
+  container.querySelectorAll('.dining-options-button').forEach(btn => {
+    const existing = btn.querySelector('.dining-check');
+    if (selectedDiningOptions.includes(btn.dataset.value)) {
+      btn.classList.add('bg-indigo-50', 'text-indigo-700', 'border-indigo-300');
+      btn.classList.remove('bg-white', 'text-gray-700', 'border-gray-300', 'hover:bg-gray-50');
+      if (!existing) {
+        const check = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        check.setAttribute('class', 'dining-check w-3.5 h-3.5 shrink-0');
+        check.setAttribute('fill', 'currentColor');
+        check.setAttribute('aria-hidden', 'true');
+        check.innerHTML = '<use href="#icon-check"/>';
+        btn.insertBefore(check, btn.firstChild);
+      }
+    } else {
+      btn.classList.remove('bg-indigo-50', 'text-indigo-700', 'border-indigo-300');
+      btn.classList.add('bg-white', 'text-gray-700', 'border-gray-300', 'hover:bg-gray-50');
+      if (existing) existing.remove();
+    }
+  });
+}
+
 // Delete Modal Logic
 let restaurantToDelete = null;
 
@@ -1470,26 +1478,20 @@ document.addEventListener('DOMContentLoaded', () => {
   const typeButtonsContainer = document.getElementById('dining-options-buttons');
   const ratingStarsContainer = document.getElementById('rating-stars');
 
-  // Type selection
-  // selectedDiningOptions is global
+  // Type selection (multi-toggle)
+  // selectedDiningOptions is global array
   if (typeButtonsContainer) {
     typeButtonsContainer.addEventListener('click', (e) => {
       const btn = e.target.closest('.dining-options-button');
       if (!btn) return;
-      selectedDiningOptions = btn.dataset.value;
-      updateTypeButtons();
-    });
-  }
-
-  function updateTypeButtons() {
-    typeButtonsContainer.querySelectorAll('.dining-options-button').forEach(btn => {
-      if (btn.dataset.value === selectedDiningOptions) {
-        btn.classList.add('bg-white', 'shadow-sm', 'ring-1', 'ring-inset', 'ring-gray-300');
-        btn.classList.remove('hover:bg-gray-50', 'bg-indigo-600', 'text-white');
+      const val = btn.dataset.value;
+      const idx = selectedDiningOptions.indexOf(val);
+      if (idx === -1) {
+        selectedDiningOptions.push(val);
       } else {
-        btn.classList.remove('bg-white', 'shadow-sm', 'ring-1', 'ring-inset', 'ring-gray-300', 'bg-indigo-600', 'text-white');
-        btn.classList.add('hover:bg-gray-50');
+        selectedDiningOptions.splice(idx, 1);
       }
+      updateTypeButtons();
     });
   }
 
@@ -1598,6 +1600,8 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('wishlist-toggle-section')?.classList.remove('hidden');
     formWishlisted = activeWishlistFilter;
     updateFormWishlistUI();
+    selectedDiningOptions = ['dine-in', 'delivery', 'takeout'];
+    updateTypeButtons();
   };
   addBtn.addEventListener('click', openModal);
   fab.addEventListener('click', openModal);

@@ -28,7 +28,7 @@ class TestListRestaurants:
         assert r["city"] == "TestCity"
         assert r["mapUri"] == "https://maps.example.com/place"
         assert r["directionsUri"] == "https://maps.example.com/dir"
-        assert r["diningOptions"] == "dine-in"
+        assert r["diningOptions"] == ["dine-in"]
         assert r["priceLevel"] == 2
         assert r["notes"] == "Great place"
         assert r["types"] == ["restaurant"]
@@ -93,7 +93,7 @@ class TestGetRestaurant:
         assert data["city"] == "TestCity"
         assert data["mapUri"] == "https://maps.example.com/place"
         assert data["directionsUri"] == "https://maps.example.com/dir"
-        assert data["diningOptions"] == "dine-in"
+        assert data["diningOptions"] == ["dine-in"]
         assert data["priceLevel"] == 2
         assert data["notes"] == "Great place"
         assert data["types"] == ["restaurant"]

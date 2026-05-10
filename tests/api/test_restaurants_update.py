@@ -31,7 +31,7 @@ class TestUpdateRestaurant:
             "/api/restaurants/r1",
             json={
                 "name": "Updated",
-                "diningOptions": "delivery",
+                "diningOptions": ["delivery"],
                 "rating": 2,
                 "notes": "new notes",
                 "address": "456 New St",
@@ -50,7 +50,7 @@ class TestUpdateRestaurant:
         listing = client.get("/api/restaurants").get_json()
         r = next(x for x in listing if x["id"] == "r1")
         assert r["name"] == "Updated"
-        assert r["diningOptions"] == "delivery"
+        assert r["diningOptions"] == ["delivery"]
         assert r["rating"] == 2
         assert r["city"] == "NewCity"
         assert r["priceLevel"] == 3
@@ -93,22 +93,35 @@ class TestUpdateRestaurant:
 
     def test_invalid_type(self, client, seed_restaurant):
         seed_restaurant(id="r1")
-        resp = client.put("/api/restaurants/r1", json={"diningOptions": "takeaway"})
+        resp = client.put("/api/restaurants/r1", json={"diningOptions": ["takeaway"]})
         assert resp.status_code == 400
 
-    def test_dining_options_cleared_to_null(self, client, seed_restaurant):
-        """Sending diningOptions: null clears it to null."""
+    def test_dining_options_null_rejected(self, client, seed_restaurant):
+        """Explicitly sending null is rejected."""
         seed_restaurant(id="r1")
         resp = client.put("/api/restaurants/r1", json={"diningOptions": None})
+        assert resp.status_code == 400
+
+    def test_dining_options_cleared_to_empty_list(self, client, seed_restaurant):
+        """Sending diningOptions: [] resets it to an empty list."""
+        seed_restaurant(id="r1")
+        resp = client.put("/api/restaurants/r1", json={"diningOptions": []})
         assert resp.status_code == 200
-        assert resp.get_json()["diningOptions"] is None
+        assert resp.get_json()["diningOptions"] == []
+
+    def test_dining_options_multiple_values(self, client, seed_restaurant):
+        """Multiple valid values round-trip correctly."""
+        seed_restaurant(id="r1")
+        resp = client.put("/api/restaurants/r1", json={"diningOptions": ["dine-in", "delivery", "takeout"]})
+        assert resp.status_code == 200
+        assert resp.get_json()["diningOptions"] == ["dine-in", "delivery", "takeout"]
 
     def test_dining_options_preserved_when_not_in_payload(self, client, seed_restaurant):
         """Omitting diningOptions from the payload preserves the existing value."""
-        seed_restaurant(id="r1", diningOptions="delivery")
+        seed_restaurant(id="r1", diningOptions=["delivery"])
         resp = client.put("/api/restaurants/r1", json={"rating": 5})
         assert resp.status_code == 200
-        assert resp.get_json()["diningOptions"] == "delivery"
+        assert resp.get_json()["diningOptions"] == ["delivery"]
 
     def test_dishes_set(self, client, seed_restaurant):
         seed_restaurant(id="r1")
@@ -247,17 +260,17 @@ class TestUpdateRestaurant:
 
     def test_update_fields_on_wishlisted_restaurant(self, client, seed_restaurant):
         seed_restaurant(
-            id="r1", wishlisted=True, rating=None, notes="old", diningOptions="dine-in"
+            id="r1", wishlisted=True, rating=None, notes="old", diningOptions=["dine-in"]
         )
         resp = client.put(
-            "/api/restaurants/r1", json={"notes": "new", "diningOptions": "delivery"}
+            "/api/restaurants/r1", json={"notes": "new", "diningOptions": ["delivery"]}
         )
         assert resp.status_code == 200
         r = resp.get_json()
         assert r["wishlisted"] is True
         assert r["rating"] is None
         assert r["notes"] == "new"
-        assert r["diningOptions"] == "delivery"
+        assert r["diningOptions"] == ["delivery"]
 
     def test_mark_visited_rejects_invalid_rating(self, client, seed_restaurant):
         seed_restaurant(id="r1", wishlisted=True, rating=None)

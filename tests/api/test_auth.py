@@ -416,7 +416,7 @@ class TestBearerTokenAuth:
             json={
                 "id": "tok_place",
                 "name": "Token Restaurant",
-                "diningOptions": "dine-in",
+                "diningOptions": ["dine-in"],
                 "rating": 3,
                 "address": "1 Token St",
                 "city": "TokenCity",

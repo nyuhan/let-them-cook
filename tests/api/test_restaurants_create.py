@@ -24,7 +24,7 @@ class TestCreateRestaurant:
         assert body["city"] == "TestCity"
         assert body["mapUri"] == "https://maps.example.com/place"
         assert body["directionsUri"] == "https://maps.example.com/dir"
-        assert body["diningOptions"] == "dine-in"
+        assert body["diningOptions"] == ["dine-in"]
         assert body["priceLevel"] == 2
         assert body["notes"] == "Great place"
         assert body["types"] == ["restaurant"]
@@ -90,7 +90,7 @@ class TestCreateRestaurant:
             json={
                 "id": "x",
                 "name": "R",
-                "diningOptions": "dine-in",
+                "diningOptions": ["dine-in"],
                 "rating": "bad",
                 "address": "a",
                 "city": "c",
@@ -105,7 +105,7 @@ class TestCreateRestaurant:
             json={
                 "id": "x",
                 "name": "R",
-                "diningOptions": "dine-in",
+                "diningOptions": ["dine-in"],
                 "rating": 6,
                 "address": "a",
                 "city": "c",
@@ -119,7 +119,7 @@ class TestCreateRestaurant:
             json={
                 "id": "x",
                 "name": "R",
-                "diningOptions": "dine-in",
+                "diningOptions": ["dine-in"],
                 "rating": 0,
                 "address": "a",
                 "city": "c",
@@ -133,7 +133,7 @@ class TestCreateRestaurant:
             json={
                 "id": "x",
                 "name": "R",
-                "diningOptions": "takeaway",
+                "diningOptions": ["takeaway"],
                 "rating": 3,
                 "address": "a",
                 "city": "c",
@@ -141,11 +141,28 @@ class TestCreateRestaurant:
         )
         assert resp.status_code == 400
 
-    def test_dining_options_nullable(self, client, seed_restaurant):
-        """diningOptions may be omitted; it is stored as null."""
-        _, resp = seed_restaurant(diningOptions=None)
+    def test_dining_options_omitted_defaults_to_empty(self, client):
+        """Omitting diningOptions entirely defaults to an empty list."""
+        resp = client.post(
+            "/api/restaurants",
+            json={"id": "x", "name": "R", "rating": 3, "address": "a", "city": "c"},
+        )
         assert resp.status_code == 201
-        assert resp.get_json()["diningOptions"] is None
+        assert resp.get_json()["diningOptions"] == []
+
+    def test_dining_options_null_rejected(self, client):
+        """Explicitly sending null is rejected."""
+        resp = client.post(
+            "/api/restaurants",
+            json={"id": "x", "name": "R", "diningOptions": None, "rating": 3, "address": "a", "city": "c"},
+        )
+        assert resp.status_code == 400
+
+    def test_dining_options_multiple_values(self, client, seed_restaurant):
+        """Multiple valid values round-trip correctly."""
+        _, resp = seed_restaurant(diningOptions=["dine-in", "delivery", "takeout"])
+        assert resp.status_code == 201
+        assert resp.get_json()["diningOptions"] == ["dine-in", "delivery", "takeout"]
 
     def test_missing_name(self, client):
         resp = client.post(
@@ -153,7 +170,7 @@ class TestCreateRestaurant:
             json={
                 "id": "x",
                 "name": "",
-                "diningOptions": "dine-in",
+                "diningOptions": ["dine-in"],
                 "rating": 3,
                 "address": "a",
                 "city": "c",

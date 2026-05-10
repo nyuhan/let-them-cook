@@ -64,7 +64,7 @@ def _init_db(conn):
             city TEXT NOT NULL,
             map_uri TEXT,
             directions_uri TEXT,
-            dining_options TEXT CHECK(dining_options IS NULL OR dining_options IN ('dine-in','delivery','both')),
+            dining_options TEXT,
             rating INTEGER CHECK(rating IS NULL OR (rating BETWEEN 1 AND 5)),
             wishlisted BOOLEAN NOT NULL DEFAULT 0,
             price_level INTEGER,
@@ -94,6 +94,31 @@ def _init_db(conn):
         conn.execute("ALTER TABLE restaurants ADD COLUMN longitude REAL")
     if "type" in columns and "dining_options" not in columns:
         conn.execute("ALTER TABLE restaurants RENAME COLUMN type TO dining_options")
+
+    # Drop the old CHECK constraint on dining_options if present (must happen before
+    # value migration, since the old constraint rejects the new JSON values).
+    # Use sqlite_master because PRAGMA table_info doesn't expose CHECK constraints.
+    table_sql_row = conn.execute(
+        "SELECT sql FROM sqlite_master WHERE type='table' AND name='restaurants'"
+    ).fetchone()
+    if table_sql_row and "dining_options IN (" in (table_sql_row[0] or ""):
+        conn.execute("ALTER TABLE restaurants ADD COLUMN dining_options_new TEXT")
+        conn.execute("UPDATE restaurants SET dining_options_new = dining_options")
+        conn.execute("ALTER TABLE restaurants DROP COLUMN dining_options")
+        conn.execute("ALTER TABLE restaurants RENAME COLUMN dining_options_new TO dining_options")
+
+    # Migrate dining_options from old enum string to JSON array
+    _DINING_MIGRATION = {
+        "dine-in": '["dine-in"]',
+        "delivery": '["delivery"]',
+        "both": '["dine-in","delivery"]',
+    }
+    for old_val, new_val in _DINING_MIGRATION.items():
+        conn.execute(
+            "UPDATE restaurants SET dining_options = ? WHERE dining_options = ?",
+            (new_val, old_val),
+        )
+
     if "wishlisted" not in columns:
         # Make rating nullable: add new nullable column, copy data, swap names
         conn.execute(
@@ -128,16 +153,6 @@ def _init_db(conn):
                     (json.dumps(dish_list), rid),
                 )
             conn.execute("DROP TABLE dishes")
-
-    # Make dining_options nullable if it still has a NOT NULL constraint
-    cur2 = conn.execute("PRAGMA table_info(restaurants)")
-    for col in cur2.fetchall():
-        if col[1] == "dining_options" and col[3] == 1:  # notnull=1
-            conn.execute("ALTER TABLE restaurants ADD COLUMN dining_options_new TEXT CHECK(dining_options_new IS NULL OR dining_options_new IN ('dine-in','delivery','both'))")
-            conn.execute("UPDATE restaurants SET dining_options_new = dining_options")
-            conn.execute("ALTER TABLE restaurants DROP COLUMN dining_options")
-            conn.execute("ALTER TABLE restaurants RENAME COLUMN dining_options_new TO dining_options")
-            break
 
     # Normalise legacy empty-string notes to NULL
     conn.execute("UPDATE restaurants SET notes = NULL WHERE notes = ''")
@@ -283,6 +298,12 @@ def parse_restaurant_row(row):
             d["dishes"] = json.loads(d["dishes"] or "[]")
         except (json.JSONDecodeError, TypeError):
             d["dishes"] = []
+
+    if "dining_options" in d:
+        try:
+            d["dining_options"] = json.loads(d["dining_options"])
+        except (json.JSONDecodeError, TypeError):
+            d["dining_options"] = []
 
     return d
 
@@ -614,8 +635,13 @@ def restaurants():
             if not (1 <= rating <= 5):
                 return jsonify({"error": "rating must be between 1 and 5"}), 400
 
-        if not name or (dining_options is not None and dining_options not in ("dine-in", "delivery", "both")):
+        if not name or ("diningOptions" in data and (
+            not isinstance(dining_options, list)
+            or not all(v in ("dine-in", "delivery", "takeout") for v in dining_options)
+        )):
             return jsonify({"error": "invalid data"}), 400
+
+        dining_options_json = json.dumps(dining_options) if dining_options is not None else '[]'
 
         validated_dishes = []
         if dishes and isinstance(dishes, list):
@@ -645,7 +671,7 @@ def restaurants():
             (
                 id,
                 name,
-                dining_options,
+                dining_options_json,
                 rating,
                 wishlisted,
                 address,
@@ -710,17 +736,16 @@ def update_restaurant(rest_id):
     opening_hours = data.get("openingHours")
     types = data.get("types")
 
-    dining_options = data.get("diningOptions") if "diningOptions" in data else ...
+    dining_options = data.get("diningOptions")
     rating = data.get("rating")
     notes = data.get("notes") or None if "notes" in data else ...
     wishlisted = data.get("wishlisted")  # None means not provided
 
-    if dining_options is not ... and dining_options is not None and dining_options not in (
-        "dine-in",
-        "delivery",
-        "both",
+    if "diningOptions" in data and (
+        not isinstance(dining_options, list)
+        or not all(v in ("dine-in", "delivery", "takeout") for v in dining_options)
     ):
-        return jsonify({"error": f"invalid dining_options: {dining_options}"}), 400
+        return jsonify({"error": "invalid dining_options"}), 400
 
     if rating is not None:
         try:
@@ -756,7 +781,6 @@ def update_restaurant(rest_id):
         return jsonify({"error": "cannot mark a visited restaurant as wishlisted"}), 400
 
     new_name = name if name is not None else current_data["name"]
-    new_type = dining_options if dining_options is not ... else current_data["dining_options"]
     new_notes = notes if notes is not ... else current_data["notes"]
     new_address = address if address is not None else current_data["address"]
     new_city = city if city is not None else current_data["city"]
@@ -811,18 +835,21 @@ def update_restaurant(rest_id):
         dishes_json = json.dumps(validated_dishes)
 
     update_set = (
-        "name = ?, dining_options = ?, rating = ?, wishlisted = ?, notes = ?, "
+        "name = ?, rating = ?, wishlisted = ?, notes = ?, "
         "address = ?, city = ?, map_uri = ?, directions_uri = ?, "
         "price_level = ?, opening_hours = ?, types = ?, latitude = ?, longitude = ?"
     )
     params = [
-        new_name, new_type, new_rating, new_wishlisted, new_notes,
+        new_name, new_rating, new_wishlisted, new_notes,
         new_address, new_city, new_map_uri, new_directions_uri,
         new_price_level, new_opening_hours_json, new_types_json,
         new_latitude, new_longitude,
     ]
     if marking_as_visited:
         update_set += ", created_at = CURRENT_TIMESTAMP"
+    if "diningOptions" in data:
+        update_set += ", dining_options = ?"
+        params.append(json.dumps(dining_options if isinstance(dining_options, list) else []))
     if dishes_json is not None:
         update_set += ", dishes = ?"
         params.append(dishes_json)

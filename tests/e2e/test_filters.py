@@ -52,7 +52,7 @@ class TestFilterDropdowns:
         seed(
             id="f1",
             name="Dine One",
-            diningOptions="dine-in",
+            diningOptions=["dine-in"],
             city="Amsterdam",
             rating=5,
             priceLevel=1,
@@ -60,7 +60,7 @@ class TestFilterDropdowns:
         seed(
             id="f2",
             name="Dine Two",
-            diningOptions="dine-in",
+            diningOptions=["dine-in"],
             city="Zurich",
             rating=3,
             priceLevel=3,
@@ -68,7 +68,7 @@ class TestFilterDropdowns:
         seed(
             id="f3",
             name="Deliver One",
-            diningOptions="delivery",
+            diningOptions=["delivery"],
             city="Amsterdam",
             rating=4,
             priceLevel=2,
@@ -76,7 +76,7 @@ class TestFilterDropdowns:
         seed(
             id="f4",
             name="Both One",
-            diningOptions="both",
+            diningOptions=["dine-in", "delivery"],
             city="Zurich",
             rating=2,
             priceLevel=4,

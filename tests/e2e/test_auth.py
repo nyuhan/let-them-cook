@@ -359,7 +359,7 @@ class TestCSRF:
             json={
                 "id": "t",
                 "name": "T",
-                "diningOptions": "dine-in",
+                "diningOptions": ["dine-in"],
                 "rating": 3,
                 "address": "1 St",
                 "city": "C",
